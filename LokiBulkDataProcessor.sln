@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29215.179
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LokiBulkDataProcessor", "LokiBulkDataProcessor\LokiBulkDataProcessor.csproj", "{96A49671-D8D9-4DD0-B1BC-A630B5CC7AB5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{96A49671-D8D9-4DD0-B1BC-A630B5CC7AB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96A49671-D8D9-4DD0-B1BC-A630B5CC7AB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96A49671-D8D9-4DD0-B1BC-A630B5CC7AB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96A49671-D8D9-4DD0-B1BC-A630B5CC7AB5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1E99E977-6228-44DB-93C5-CEF5A1DD5D6E}
+	EndGlobalSection
+EndGlobal

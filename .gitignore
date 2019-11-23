@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/LokiBulkDataProcessor/obj
+/.vs/BulkDataProcessor/v16
+/.vs
+/LokiBulkDataProcessor/bin/Debug
