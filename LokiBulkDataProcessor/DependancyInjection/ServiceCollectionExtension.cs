@@ -1,5 +1,4 @@
-﻿using Loki.BulkDataProcessor.Repository;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Loki.BulkDataProcessor.DependancyInjection
 {
@@ -7,7 +6,7 @@ namespace Loki.BulkDataProcessor.DependancyInjection
     {
         public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services)
         {
-            services.AddScoped<IBulkRepository, BulkRepository>();
+            services.AddScoped<IBulkProcessor, BulkProcessor>();
             return services;
         }
     }

@@ -4,12 +4,17 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>LokiBulkDataProcessor</AssemblyName>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.0.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Repository\" />
   </ItemGroup>
 
 </Project>

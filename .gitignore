@@ -6,3 +6,5 @@
 /.vs/BulkDataProcessor/v16
 /.vs
 /LokiBulkDataProcessor/bin/Debug
+/LokiBulkDataProcessor.UnitTests/obj
+/LokiBulkDataProcessor.UnitTests/bin/Debug/netcoreapp3.0
