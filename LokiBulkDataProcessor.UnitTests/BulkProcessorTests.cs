@@ -11,15 +11,15 @@ namespace LokiBulkDataProcessor.UnitTests
 {
     public class BulkProcessorTests
     {
-        private const string DummyConnectionStringValue = "A dummy connection string";
-        private const string DummyDestinationTableName = "A dummy table name";
+        private const string TestConnectionStringValue = "A dummy connection string";
+        private const string TestDestinationTableName = "A dummy table name";
         private readonly IEnumerable<ValidModelObject> ModelObjects = new List<ValidModelObject> { new ValidModelObject() };
         private IBulkProcessor _bulkProcessor;
 
         [SetUp]
         public void SetUp()
         {
-            _bulkProcessor = new BulkProcessor();
+            _bulkProcessor = new BulkProcessor(TestConnectionStringValue);
         }
 
         [Test]
@@ -46,7 +46,7 @@ namespace LokiBulkDataProcessor.UnitTests
         public void SaveAsync_ShouldThrow_IfDataToProcessIsNull()
         {
             IEnumerable<ValidModelObject> nullModel = null;
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel, DummyConnectionStringValue, DummyDestinationTableName);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentNullException>()
@@ -57,7 +57,7 @@ namespace LokiBulkDataProcessor.UnitTests
         public void SaveAsync_ShouldThrow_IfDataToProcessIsEmpty()
         {
             var emptyModel = Enumerable.Empty<ValidModelObject>();
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel, DummyConnectionStringValue, DummyDestinationTableName);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()
@@ -65,29 +65,9 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public void SaveAsync_ShouldThrow_IfConnectionStringIsNull()
-        {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, null, DummyDestinationTableName);
-
-            action.Should()
-              .Throw<ArgumentNullException>()
-              .WithMessage("The connection string must not be null. (Parameter 'connectionString')");
-        }
-
-        [Test]
-        public void SaveAsync_ShouldThrow_IfConnectionStringIsEmpty()
-        {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, string.Empty, DummyDestinationTableName);
-
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage("The connection string must not be empty. (Parameter 'connectionString')");
-        }
-
-        [Test]
         public void SaveAsync_ShouldThrow_IfDestinationTableNameIsNull()
         {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, DummyConnectionStringValue, null);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, null);
 
             action.Should()
               .Throw<ArgumentNullException>()
@@ -97,7 +77,7 @@ namespace LokiBulkDataProcessor.UnitTests
         [Test]
         public void SaveAsync_ShouldThrow_IfDestinationTableNameIsEmpty()
         {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, DummyConnectionStringValue, string.Empty);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, string.Empty);
 
             action.Should()
               .Throw<ArgumentException>()

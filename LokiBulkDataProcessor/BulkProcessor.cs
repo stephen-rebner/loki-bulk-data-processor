@@ -1,11 +1,10 @@
-﻿using FastMember;
-using Loki.BulkDataProcessor.DefaultValues;
-using Loki.BulkDataProcessor.Utils.Reflection;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using FastMember;
 using Loki.BulkDataProcessor.Utils.Validation;
+using Loki.BulkDataProcessor.DefaultValues;
+using Loki.BulkDataProcessor.Utils.Reflection;
 
 namespace Loki.BulkDataProcessor
 {
@@ -41,50 +40,35 @@ namespace Loki.BulkDataProcessor
             }
         }
    
-
-        public BulkProcessor()
+        public BulkProcessor(string connectionString)
         {
+            _connectionString.ThrowIfNullOrEmptyString("The connection string must not be empty.", nameof(_connectionString));
             _timeout = DefaultConfigValues.Timeout;
             _batchSize = DefaultConfigValues.BatchSize;
+            _connectionString = connectionString;
         }
 
-        public Task<bool> DeleteAsync<T>(IEnumerable<T> data)
+        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
         {
-            throw new NotImplementedException();
+            ValidateSourceParams(dataToProcess, destinationTableName);
+
+            using var sqlConnection = new SqlConnection(_connectionString);
+
+            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
+            sqlBulkCopy.BatchSize = _batchSize;
+            sqlBulkCopy.BulkCopyTimeout = _timeout;
+            sqlBulkCopy.DestinationTableName = destinationTableName;
+
+            using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
+            await sqlBulkCopy.WriteToServerAsync(reader);
         }
 
-        public async Task<bool> SaveAsync<T>(IEnumerable<T> dataToProcess, string connectionString, string destinationTableName)
+        private void ValidateSourceParams<T>(IEnumerable<T> dataToProcess, string destinationTableName)
         {
-            ValidateSourceParams(dataToProcess, connectionString, destinationTableName);
-
-            using(var sqlBulkCopy = new SqlBulkCopy(_connectionString))
-            {
-                sqlBulkCopy.BatchSize = _batchSize;
-                sqlBulkCopy.BulkCopyTimeout = _timeout;
-                sqlBulkCopy.DestinationTableName = destinationTableName;
-
-                using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
-                await sqlBulkCopy.WriteToServerAsync(reader);
-            }
-
-            return true;
-        }
-
-        public Task<IEnumerable<T>> UpdateAsync<T>(IEnumerable<T> data)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void ValidateSourceParams<T>(IEnumerable<T> dataToProcess, string connectionString, string destinationTableName)
-        {
+            destinationTableName.ThrowIfNullOrEmptyString("The destination table name is required.", nameof(destinationTableName));
+            
             dataToProcess.ThrowIfArgumentIsNull($"The data collection to be proccessed is null. Please supply some data.", nameof(dataToProcess));
             dataToProcess.ThrowIfCollectionIsEmpty($"The data collection to be processed is empty. Please Supply some data.", nameof(dataToProcess));
-
-            connectionString.ThrowIfArgumentIsNull("The connection string must not be null.", nameof(connectionString));
-            connectionString.ThrowIfNullOrEmptyString("The connection string must not be empty.", nameof(connectionString));
-
-            destinationTableName.ThrowIfArgumentIsNull("The destination table name must not be null.", nameof(destinationTableName));
-            destinationTableName.ThrowIfNullOrEmptyString("The destination table name must not be empty.", nameof(destinationTableName));
         }
 
     }

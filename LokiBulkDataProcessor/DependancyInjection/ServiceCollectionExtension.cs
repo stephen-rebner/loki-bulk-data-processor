@@ -4,9 +4,9 @@ namespace Loki.BulkDataProcessor.DependancyInjection
 {
     public static class ServiceCollectionExtension
     {
-        public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services)
+        public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString)
         {
-            services.AddScoped<IBulkProcessor, BulkProcessor>();
+            services.AddScoped<IBulkProcessor, BulkProcessor>(x => new BulkProcessor(connectionString));
             return services;
         }
     }
