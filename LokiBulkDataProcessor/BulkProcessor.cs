@@ -42,7 +42,8 @@ namespace Loki.BulkDataProcessor
    
         public BulkProcessor(string connectionString)
         {
-            _connectionString.ThrowIfNullOrEmptyString("The connection string must not be empty.", nameof(_connectionString));
+            connectionString.ThrowIfNullOrEmptyString("The connection string must not be empty.", nameof(connectionString));
+            
             _timeout = DefaultConfigValues.Timeout;
             _batchSize = DefaultConfigValues.BatchSize;
             _connectionString = connectionString;
@@ -53,8 +54,9 @@ namespace Loki.BulkDataProcessor
             ValidateSourceParams(dataToProcess, destinationTableName);
 
             using var sqlConnection = new SqlConnection(_connectionString);
-
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
+
+            sqlConnection.Open();
             sqlBulkCopy.BatchSize = _batchSize;
             sqlBulkCopy.BulkCopyTimeout = _timeout;
             sqlBulkCopy.DestinationTableName = destinationTableName;
@@ -66,7 +68,6 @@ namespace Loki.BulkDataProcessor
         private void ValidateSourceParams<T>(IEnumerable<T> dataToProcess, string destinationTableName)
         {
             destinationTableName.ThrowIfNullOrEmptyString("The destination table name is required.", nameof(destinationTableName));
-            
             dataToProcess.ThrowIfArgumentIsNull($"The data collection to be proccessed is null. Please supply some data.", nameof(dataToProcess));
             dataToProcess.ThrowIfCollectionIsEmpty($"The data collection to be processed is empty. Please Supply some data.", nameof(dataToProcess));
         }

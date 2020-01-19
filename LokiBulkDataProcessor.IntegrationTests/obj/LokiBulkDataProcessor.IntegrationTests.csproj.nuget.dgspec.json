@@ -31,6 +31,101 @@
         },
         "frameworks": {
           "netcoreapp3.0": {
+            "projectReferences": {
+              "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\LokiBulkDataProcessor.csproj": {
+                "projectPath": "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\LokiBulkDataProcessor.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.0": {
+          "dependencies": {
+            "FluentAssertions": {
+              "target": "Package",
+              "version": "[5.10.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[3.1.1, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[3.1.1, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[3.1.1, )"
+            },
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[16.2.0, )"
+            },
+            "NUnit3TestAdapter": {
+              "target": "Package",
+              "version": "[3.13.0, )"
+            },
+            "nunit": {
+              "target": "Package",
+              "version": "[3.12.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.0.101\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\LokiBulkDataProcessor.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\LokiBulkDataProcessor.csproj",
+        "projectName": "LokiBulkDataProcessor",
+        "projectPath": "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\LokiBulkDataProcessor.csproj",
+        "packagesPath": "C:\\Users\\logic\\.nuget\\packages\\",
+        "outputPath": "C:\\Projects\\BulkDataProcessor\\LokiBulkDataProcessor\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Microsoft\\Xamarin\\NuGet\\",
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\logic\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.0": {
             "projectReferences": {}
           }
         },
@@ -43,17 +138,17 @@
       "frameworks": {
         "netcoreapp3.0": {
           "dependencies": {
-            "Microsoft.NET.Test.Sdk": {
+            "FastMember": {
               "target": "Package",
-              "version": "[16.2.0, )"
+              "version": "[1.5.0, )"
             },
-            "NUnit3TestAdapter": {
+            "Microsoft.Extensions.DependencyInjection": {
               "target": "Package",
-              "version": "[3.13.0, )"
+              "version": "[3.0.1, )"
             },
-            "nunit": {
+            "System.Data.SqlClient": {
               "target": "Package",
-              "version": "[3.12.0, )"
+              "version": "[4.7.0, )"
             }
           },
           "imports": [
