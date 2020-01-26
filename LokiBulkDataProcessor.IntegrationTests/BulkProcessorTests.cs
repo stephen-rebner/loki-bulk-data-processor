@@ -2,7 +2,7 @@
 using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModel;
-using System;
+using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
 using System.Collections.Generic;
 using Loki.BulkDataProcessor;
 using System.Threading.Tasks;
@@ -23,19 +23,33 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_SavesDataSuccessfully()
         {
-            var model = new TestDbModel
-            {
-                Id = 1,
-                StringColumn = "Test String",
-                BoolColumn = false,
-                DateColumn = DateTime.Now
-            };
+            var model1 = TestObjectFactory.NewTestDbModel()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new System.DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .Build();
 
-            var models = new List<TestDbModel> { model };
+            var model2 = TestObjectFactory.NewTestDbModel()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new System.DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .Build(); 
+            
+            var model3 = TestObjectFactory.NewTestDbModel()
+                 .WithId(3)
+                 .WithStringColumnValue("String Value 3")
+                 .WithDateColumnValue(new System.DateTime(2020, 01, 28))
+                 .WithBoolColumnValue(true)
+                 .Build();
 
-            await _bulkProcessor.SaveAsync(models, "TestDbModels");
+            var models = new List<TestDbModel> { model1, model2, model3 };
 
-            var results = TestDbContext.TestDbModels.ToList();
+            _bulkProcessor.DestinationTableName = "TestDbModels";
+            await _bulkProcessor.SaveAsync(models);
+
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
             results.Should().BeEquivalentTo(models);
         }

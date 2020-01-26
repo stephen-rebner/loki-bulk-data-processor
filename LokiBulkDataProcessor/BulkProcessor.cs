@@ -10,9 +10,10 @@ namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
-        private string _connectionString;
+        private readonly string _connectionString;
         private int _timeout;
         private int _batchSize;
+        private string _destinationTableName;
 
         public int Timeout
         {
@@ -39,19 +40,33 @@ namespace Loki.BulkDataProcessor
                 _batchSize = value;
             }
         }
+
+        public string DestinationTableName
+        {
+            get
+            {
+                return _destinationTableName;
+            }
+            set
+            {
+                value.ThrowIfNullOrEmptyString(nameof(DestinationTableName));
+                _destinationTableName = value;
+            }
+        }
    
         public BulkProcessor(string connectionString)
         {
-            connectionString.ThrowIfNullOrEmptyString("The connection string must not be empty.", nameof(connectionString));
+            connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
             
             _timeout = DefaultConfigValues.Timeout;
             _batchSize = DefaultConfigValues.BatchSize;
             _connectionString = connectionString;
         }
 
-        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
+        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess)
         {
-            ValidateSourceParams(dataToProcess, destinationTableName);
+            _destinationTableName.ThrowIfNullOrEmptyString(nameof(DestinationTableName));
+            dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
 
             using var sqlConnection = new SqlConnection(_connectionString);
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
@@ -59,18 +74,10 @@ namespace Loki.BulkDataProcessor
             sqlConnection.Open();
             sqlBulkCopy.BatchSize = _batchSize;
             sqlBulkCopy.BulkCopyTimeout = _timeout;
-            sqlBulkCopy.DestinationTableName = destinationTableName;
+            sqlBulkCopy.DestinationTableName = _destinationTableName;
 
             using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
             await sqlBulkCopy.WriteToServerAsync(reader);
         }
-
-        private void ValidateSourceParams<T>(IEnumerable<T> dataToProcess, string destinationTableName)
-        {
-            destinationTableName.ThrowIfNullOrEmptyString("The destination table name is required.", nameof(destinationTableName));
-            dataToProcess.ThrowIfArgumentIsNull($"The data collection to be proccessed is null. Please supply some data.", nameof(dataToProcess));
-            dataToProcess.ThrowIfCollectionIsEmpty($"The data collection to be processed is empty. Please Supply some data.", nameof(dataToProcess));
-        }
-
     }
 }

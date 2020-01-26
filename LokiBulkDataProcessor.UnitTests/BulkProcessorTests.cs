@@ -32,6 +32,15 @@ namespace LokiBulkDataProcessor.UnitTests
               .WithMessage("The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
         }
 
+        [TestCase(0)]
+        [TestCase(1)]
+        public void Timeout_ShouldNotThrow_WhenValueIsGtOrEqToZero(int timeoutValue)
+        {
+            Action action = () => _bulkProcessor.Timeout = timeoutValue;
+
+            action.Should().NotThrow<ArgumentException>();
+        }
+
         [Test]
         public void BatchSize_ShouldThrow_IfValueSetLessThanZero()
         {
@@ -42,47 +51,66 @@ namespace LokiBulkDataProcessor.UnitTests
               .WithMessage("The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
         }
 
+        [TestCase(0)]
+        [TestCase(1)]
+        public void BatchSize_ShouldNotThrow_WhenValueIsGtOrEqToZero(int batchSizeValue)
+        {
+            Action action = () => _bulkProcessor.BatchSize = batchSizeValue;
+
+            action.Should().NotThrow<ArgumentException>();
+        }
+
+        [TestCase("")]
+        [TestCase(null)]
+        public void DestinationTable_ShouldThrow_IfValueIsNullOrEmpty(string destinationTableValue)
+        {
+            Action action = () => _bulkProcessor.DestinationTableName = destinationTableValue;
+
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("DestinationTableName must not be null or empty. (Parameter 'DestinationTableName')");
+        }
+
+        [Test]
+        public void BatchSize_ShouldNotThrow_WhenValueIsNotNullOrEmpty()
+        {
+            Action action = () => _bulkProcessor.DestinationTableName = TestDestinationTableName;
+
+            action.Should().NotThrow<ArgumentException>();
+        }
+
         [Test]
         public void SaveAsync_ShouldThrow_IfDataToProcessIsNull()
         {
+            _bulkProcessor.DestinationTableName = TestDestinationTableName;
             IEnumerable<ValidModelObject> nullModel = null;
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel, TestDestinationTableName);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel);
 
             action.Should()
-              .Throw<ArgumentNullException>()
-              .WithMessage("The data collection to be proccessed is null. Please supply some data. (Parameter 'dataToProcess')");
+              .Throw<ArgumentException>()
+              .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
         }
 
         [Test]
         public void SaveAsync_ShouldThrow_IfDataToProcessIsEmpty()
         {
+            _bulkProcessor.DestinationTableName = TestDestinationTableName;
             var emptyModel = Enumerable.Empty<ValidModelObject>();
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel, TestDestinationTableName);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel);
 
             action.Should()
               .Throw<ArgumentException>()
-              .WithMessage("The data collection to be processed is empty. Please Supply some data. (Parameter 'dataToProcess')");
+              .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
         }
 
         [Test]
-        public void SaveAsync_ShouldThrow_IfDestinationTableNameIsNull()
+        public void SaveAsync_ShouldThrow_IfDestinationTableNameIsNotSet()
         {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, null);
-
-            action.Should()
-              .Throw<ArgumentNullException>()
-              .WithMessage("The destination table name must not be null. (Parameter 'destinationTableName')");
-        }
-
-        [Test]
-        public void SaveAsync_ShouldThrow_IfDestinationTableNameIsEmpty()
-        {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, string.Empty);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects);
 
             action.Should()
               .Throw<ArgumentException>()
-              .WithMessage("The destination table name must not be empty. (Parameter 'destinationTableName')");
+              .WithMessage("DestinationTableName must not be null or empty. (Parameter 'DestinationTableName')");
         }
-
     }
 }

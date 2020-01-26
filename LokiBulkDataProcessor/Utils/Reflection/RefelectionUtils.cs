@@ -14,7 +14,7 @@ namespace Loki.BulkDataProcessor.Utils.Reflection
                 .Select(propInfo => propInfo.Name)
                 .ToArray();
 
-            publicProperties.ThrowIfCollectionIsEmpty(
+            publicProperties.ThrowIfCollectionIsNullOrEmpty(
                 "The data model you passed contains no public properties",
                 nameof(publicProperties));
 

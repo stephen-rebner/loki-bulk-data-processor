@@ -6,19 +6,25 @@ namespace Loki.BulkDataProcessor.Utils.Validation
 {
     internal static class ArgumentValidatorExtensions
     {
-        internal static void ThrowIfArgumentIsNull<T>(this T argument, string errorMessage, string paramName)
-        {
-            if (argument == null) throw new ArgumentNullException(paramName, errorMessage);
-        }
-
-        internal static void ThrowIfCollectionIsEmpty<T>(this IEnumerable<T> collection, string errorMessage, string paramName)
+        internal static void ThrowIfCollectionIsNullOrEmpty<T>(this IEnumerable<T> collection, string errorMessage, string paramName)
         {
             if (!collection.Any()) throw new ArgumentException(errorMessage, paramName);
         }
 
-        internal static void ThrowIfNullOrEmptyString(this string value, string errorMessage, string paramName)
+        internal static void ThrowIfCollectionIsNullOrEmpty<T>(this IEnumerable<T> collection, string paramName)
         {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException(errorMessage, paramName);
+            if(collection == null || !collection.Any())
+            {
+                throw new ArgumentException($"The {paramName} collection must not be null or empty.", paramName);
+            }
+        }
+
+        internal static void ThrowIfNullOrEmptyString(this string value, string paramName)
+        {
+            if (string.IsNullOrWhiteSpace(value)) 
+            {
+                throw new ArgumentException($"{paramName} must not be null or empty.", paramName);
+            }
         }
 
         internal static void ThrowIfLessThanZero(this int value, string paramName)

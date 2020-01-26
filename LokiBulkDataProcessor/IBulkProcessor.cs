@@ -7,6 +7,7 @@ namespace Loki.BulkDataProcessor
     {
         int Timeout { get; set;}
         int BatchSize { get; set;}
-        Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName);
+        string DestinationTableName { get; set; }
+        Task SaveAsync<T>(IEnumerable<T> dataToProcess);
     }
 }
