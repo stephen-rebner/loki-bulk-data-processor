@@ -8,5 +8,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestModel
         public string StringColumn { get; set; }
         public bool BoolColumn { get; set; }
         public DateTime DateColumn { get; set; }
+        public bool? NullableBoolColumn { get; set; }
+        public DateTime? NullableDateColumn { get; set; }
     }
 }

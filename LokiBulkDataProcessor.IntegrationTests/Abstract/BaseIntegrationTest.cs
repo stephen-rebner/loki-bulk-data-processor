@@ -10,12 +10,10 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
     {
         protected TestDbContext TestDbContext;
 
-        protected TransactionScope TransactionScope;
-
         [SetUp]
         public void TestSetup()
         {
-            TestDbContext = new TestDbContext().CreateDbContext(new string[0]);
+            TestDbContext = new TestDbContext().CreateDbContext(null);
 
             TestDbContext.Database.EnsureDeleted();
             TestDbContext.Database.Migrate();

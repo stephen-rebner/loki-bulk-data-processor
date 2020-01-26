@@ -8,3 +8,5 @@
 /LokiBulkDataProcessor/bin/Debug
 /LokiBulkDataProcessor.UnitTests/obj
 /LokiBulkDataProcessor.UnitTests/bin/Debug/netcoreapp3.0
+/LokiBulkDataProcessor.IntegrationTests/bin
+/LokiBulkDataProcessor.IntegrationTests/obj

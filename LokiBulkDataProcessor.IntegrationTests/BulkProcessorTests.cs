@@ -28,6 +28,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithStringColumnValue("String Value 1")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 26))
                 .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
                 .Build();
 
             var model2 = TestObjectFactory.NewTestDbModel()
@@ -35,6 +37,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithStringColumnValue("String Value 2")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 27))
                 .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
                 .Build(); 
             
             var model3 = TestObjectFactory.NewTestDbModel()
@@ -42,6 +46,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
                  .WithStringColumnValue("String Value 3")
                  .WithDateColumnValue(new System.DateTime(2020, 01, 28))
                  .WithBoolColumnValue(true)
+                 .WithNullableBoolColumnValue(false)
+                 .WithNullableDateColumnValue(new System.DateTime(2020, 1, 10))
                  .Build();
 
             var models = new List<TestDbModel> { model1, model2, model3 };

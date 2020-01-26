@@ -9,6 +9,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         private string _stringColumn;
         private bool _boolColumn;
         private DateTime _dateColumn;
+        private bool? _nullableBoolColumn;
+        private DateTime? _nullableDateTimeColumn;
 
         public TestDbModelObjectBuilder WithId(int id)
         {
@@ -34,6 +36,18 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
             return this;
         }
 
+        public TestDbModelObjectBuilder WithNullableBoolColumnValue(bool? boolColumnValue)
+        {
+            _nullableBoolColumn = boolColumnValue;
+            return this;
+        }
+
+        public TestDbModelObjectBuilder WithNullableDateColumnValue(DateTime? dateColumnValue)
+        {
+            _nullableDateTimeColumn = dateColumnValue;
+            return this;
+        }
+
         public TestDbModel Build()
         {
             return new TestDbModel
@@ -41,7 +55,9 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
                 Id = _id,
                 StringColumn = _stringColumn,
                 BoolColumn = _boolColumn,
-                DateColumn = _dateColumn
+                DateColumn = _dateColumn,
+                NullableBoolColumn = _nullableBoolColumn,
+                NullableDateColumn = _nullableDateTimeColumn
             };
         }
     }
