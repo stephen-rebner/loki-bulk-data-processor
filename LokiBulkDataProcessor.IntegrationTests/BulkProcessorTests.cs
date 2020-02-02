@@ -21,7 +21,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_SavesDataSuccessfully()
+        public async Task SaveAsync_ShouldSaveDataModelsSuccessfully()
         {
             var model1 = TestObjectFactory.NewTestDbModel()
                 .WithId(1)
@@ -58,6 +58,42 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
             results.Should().BeEquivalentTo(models);
+        }
+
+        [Test]
+        public async Task SaveAsync_ShouldSaveDataTableSuccessfully()
+        {
+            using var datatable = TestObjectFactory.NewTestDataTable()
+                .WithRowData(1, "String Value 1", true, new System.DateTime(2020, 01, 26), null, null)
+                .WithRowData(2, "String Value 2", false, new System.DateTime(2020, 01, 27), true, new System.DateTime(2020, 01, 19))
+                .Build();
+
+            var exptectedModel1 = TestObjectFactory.NewTestDbModel()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new System.DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+
+            var expectedModel2 = TestObjectFactory.NewTestDbModel()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new System.DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
+                .Build();
+
+            var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
+
+            _bulkProcessor.DestinationTableName = "TestDbModels";
+            await _bulkProcessor.SaveAsync(datatable);
+
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+
+            results.Should().BeEquivalentTo(expctedResults);
         }
     }
 }

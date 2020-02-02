@@ -6,5 +6,10 @@
         {
             return new TestDbModelObjectBuilder();
         }
+
+        public static TestDataTableBuilder NewTestDataTable()
+        {
+            return new TestDataTableBuilder();
+        }
     }
 }

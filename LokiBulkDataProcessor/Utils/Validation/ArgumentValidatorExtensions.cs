@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace Loki.BulkDataProcessor.Utils.Validation
@@ -30,6 +31,14 @@ namespace Loki.BulkDataProcessor.Utils.Validation
         internal static void ThrowIfLessThanZero(this int value, string paramName)
         {
             if (value < 0) throw new ArgumentException($"The {paramName} value must be greater than or equal to 0", paramName);
+        }
+
+        internal static void ThrowIfNullOrHasZeroRows(this DataTable dataTable)
+        {
+            if(dataTable == null || dataTable.Rows.Count == 0)
+            {
+                throw new ArgumentException("The data table provided is either null or contains no data");
+            }
         }
     }
 }

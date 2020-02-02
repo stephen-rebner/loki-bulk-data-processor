@@ -5,6 +5,7 @@ using FastMember;
 using Loki.BulkDataProcessor.Utils.Validation;
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Utils.Reflection;
+using System.Data;
 
 namespace Loki.BulkDataProcessor
 {
@@ -72,12 +73,31 @@ namespace Loki.BulkDataProcessor
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
 
             sqlConnection.Open();
-            sqlBulkCopy.BatchSize = _batchSize;
-            sqlBulkCopy.BulkCopyTimeout = _timeout;
-            sqlBulkCopy.DestinationTableName = _destinationTableName;
+            SetUpSqlBulkCopier(sqlBulkCopy);
 
             using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
             await sqlBulkCopy.WriteToServerAsync(reader);
+        }
+
+        public async Task SaveAsync(DataTable dataTable)
+        {
+            dataTable.ThrowIfNullOrHasZeroRows();
+
+            using var sqlConnection = new SqlConnection(_connectionString);
+            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
+
+            sqlConnection.Open();
+            SetUpSqlBulkCopier(sqlBulkCopy);
+
+            await sqlBulkCopy.WriteToServerAsync(dataTable);
+
+        }
+
+        private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy)
+        {
+            sqlBulkCopy.BatchSize = _batchSize;
+            sqlBulkCopy.BulkCopyTimeout = _timeout;
+            sqlBulkCopy.DestinationTableName = _destinationTableName;
         }
     }
 }

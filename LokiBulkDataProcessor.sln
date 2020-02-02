@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LokiBulkDataProcessor", "Lo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LokiBulkDataProcessor.UnitTests", "LokiBulkDataProcessor.UnitTests\LokiBulkDataProcessor.UnitTests.csproj", "{F9743DB9-2ED9-41DF-9EDE-F9671DCF1D24}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LokiBulkDataProcessor.IntegrationTests", "LokiBulkDataProcessor.IntegrationTests\LokiBulkDataProcessor.IntegrationTests.csproj", "{7A5DA10E-E07F-4723-9A05-B56B87257551}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LokiBulkDataProcessor.IntegrationTests", "LokiBulkDataProcessor.IntegrationTests\LokiBulkDataProcessor.IntegrationTests.csproj", "{7A5DA10E-E07F-4723-9A05-B56B87257551}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

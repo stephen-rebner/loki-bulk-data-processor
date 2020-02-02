@@ -4,6 +4,7 @@ using LokiBulkDataProcessor.UnitTests.TestModels;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -111,6 +112,30 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("DestinationTableName must not be null or empty. (Parameter 'DestinationTableName')");
+        }
+
+        [Test]
+        public void SaveAsync_ShouldThrow_IfDataTableIsNull()
+        {
+            _bulkProcessor.DestinationTableName = TestDestinationTableName;
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(null);
+
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("The data table provided is either null or contains no data");
+        }
+
+        [Test]
+        public void SaveAsync_ShouldThrow_IfDataTableHasNoRows()
+        {
+            using var dataTable = new DataTable();
+            dataTable.Columns.Add(new DataColumn("Test Column"));
+
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(dataTable);
+
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("The data table provided is either null or contains no data");
         }
     }
 }
