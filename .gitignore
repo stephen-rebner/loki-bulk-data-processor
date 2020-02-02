@@ -12,3 +12,4 @@
 /LokiBulkDataProcessor.IntegrationTests/obj
 /LokiBulkDataProcessor/bin/Release/netcoreapp3.0
 /LokiBulkDataProcessor.UnitTests/bin/Release/netcoreapp3.0
+/LokiBulkDataProcessor/bin/Release

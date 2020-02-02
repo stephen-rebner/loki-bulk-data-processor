@@ -5,6 +5,12 @@
     <AssemblyName>LokiBulkDataProcessor</AssemblyName>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Stephen Rebner</Authors>
+    <PackageProjectUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageTags>loki stephen rebner bulk data processor sql bulk copy</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
