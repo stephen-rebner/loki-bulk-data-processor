@@ -1,5 +1,4 @@
-﻿using LokiBulkDataProcessor.IntegrationTests.TestModel;
-using System;
+﻿using System;
 using System.Data;
 
 namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
