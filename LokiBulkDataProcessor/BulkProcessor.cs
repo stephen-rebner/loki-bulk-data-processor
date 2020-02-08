@@ -14,7 +14,6 @@ namespace Loki.BulkDataProcessor
         private readonly string _connectionString;
         private int _timeout;
         private int _batchSize;
-        private string _destinationTableName;
 
         public int Timeout
         {
@@ -41,19 +40,6 @@ namespace Loki.BulkDataProcessor
                 _batchSize = value;
             }
         }
-
-        public string DestinationTableName
-        {
-            get
-            {
-                return _destinationTableName;
-            }
-            set
-            {
-                value.ThrowIfNullOrEmptyString(nameof(DestinationTableName));
-                _destinationTableName = value;
-            }
-        }
    
         public BulkProcessor(string connectionString)
         {
@@ -64,22 +50,22 @@ namespace Loki.BulkDataProcessor
             _connectionString = connectionString;
         }
 
-        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess)
+        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
         {
-            _destinationTableName.ThrowIfNullOrEmptyString(nameof(DestinationTableName));
+            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
 
             using var sqlConnection = new SqlConnection(_connectionString);
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
 
             sqlConnection.Open();
-            SetUpSqlBulkCopier(sqlBulkCopy);
+            SetUpSqlBulkCopier(sqlBulkCopy, destinationTableName);
 
             using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
             await sqlBulkCopy.WriteToServerAsync(reader);
         }
 
-        public async Task SaveAsync(DataTable dataTable)
+        public async Task SaveAsync(DataTable dataTable, string destinationTableName)
         {
             dataTable.ThrowIfNullOrHasZeroRows();
 
@@ -87,17 +73,17 @@ namespace Loki.BulkDataProcessor
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
 
             sqlConnection.Open();
-            SetUpSqlBulkCopier(sqlBulkCopy);
+            SetUpSqlBulkCopier(sqlBulkCopy, destinationTableName);
 
             await sqlBulkCopy.WriteToServerAsync(dataTable);
 
         }
 
-        private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy)
+        private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy, string destinationTableName)
         {
             sqlBulkCopy.BatchSize = _batchSize;
             sqlBulkCopy.BulkCopyTimeout = _timeout;
-            sqlBulkCopy.DestinationTableName = _destinationTableName;
+            sqlBulkCopy.DestinationTableName = destinationTableName;
         }
     }
 }

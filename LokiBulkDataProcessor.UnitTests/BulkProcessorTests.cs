@@ -61,31 +61,11 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should().NotThrow<ArgumentException>();
         }
 
-        [TestCase("")]
-        [TestCase(null)]
-        public void DestinationTable_ShouldThrow_IfValueIsNullOrEmpty(string destinationTableValue)
-        {
-            Action action = () => _bulkProcessor.DestinationTableName = destinationTableValue;
-
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage("DestinationTableName must not be null or empty. (Parameter 'DestinationTableName')");
-        }
-
-        [Test]
-        public void BatchSize_ShouldNotThrow_WhenValueIsNotNullOrEmpty()
-        {
-            Action action = () => _bulkProcessor.DestinationTableName = TestDestinationTableName;
-
-            action.Should().NotThrow<ArgumentException>();
-        }
-
         [Test]
         public void SaveAsync_ShouldThrow_IfDataToProcessIsNull()
         {
-            _bulkProcessor.DestinationTableName = TestDestinationTableName;
             IEnumerable<ValidModelObject> nullModel = null;
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()
@@ -95,30 +75,30 @@ namespace LokiBulkDataProcessor.UnitTests
         [Test]
         public void SaveAsync_ShouldThrow_IfDataToProcessIsEmpty()
         {
-            _bulkProcessor.DestinationTableName = TestDestinationTableName;
             var emptyModel = Enumerable.Empty<ValidModelObject>();
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
         }
 
-        [Test]
-        public void SaveAsync_ShouldThrow_IfDestinationTableNameIsNotSet()
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public void SaveAsync_ShouldThrow_IfDestinationTableNameIsNotSet(string destinationTableName)
         {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, destinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()
-              .WithMessage("DestinationTableName must not be null or empty. (Parameter 'DestinationTableName')");
+              .WithMessage("DestinationTableName must not be null or empty. (Parameter 'destinationTableName')");
         }
 
         [Test]
         public void SaveAsync_ShouldThrow_IfDataTableIsNull()
         {
-            _bulkProcessor.DestinationTableName = TestDestinationTableName;
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(null);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(null, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()
@@ -131,7 +111,7 @@ namespace LokiBulkDataProcessor.UnitTests
             using var dataTable = new DataTable();
             dataTable.Columns.Add(new DataColumn("Test Column"));
 
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(dataTable);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(dataTable, TestDestinationTableName);
 
             action.Should()
               .Throw<ArgumentException>()

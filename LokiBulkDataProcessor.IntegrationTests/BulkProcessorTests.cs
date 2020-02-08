@@ -52,8 +52,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var models = new List<TestDbModel> { model1, model2, model3 };
 
-            _bulkProcessor.DestinationTableName = "TestDbModels";
-            await _bulkProcessor.SaveAsync(models);
+            await _bulkProcessor.SaveAsync(models, "TestDbModels");
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
@@ -88,8 +87,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
 
-            _bulkProcessor.DestinationTableName = "TestDbModels";
-            await _bulkProcessor.SaveAsync(datatable);
+            await _bulkProcessor.SaveAsync(datatable, "TestDbModels");
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
