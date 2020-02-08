@@ -1,5 +1,5 @@
 # Loki Bulk Data Processor
-A Asp.Net Core library which enables the fast bulk processing of data.
+An Asp.Net Core library which enables the fast bulk processing of data.
 
 The Bulk Data Processor Class is available in the Loki.BulkDataProcessor namespace and can be instantiated by passing in the connection string into the constructor:
 
