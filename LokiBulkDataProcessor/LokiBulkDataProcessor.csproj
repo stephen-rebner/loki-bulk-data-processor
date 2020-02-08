@@ -11,6 +11,7 @@
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki stephen rebner bulk data processor sql bulk copy</PackageTags>
     <Version>1.0.2</Version>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
@@ -19,5 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Repository\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 </Project>
