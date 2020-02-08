@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyVersion("1.0.0")]
+[assembly: AssemblyVersion("1.0.0.01")]
 [assembly: InternalsVisibleTo("LokiBulkDataProcessor.UnitTests")]
 
 namespace Loki.BulkDataProcessor.Properties
