@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki stephen rebner bulk data processor sql bulk copy</PackageTags>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />

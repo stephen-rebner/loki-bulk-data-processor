@@ -11,7 +11,7 @@ namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
-        private readonly string _connectionString;
+        private readonly SqlConnection _sqlConnection;
         private int _timeout;
         private int _batchSize;
 
@@ -47,7 +47,7 @@ namespace Loki.BulkDataProcessor
             
             _timeout = DefaultConfigValues.Timeout;
             _batchSize = DefaultConfigValues.BatchSize;
-            _connectionString = connectionString;
+            _sqlConnection = new SqlConnection(connectionString);
         }
 
         public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
@@ -55,7 +55,7 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
 
-            using var sqlConnection = new SqlConnection(_connectionString);
+            using var sqlConnection = _sqlConnection;
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
 
             sqlConnection.Open();
@@ -69,7 +69,7 @@ namespace Loki.BulkDataProcessor
         {
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            using var sqlConnection = new SqlConnection(_connectionString);
+            using var sqlConnection = _sqlConnection;
             using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
 
             sqlConnection.Open();

@@ -12,7 +12,7 @@ namespace LokiBulkDataProcessor.UnitTests
 {
     public class BulkProcessorTests
     {
-        private const string TestConnectionStringValue = "A dummy connection string";
+        private const string TestConnectionStringValue = "Server=(local)";
         private const string TestDestinationTableName = "A dummy table name";
         private readonly IEnumerable<ValidModelObject> ModelObjects = new List<ValidModelObject> { new ValidModelObject() };
         private IBulkProcessor _bulkProcessor;
