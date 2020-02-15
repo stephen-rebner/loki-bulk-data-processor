@@ -1,5 +1,5 @@
 # Loki Bulk Data Processor
-The Loki Bulk Data Processor is an Asp.Net Core library which enables the fast bulk processing of data. It uses SQL Bulk Copy class under the hood, and can process data model collections or data tables.
+The Loki Bulk Data Processor is an Asp.Net Core library which enables the fast bulk processing of data. It uses the SQL Bulk Copy class under the hood, and can process data model collections or data tables.
 
 The package can be downloaded on Nuget by running the following command:
 
