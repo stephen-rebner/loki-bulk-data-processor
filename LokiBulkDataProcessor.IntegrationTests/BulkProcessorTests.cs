@@ -93,5 +93,22 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             results.Should().BeEquivalentTo(expctedResults);
         }
+
+        [Test]
+        public async Task UpdateAsync_ShouldUpdateDataModelsSuccessfully()
+        {
+            var model1 = TestObjectFactory.NewTestDbModel()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new System.DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+
+            var models = new List<TestDbModel> { model1 };
+
+            await _bulkProcessor.UpdateAsync(models, "TestDbModels", m => m.Id == 1);
+        }
     }
 }

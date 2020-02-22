@@ -6,14 +6,26 @@ using Loki.BulkDataProcessor.Utils.Validation;
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using System.Data;
+using System.Linq.Expressions;
+using System;
+using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 
 namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
+
+        #region Private Variables
+
         private readonly SqlConnection _sqlConnection;
+        private readonly ITempTable _tempTable;
         private int _timeout;
         private int _batchSize;
+
+        #endregion
+
+
+        #region Public Properties
 
         public int Timeout
         {
@@ -40,7 +52,12 @@ namespace Loki.BulkDataProcessor
                 _batchSize = value;
             }
         }
-   
+
+        #endregion
+
+
+        #region Constructor
+
         public BulkProcessor(string connectionString)
         {
             connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
@@ -50,7 +67,12 @@ namespace Loki.BulkDataProcessor
             _sqlConnection = new SqlConnection(connectionString);
         }
 
-        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
+        #endregion
+
+
+        #region Save Methods
+
+        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
@@ -63,6 +85,7 @@ namespace Loki.BulkDataProcessor
 
             using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
             await sqlBulkCopy.WriteToServerAsync(reader);
+            sqlBulkCopy.Close();
         }
 
         public async Task SaveAsync(DataTable dataTable, string destinationTableName)
@@ -76,8 +99,40 @@ namespace Loki.BulkDataProcessor
             SetUpSqlBulkCopier(sqlBulkCopy, destinationTableName);
 
             await sqlBulkCopy.WriteToServerAsync(dataTable);
+            sqlBulkCopy.Close();
+        }
+
+        #endregion
+
+
+        #region Update Methods
+
+        public async Task UpdateAsync<T>(
+            IEnumerable<T> dataToProcess,
+            string destinationTableName,
+            Expression<Func<T, bool>> predicate) where T : class
+        {
+            dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
+
+            using var sqlConnection = _sqlConnection;
+            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
+            
+            _tempTable.Create(typeof(T));
+
+            sqlConnection.Open();
+            SetUpSqlBulkCopier(sqlBulkCopy, $"#{ destinationTableName }");
+
+            using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
+            await sqlBulkCopy.WriteToServerAsync(reader);
+
+            sqlBulkCopy.Close();
 
         }
+
+        #endregion
+
+
+        #region Private Helper Methods
 
         private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy, string destinationTableName)
         {
@@ -85,5 +140,8 @@ namespace Loki.BulkDataProcessor
             sqlBulkCopy.BulkCopyTimeout = _timeout;
             sqlBulkCopy.DestinationTableName = destinationTableName;
         }
+
+        #endregion
+
     }
 }

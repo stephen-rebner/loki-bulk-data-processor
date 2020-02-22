@@ -9,7 +9,7 @@ namespace Loki.BulkDataProcessor.Utils.Validation
     {
         internal static void ThrowIfCollectionIsNullOrEmpty<T>(this IEnumerable<T> collection, string errorMessage, string paramName)
         {
-            if (!collection.Any()) throw new ArgumentException(errorMessage, paramName);
+            if (collection == null || !collection.Any()) throw new ArgumentException(errorMessage, paramName);
         }
 
         internal static void ThrowIfCollectionIsNullOrEmpty<T>(this IEnumerable<T> collection, string paramName)
