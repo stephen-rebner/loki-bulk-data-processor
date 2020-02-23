@@ -83,6 +83,7 @@ namespace Loki.BulkDataProcessor
             //sqlBulkCopy.Close();
         }
 
+        [Obsolete("This method is depreciated, please use the fluent API")]
         public async Task SaveAsync(DataTable dataTable, string destinationTableName)
         {
             //dataTable.ThrowIfNullOrHasZeroRows();
@@ -118,19 +119,8 @@ namespace Loki.BulkDataProcessor
         public async Task ExecuteUpdateWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class
         {
             // to think  about - what should happen if value passed is null?
+            // Also does this make sense? maybe should be ExecuteUpdateWithJoin()?
             var command = _bulkCommandFactory.NewCommand<BulkUpdateCommand>();
-            await command.ExecuteAsync();
-        }
-
-
-        public async Task UpdateAsync<T>(
-            IEnumerable<T> dataToProcess,
-            string destinationTableName,
-            Expression<Func<T, bool>> predicate) where T : class
-        {
-            dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
-
-            var command  = _bulkCommandFactory.NewCommand<BulkUpdateCommand>();
             await command.ExecuteAsync();
         }
 
