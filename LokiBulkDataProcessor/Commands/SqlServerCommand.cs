@@ -1,21 +1,29 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using System;
-using System.Collections.Generic;
+using Loki.BulkDataProcessor.Context.Interface;
 using System.Data.SqlClient;
-using System.Text;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    public class SqlServerCommand : ISqlServerCommand
+    public class SqlServerCommand : ISqlCommand
     {
-        public void Execute(string connectionString, string commandText, int commandTimeout)
-        {
-            using var sqlConnection = new SqlConnection(connectionString);
-            using var sqlCommand = new SqlCommand();
+        private readonly IDbContext _dbContext;
 
-            sqlConnection.Open();
-            sqlCommand.CommandText = commandText;
-            sqlCommand.CommandTimeout = commandTimeout;
+        public SqlServerCommand(IDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        /// <summary>
+        /// Executes a Non Query Command against the database
+        /// </summary>
+        /// <param name="sqlCommandText">The query to execute</param>
+        public void Execute(string sqlCommandText)
+        {
+            using var sqlCommand = new SqlCommand(sqlCommandText, _dbContext.OpenSqlConnection())
+            {
+                CommandTimeout = _dbContext.Timeout
+            };
+
             sqlCommand.ExecuteNonQuery();
         }
     }

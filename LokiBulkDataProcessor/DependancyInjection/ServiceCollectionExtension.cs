@@ -1,4 +1,7 @@
-﻿using Loki.BulkDataProcessor.InternalDbOperations;
+﻿using Loki.BulkDataProcessor.Context;
+using Loki.BulkDataProcessor.Context.Interface;
+using Loki.BulkDataProcessor.Constants;
+using Loki.BulkDataProcessor.InternalDbOperations;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,7 +12,14 @@ namespace Loki.BulkDataProcessor.DependancyInjection
         public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString)
         {
             services.AddScoped<ITempTable, TempTable>();
-            services.AddScoped<IBulkProcessor, BulkProcessor>(x => new BulkProcessor(connectionString));
+
+            services.AddSingleton<IDbContext, DbContext>(dbContext => new DbContext(
+                connectionString, 
+                DefaultConfigValues.BatchSize, 
+                DefaultConfigValues.Timeout));
+
+            //services.AddScoped<IBulkProcessor, BulkProcessor>(x => new BulkProcessor(connectionString));
+
             return services;
         }
     }

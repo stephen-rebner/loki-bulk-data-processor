@@ -1,4 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
+using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using System;
@@ -12,28 +13,16 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         #region Private Members
 
-        private const string TempTableName = "#TempTable";
-        private readonly string CreateTableStatement = $"CREATE TABLE { TempTableName }";
-        private readonly string DropTableStatement = $"DROP TABLE { TempTableName }";
-        private readonly ISqlServerCommand _sqlServerCommand;
-        private readonly string _connectionString;
-        private readonly string _commandText;
-        private readonly int _commandTimeout;
+        private readonly ISqlCommand _sqlServerCommand;
 
         #endregion
 
 
         #region Constructors
 
-        public TempTable(ISqlServerCommand sqlServerCommand, 
-            string connectionString, 
-            string commandText,
-            int commandTimeout)
+        public TempTable(ISqlCommand sqlServerCommand)
         {
             _sqlServerCommand = sqlServerCommand;
-            _connectionString = connectionString;
-            _commandText = commandText;
-            _commandTimeout = commandTimeout;
         }
 
         #endregion
@@ -41,11 +30,14 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         #region Temp Table Operations
 
+        /// <summary>
+        /// Creates a temp table on the database
+        /// </summary>
         public void Create(Type dataModelType)
         {
             var sqlBuilder = new StringBuilder();
 
-            sqlBuilder.AppendFormat(CreateTableStatement, TempTableName);
+            sqlBuilder.Append($"CREATE TABLE { DbConstants.TempTableName }");
             sqlBuilder.Append("(");
 
             var properties = dataModelType.GetPublicProperties();
@@ -64,14 +56,19 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
             sqlBuilder.Append(")");
 
-            _sqlServerCommand.Execute(_connectionString, _commandText, _commandTimeout);
+            _sqlServerCommand.Execute(sqlBuilder.ToString());
         }
 
+        /// <summary>
+        /// Drops the temp table on the database
+        /// </summary>
         public void Drop()
         {
-
+            _sqlServerCommand.Execute($"DROP TABLE { DbConstants.TempTableName} ");
         }
 
         #endregion
+
+
     }
 }

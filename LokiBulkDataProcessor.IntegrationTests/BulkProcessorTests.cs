@@ -17,7 +17,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [SetUp]
         public void Setup()
         {
-            _bulkProcessor = new BulkProcessor("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true");
+            //_bulkProcessor = new BulkProcessor();
         }
 
         [Test]
@@ -107,6 +107,10 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .Build();
 
             var models = new List<TestDbModel> { model1 };
+
+            //await _bulkProcessor.Update(models)
+            //    .OnTable("")
+            //    .ExecuteWhere<TestDbModel>(x => x.Id > 1);
 
             await _bulkProcessor.UpdateAsync(models, "TestDbModels", m => m.Id == 1);
         }
