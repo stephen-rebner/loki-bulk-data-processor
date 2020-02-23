@@ -13,7 +13,7 @@ namespace Loki.BulkDataProcessor.DependancyInjection
         {
             services.AddScoped<ITempTable, TempTable>();
 
-            services.AddSingleton<IDbContext, DbContext>(dbContext => new DbContext(
+            services.AddSingleton<IModelDbContext, ModelDbContext>(dbContext => new ModelDbContext(
                 connectionString, 
                 DefaultConfigValues.BatchSize, 
                 DefaultConfigValues.Timeout));

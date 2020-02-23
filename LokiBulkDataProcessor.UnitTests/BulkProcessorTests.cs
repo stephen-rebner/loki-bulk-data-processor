@@ -1,6 +1,9 @@
 ﻿using FluentAssertions;
 using Loki.BulkDataProcessor;
+using Loki.BulkDataProcessor.Commands.Factory.Interface;
+using Loki.BulkDataProcessor.Context.Interface;
 using LokiBulkDataProcessor.UnitTests.TestModels;
+using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -12,34 +15,54 @@ namespace LokiBulkDataProcessor.UnitTests
 {
     public class BulkProcessorTests
     {
-        private const string TestConnectionStringValue = "Server=(local)";
+        private int _timeoutValue = 10;
+
         private const string TestDestinationTableName = "A dummy table name";
         private readonly IEnumerable<ValidModelObject> ModelObjects = new List<ValidModelObject> { new ValidModelObject() };
         private BulkProcessor _bulkProcessor;
 
+        private Mock<IBulkCommandFactory> _bulkCommandFactory;
+        private Mock<IModelDbContext> _dbContext;
+
         [SetUp]
         public void SetUp()
         {
-            //_bulkProcessor = new BulkProcessor();
+            _bulkCommandFactory = new Mock<IBulkCommandFactory>(MockBehavior.Strict);
+            _dbContext = new Mock<IModelDbContext>(MockBehavior.Strict);
+            _bulkProcessor = new BulkProcessor(_bulkCommandFactory.Object, _dbContext.Object);
         }
 
         [Test]
         public void Timeout_ShouldThrow_IfValueSetLessThanZero()
         {
-            Action action = () => _bulkProcessor.Timeout = -1;
+            GivenTimeoutValueOf(-1);
 
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage("The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
+            Action action = () => WhenTimeoutPropertyIsUpdated();
+
+            ActionShouldThrowWithMessage(action, "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
         }
 
         [TestCase(0)]
         [TestCase(1)]
         public void Timeout_ShouldNotThrow_WhenValueIsGtOrEqToZero(int timeoutValue)
         {
-            Action action = () => _bulkProcessor.Timeout = timeoutValue;
+            GivenTimeoutValueOf(timeoutValue);
 
-            action.Should().NotThrow<ArgumentException>();
+            Action action = () => WhenTimeoutPropertyIsUpdated();
+
+            ActionShouldNotThrowArgException(action);
+        }
+
+        [Test]
+        public void Timeout_ShouldUpdateDbContext_WithCorrectValue()
+        {
+            GivenTimeoutValueOf(10);
+
+            UpdateTimeoutShouldBeCalledOnDbContext();
+
+            WhenTimeoutPropertyIsUpdated();
+
+            VerifyDbContextCalls();
         }
 
         [Test]
@@ -117,5 +140,42 @@ namespace LokiBulkDataProcessor.UnitTests
               .Throw<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
         }
+
+        #region Private Helper Methods
+
+        private void GivenTimeoutValueOf(int timeoutValue)
+        {
+            _timeoutValue = timeoutValue;
+        }
+
+        private void UpdateTimeoutShouldBeCalledOnDbContext()
+        {
+            _dbContext.Setup(context => context.UpdateTimeout(_timeoutValue));
+        }
+
+        private void WhenTimeoutPropertyIsUpdated()
+        {
+            _bulkProcessor.Timeout = _timeoutValue;
+        }
+
+        private void VerifyDbContextCalls()
+        {
+            _dbContext.VerifyAll();
+        }
+
+        private void ActionShouldNotThrowArgException(Action action)
+        {
+            action.Should().NotThrow<ArgumentException>();
+        }
+
+        private void ActionShouldThrowWithMessage(Action action, string errorMessage)
+        {
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage(errorMessage);
+        }
+
+        #endregion
+
     }
 }

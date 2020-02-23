@@ -19,7 +19,7 @@ namespace Loki.BulkDataProcessor.Commands
         /// <param name="sqlCommandText">The query to execute</param>
         public void Execute(string sqlCommandText)
         {
-            using var sqlCommand = new SqlCommand(sqlCommandText, _dbContext.OpenSqlConnection())
+            using var sqlCommand = new SqlCommand(sqlCommandText, _dbContext.SqlConnection)
             {
                 CommandTimeout = _dbContext.Timeout
             };

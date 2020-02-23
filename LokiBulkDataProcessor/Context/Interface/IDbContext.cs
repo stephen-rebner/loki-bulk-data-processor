@@ -13,6 +13,8 @@ namespace Loki.BulkDataProcessor.Context.Interface
 
         string DestinationTableName { get; }
 
+        SqlConnection SqlConnection { get; }
+
         void UpdateTimeout(int timeout);
 
         void UpdateDestinationTableName(string destinationTableName);
@@ -21,6 +23,5 @@ namespace Loki.BulkDataProcessor.Context.Interface
 
         void UpdateConnectionString(string connectionString);
 
-        SqlConnection OpenSqlConnection();
     }
 }

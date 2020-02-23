@@ -1,17 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Threading.Tasks;
-using FastMember;
-using Loki.BulkDataProcessor.Utils.Validation;
-using Loki.BulkDataProcessor.Constants;
-using Loki.BulkDataProcessor.Utils.Reflection;
-using System.Data;
-using System.Linq.Expressions;
-using System;
-using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
+﻿using Loki.BulkDataProcessor.Commands;
 using Loki.BulkDataProcessor.Commands.Factory.Interface;
-using Loki.BulkDataProcessor.Commands;
 using Loki.BulkDataProcessor.Context.Interface;
+using Loki.BulkDataProcessor.Utils.Validation;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor
 {
@@ -21,9 +17,7 @@ namespace Loki.BulkDataProcessor
         #region Private Variables
 
         private readonly IBulkCommandFactory _bulkCommandFactory;
-        private readonly IDbContext _dbContext;
-        private int _timeout;
-        private int _batchSize;
+        private readonly IModelDbContext _dbContext;
 
         #endregion
 
@@ -34,7 +28,7 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _timeout;
+                return _dbContext.Timeout;
             }
             set
             {
@@ -47,7 +41,7 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _batchSize;
+                return _dbContext.BatchSize;
             }
             set
             {
@@ -61,7 +55,7 @@ namespace Loki.BulkDataProcessor
 
         #region Constructor
 
-        public BulkProcessor(IBulkCommandFactory bulkCommandFactory, IDbContext dbContext)
+        public BulkProcessor(IBulkCommandFactory bulkCommandFactory, IModelDbContext dbContext)
         {
             _bulkCommandFactory = bulkCommandFactory;
             _dbContext = dbContext;
@@ -107,8 +101,8 @@ namespace Loki.BulkDataProcessor
         {
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
 
-            //_dataToProcess = dataToProcess;
-            
+            _dbContext.AddModels(dataToProcess);
+
             return this;
         }
 
@@ -121,7 +115,7 @@ namespace Loki.BulkDataProcessor
             return this;
         }
 
-        public async Task ExecuteWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class
+        public async Task ExecuteUpdateWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class
         {
             // to think  about - what should happen if value passed is null?
             var command = _bulkCommandFactory.NewCommand<BulkUpdateCommand>();
@@ -144,20 +138,6 @@ namespace Loki.BulkDataProcessor
         {
             _dbContext.Dispose();
         }
-
-        #endregion
-
-
-        #region Private Helper Methods
-
-        private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy, string destinationTableName)
-        {
-            sqlBulkCopy.BatchSize = _batchSize;
-            sqlBulkCopy.BulkCopyTimeout = _timeout;
-            sqlBulkCopy.DestinationTableName = destinationTableName;
-        }
-
-        
 
         #endregion
 

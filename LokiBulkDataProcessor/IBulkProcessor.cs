@@ -22,6 +22,6 @@ namespace Loki.BulkDataProcessor
 
         IBulkProcessor OnTable(string destinationTableName);
 
-        Task ExecuteWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class;
+        Task ExecuteUpdateWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class;
     }
 }

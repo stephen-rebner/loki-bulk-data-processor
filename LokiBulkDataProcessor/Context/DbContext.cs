@@ -3,12 +3,11 @@ using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.Context
 {
-    public class DbContext : IDbContext
+    public abstract class DbContext : IDbContext
     {
 
         #region Private Members
 
-        private string _connectionString;
         private SqlConnection _sqlConnection;
 
         #endregion
@@ -22,6 +21,8 @@ namespace Loki.BulkDataProcessor.Context
 
         public string DestinationTableName { get; private set; }
 
+        public virtual SqlConnection SqlConnection => _sqlConnection;
+
         #endregion
 
 
@@ -31,7 +32,8 @@ namespace Loki.BulkDataProcessor.Context
         {
             BatchSize = batchSize;
             Timeout = timeout;
-            _sqlConnection = new SqlConnection(_connectionString);
+            _sqlConnection = new SqlConnection(connectionString);
+            _sqlConnection.Open();
         }
 
         #endregion
@@ -43,12 +45,6 @@ namespace Loki.BulkDataProcessor.Context
         {
             _sqlConnection.Close();
             _sqlConnection.Dispose();
-        }
-
-        public virtual SqlConnection OpenSqlConnection()
-        {
-            _sqlConnection.Open();
-            return _sqlConnection;
         }
 
         public virtual void UpdateBatchSize(int batchSize)
