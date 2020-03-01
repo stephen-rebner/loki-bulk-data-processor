@@ -20,7 +20,7 @@ namespace Loki.BulkDataProcessor
 
         IBulkProcessor Update<T>(IEnumerable<T> dataToProcess) where T : class;
 
-        IBulkProcessor OnTable(string destinationTableName);
+        IBulkProcessor Table(string destinationTableName);
 
         Task ExecuteUpdateWhere<T>(Expression<Func<T, bool>> whereExpression) where T : class;
     }

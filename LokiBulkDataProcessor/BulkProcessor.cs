@@ -1,11 +1,14 @@
 ﻿using Loki.BulkDataProcessor.Commands;
 using Loki.BulkDataProcessor.Commands.Factory.Interface;
+using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interface;
 using Loki.BulkDataProcessor.Utils.Validation;
+using MediatR;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
@@ -18,6 +21,15 @@ namespace Loki.BulkDataProcessor
 
         private readonly IBulkCommandFactory _bulkCommandFactory;
         private readonly IModelDbContext _dbContext;
+        private readonly IMediator _mediator;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _connectionString;
+
+        private int _timeout;
+        private int _batchSize;
+        private DataTable _dataTableToProcess;
+        private IEnumerable<object> _dataToProcess;
 
         #endregion
 
@@ -28,12 +40,12 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _dbContext.Timeout;
+                return _timeout;
             }
             set
             {
                 value.ThrowIfLessThanZero(nameof(Timeout));
-                _dbContext.UpdateTimeout(value);
+                _timeout = value;
             }
         }
 
@@ -41,12 +53,12 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _dbContext.BatchSize;
+                return _batchSize;
             }
             set
             {
                 value.ThrowIfLessThanZero(nameof(BatchSize));
-                _dbContext.UpdateBatchSize(value);
+                _batchSize = value;
             }
         }
 
@@ -55,10 +67,12 @@ namespace Loki.BulkDataProcessor
 
         #region Constructor
 
-        public BulkProcessor(IBulkCommandFactory bulkCommandFactory, IModelDbContext dbContext)
+        public BulkProcessor(IMediator mediator, string connectionString)
         {
-            _bulkCommandFactory = bulkCommandFactory;
-            _dbContext = dbContext;
+            _batchSize = DefaultConfigValues.BatchSize;
+            _timeout = DefaultConfigValues.Timeout;
+            _connectionString = connectionString;
+            _mediator = mediator;
         }
 
         #endregion
@@ -102,16 +116,14 @@ namespace Loki.BulkDataProcessor
         {
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
 
-            _dbContext.AddModels(dataToProcess);
+            _dataToProcess = dataToProcess;
 
             return this;
         }
 
-        public IBulkProcessor OnTable(string destinationTableName)
+        public IBulkProcessor Table(string destinationTableName)
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
-
-            _dbContext.UpdateDestinationTableName(destinationTableName);
 
             return this;
         }
@@ -120,8 +132,10 @@ namespace Loki.BulkDataProcessor
         {
             // to think  about - what should happen if value passed is null?
             // Also does this make sense? maybe should be ExecuteUpdateWithJoin()?
-            var command = _bulkCommandFactory.NewCommand<BulkUpdateCommand>();
-            await command.ExecuteAsync();
+            //var command = _bulkCommandFactory.NewCommand<BulkUpdateCommand>();
+            //await command.ExecuteAsync();
+
+            await _mediator.Send(new BulkUpdate.Command(_batchSize, _timeout, _connectionString, _dataToProcess));
         }
 
         public void Dispose()

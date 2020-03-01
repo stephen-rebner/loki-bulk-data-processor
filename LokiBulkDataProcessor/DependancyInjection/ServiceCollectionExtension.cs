@@ -4,6 +4,8 @@ using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.InternalDbOperations;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using MediatR;
+using System.Reflection;
 
 namespace Loki.BulkDataProcessor.DependancyInjection
 {
@@ -18,6 +20,8 @@ namespace Loki.BulkDataProcessor.DependancyInjection
                 DefaultConfigValues.BatchSize, 
                 DefaultConfigValues.Timeout));
 
+
+            services.AddMediatR(typeof(ServiceCollectionExtension).Assembly);
             //services.AddScoped<IBulkProcessor, BulkProcessor>(x => new BulkProcessor(connectionString));
 
             return services;

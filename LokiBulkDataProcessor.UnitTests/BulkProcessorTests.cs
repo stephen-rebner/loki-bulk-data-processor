@@ -39,7 +39,9 @@ namespace LokiBulkDataProcessor.UnitTests
 
             Action action = () => WhenTimeoutPropertyIsUpdated();
 
-            ActionShouldThrowWithMessage(action, "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
+            ActionShouldThrowWithArgExceptionWithMessage(
+                action, 
+                "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
         }
 
         [TestCase(0)]
@@ -51,18 +53,6 @@ namespace LokiBulkDataProcessor.UnitTests
             Action action = () => WhenTimeoutPropertyIsUpdated();
 
             ActionShouldNotThrowArgException(action);
-        }
-
-        [Test]
-        public void Timeout_ShouldUpdateDbContext_WithCorrectValue()
-        {
-            GivenTimeoutValueOf(10);
-
-            UpdateTimeoutShouldBeCalledOnDbContext();
-
-            WhenTimeoutPropertyIsUpdated();
-
-            VerifyDbContextCalls();
         }
 
         [Test]
@@ -168,7 +158,7 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should().NotThrow<ArgumentException>();
         }
 
-        private void ActionShouldThrowWithMessage(Action action, string errorMessage)
+        private void ActionShouldThrowWithArgExceptionWithMessage(Action action, string errorMessage)
         {
             action.Should()
               .Throw<ArgumentException>()
