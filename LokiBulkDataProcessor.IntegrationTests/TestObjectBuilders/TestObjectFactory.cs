@@ -2,9 +2,9 @@
 {
     public static class TestObjectFactory
     {
-        public static TestDbModelObjectBuilder NewTestDbModel()
+        public static ColsInDiffOrderObjectBuilder NewColsInDiffOrderObject()
         {
-            return new TestDbModelObjectBuilder();
+            return new ColsInDiffOrderObjectBuilder();
         }
 
         public static TestDataTableBuilder NewTestDataTable()

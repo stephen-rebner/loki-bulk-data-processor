@@ -1,6 +1,8 @@
 ﻿using FluentAssertions;
 using Loki.BulkDataProcessor;
+using Loki.BulkDataProcessor.Commands.Factory;
 using LokiBulkDataProcessor.UnitTests.TestModels;
+using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -10,34 +12,44 @@ using System.Threading.Tasks;
 
 namespace LokiBulkDataProcessor.UnitTests
 {
-    public class BulkProcessorTests
+    public class BulkProcessorUnitTests
     {
         private const string TestConnectionStringValue = "Server=(local)";
         private const string TestDestinationTableName = "A dummy table name";
         private readonly IEnumerable<ValidModelObject> ModelObjects = new List<ValidModelObject> { new ValidModelObject() };
+
         private IBulkProcessor _bulkProcessor;
+        private Mock<ICommandFactory> _commandFactory;
+
+        private int _timeoutValue;
+        private int _batchSize;
 
         [SetUp]
         public void SetUp()
         {
-            _bulkProcessor = new BulkProcessor(TestConnectionStringValue);
+            _commandFactory = new Mock<ICommandFactory>();
+            _bulkProcessor = new BulkProcessor(TestConnectionStringValue, _commandFactory.Object);
         }
 
         [Test]
         public void Timeout_ShouldThrow_IfValueSetLessThanZero()
         {
-            Action action = () => _bulkProcessor.Timeout = -1;
+            GivenTimeoutValueOf(-1);
 
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage("The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
+            Action action = () => WhenTimeoutPropertyIsUpdated();
+
+            ActionShouldThrowArgExceptionWithMessage(
+                action,
+                "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
         }
 
         [TestCase(0)]
         [TestCase(1)]
         public void Timeout_ShouldNotThrow_WhenValueIsGtOrEqToZero(int timeoutValue)
         {
-            Action action = () => _bulkProcessor.Timeout = timeoutValue;
+            GivenTimeoutValueOf(timeoutValue);
+
+            Action action = () => WhenTimeoutPropertyIsUpdated();
 
             action.Should().NotThrow<ArgumentException>();
         }
@@ -45,18 +57,22 @@ namespace LokiBulkDataProcessor.UnitTests
         [Test]
         public void BatchSize_ShouldThrow_IfValueSetLessThanZero()
         {
-            Action action = () => _bulkProcessor.BatchSize = -1;
+            GivenBatchSizeValueOf(-1);
 
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage("The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
+            Action action = () => WhenBatchSizePropertyIsUpdated();
+
+            ActionShouldThrowArgExceptionWithMessage(
+                action,
+                "The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
         }
 
         [TestCase(0)]
         [TestCase(1)]
         public void BatchSize_ShouldNotThrow_WhenValueIsGtOrEqToZero(int batchSizeValue)
         {
-            Action action = () => _bulkProcessor.BatchSize = batchSizeValue;
+            GivenBatchSizeValueOf(batchSizeValue);
+
+            Action action = () => WhenBatchSizePropertyIsUpdated();
 
             action.Should().NotThrow<ArgumentException>();
         }
@@ -117,5 +133,37 @@ namespace LokiBulkDataProcessor.UnitTests
               .Throw<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
         }
+
+
+        #region Helper Test Methods
+
+        private void GivenTimeoutValueOf(int timeoutValue)
+        {
+            _timeoutValue = timeoutValue;
+        }
+
+        private void WhenTimeoutPropertyIsUpdated()
+        {
+            _bulkProcessor.Timeout = _timeoutValue;
+        }
+
+        private void GivenBatchSizeValueOf(int batchSize)
+        {
+            _batchSize = batchSize;
+        }
+
+        private void WhenBatchSizePropertyIsUpdated()
+        {
+            _bulkProcessor.BatchSize = _batchSize;
+        }
+
+        private void ActionShouldThrowArgExceptionWithMessage(Action action, string errorMessage)
+        {
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage(errorMessage);
+        }
+
+        #endregion
     }
 }

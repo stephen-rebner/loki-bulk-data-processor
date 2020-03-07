@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using LokiBulkDataProcessor.IntegrationTests.TestModel;
+using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,7 +14,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.EF
         {
         }
 
-        public DbSet<TestDbModel> TestDbModels { get; set; }
+        public DbSet<ColsInDiffOrderObject> ColsInDiffOrderObjects { get; set; }
 
         public TestDbContext CreateDbContext(string[] args)
         {

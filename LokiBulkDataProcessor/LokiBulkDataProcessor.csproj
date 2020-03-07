@@ -15,12 +15,14 @@
     <PackageReleaseNotes>See https://github.com/stephen-rebner/loki-bulk-data-processor</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Repository\**" />
+    <EmbeddedResource Remove="Repository\**" />
+    <None Remove="Repository\**" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.0.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.7.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Repository\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt">

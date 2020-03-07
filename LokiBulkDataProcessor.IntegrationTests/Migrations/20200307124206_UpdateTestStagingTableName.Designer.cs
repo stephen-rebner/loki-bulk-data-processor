@@ -4,14 +4,16 @@ using LokiBulkDataProcessor.IntegrationTests.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Migrations
 {
     [DbContext(typeof(TestDbContext))]
-    partial class TestDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200307124206_UpdateTestStagingTableName")]
+    partial class UpdateTestStagingTableName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -19,7 +21,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.ColsInDiffOrderObject", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.TestStagingTableObject", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -43,7 +45,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ColsInDiffOrderObjects");
+                    b.ToTable("TestStagingTableObjects");
                 });
 #pragma warning restore 612, 618
         }
