@@ -1,9 +1,9 @@
-﻿using LokiBulkDataProcessor.IntegrationTests.TestModel;
+﻿using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using System;
 
 namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
 {
-    public class TestDbModelObjectBuilder
+    public class TestDbModelBuilder
     {
         private int _id;
         private string _stringColumn;
@@ -12,37 +12,37 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         private bool? _nullableBoolColumn;
         private DateTime? _nullableDateTimeColumn;
 
-        public TestDbModelObjectBuilder WithId(int id)
+        public TestDbModelBuilder WithId(int id)
         {
             _id = id;
             return this;
         }
 
-        public TestDbModelObjectBuilder WithStringColumnValue(string stringColumnValue)
+        public TestDbModelBuilder WithStringColumnValue(string stringColumnValue)
         {
             _stringColumn = stringColumnValue;
             return this;
         }
 
-        public TestDbModelObjectBuilder WithBoolColumnValue(bool boolColumnValue)
+        public TestDbModelBuilder WithBoolColumnValue(bool boolColumnValue)
         {
             _boolColumn = boolColumnValue;
             return this;
         }
 
-        public TestDbModelObjectBuilder WithDateColumnValue(DateTime dateColumnValue)
+        public TestDbModelBuilder WithDateColumnValue(DateTime dateColumnValue)
         {
             _dateColumn = dateColumnValue;
             return this;
         }
 
-        public TestDbModelObjectBuilder WithNullableBoolColumnValue(bool? boolColumnValue)
+        public TestDbModelBuilder WithNullableBoolColumnValue(bool? boolColumnValue)
         {
             _nullableBoolColumn = boolColumnValue;
             return this;
         }
 
-        public TestDbModelObjectBuilder WithNullableDateColumnValue(DateTime? dateColumnValue)
+        public TestDbModelBuilder WithNullableDateColumnValue(DateTime? dateColumnValue)
         {
             _nullableDateTimeColumn = dateColumnValue;
             return this;
@@ -53,11 +53,11 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
             return new TestDbModel
             {
                 Id = _id,
+                NullableDateColumn = _nullableDateTimeColumn,
                 StringColumn = _stringColumn,
                 BoolColumn = _boolColumn,
                 DateColumn = _dateColumn,
-                NullableBoolColumn = _nullableBoolColumn,
-                NullableDateColumn = _nullableDateTimeColumn
+                NullableBoolColumn = _nullableBoolColumn
             };
         }
     }

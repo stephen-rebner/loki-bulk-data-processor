@@ -1,8 +1,9 @@
 ﻿using NUnit.Framework;
 using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
-using LokiBulkDataProcessor.IntegrationTests.TestModel;
+using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
+using Loki.BulkDataProcessor.Commands.Factory;
 using System.Collections.Generic;
 using Loki.BulkDataProcessor;
 using System.Threading.Tasks;
@@ -17,13 +18,14 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [SetUp]
         public void Setup()
         {
-            _bulkProcessor = new BulkProcessor("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true");
+            _bulkProcessor = new BulkProcessor("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true", 
+                new CommandFactory());
         }
 
         [Test]
-        public async Task SaveAsync_ShouldSaveDataModelsSuccessfully()
+        public async Task SaveAsync_ShouldSaveSuccessfully_WhenPropsDiffOrderFromDbColumnNames()
         {
-            var model1 = TestObjectFactory.NewTestDbModel()
+            var model1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 26))
@@ -32,7 +34,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(null)
                 .Build();
 
-            var model2 = TestObjectFactory.NewTestDbModel()
+            var model2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 27))
@@ -41,7 +43,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
                 .Build(); 
             
-            var model3 = TestObjectFactory.NewTestDbModel()
+            var model3 = TestObjectFactory.TestDbModelObject()
                  .WithId(3)
                  .WithStringColumnValue("String Value 3")
                  .WithDateColumnValue(new System.DateTime(2020, 01, 28))
@@ -52,7 +54,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var models = new List<TestDbModel> { model1, model2, model3 };
 
-            await _bulkProcessor.SaveAsync(models, "TestDbModels");
+            await _bulkProcessor.SaveAsync(models, nameof(TestDbContext.TestDbModels));
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
@@ -60,14 +62,14 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldSaveDataTableSuccessfully()
+        public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenColsSameOrderAsDbColumns()
         {
             using var datatable = TestObjectFactory.NewTestDataTable()
                 .WithRowData(1, "String Value 1", true, new System.DateTime(2020, 01, 26), null, null)
                 .WithRowData(2, "String Value 2", false, new System.DateTime(2020, 01, 27), true, new System.DateTime(2020, 01, 19))
                 .Build();
 
-            var exptectedModel1 = TestObjectFactory.NewTestDbModel()
+            var exptectedModel1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 26))
@@ -76,7 +78,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(null)
                 .Build();
 
-            var expectedModel2 = TestObjectFactory.NewTestDbModel()
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 27))
@@ -87,7 +89,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
 
-            await _bulkProcessor.SaveAsync(datatable, "TestDbModels");
+            await _bulkProcessor.SaveAsync(datatable, nameof(TestDbContext.TestDbModels));
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 

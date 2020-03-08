@@ -1,17 +1,18 @@
-﻿using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Threading.Tasks;
-using FastMember;
-using Loki.BulkDataProcessor.Utils.Validation;
+﻿using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.DefaultValues;
-using Loki.BulkDataProcessor.Utils.Reflection;
+using Loki.BulkDataProcessor.Utils.Validation;
+using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
-        private readonly SqlConnection _sqlConnection;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _connectionString;
+        private readonly ICommandFactory _commandFactory;
         private int _timeout;
         private int _batchSize;
 
@@ -40,50 +41,52 @@ namespace Loki.BulkDataProcessor
                 _batchSize = value;
             }
         }
-   
-        public BulkProcessor(string connectionString)
+
+        public BulkProcessor(string connectionString, ICommandFactory commandFactory)
         {
             connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
             
             _timeout = DefaultConfigValues.Timeout;
             _batchSize = DefaultConfigValues.BatchSize;
-            _sqlConnection = new SqlConnection(connectionString);
+            _connectionString = connectionString;
+            _commandFactory = commandFactory;
         }
 
-        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName)
+        public IBulkProcessor WithConnectionString(string connectionString)
         {
-            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
+            _connectionString = connectionString;
+            return this;
+        }
+
+        public async Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class
+        {
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
+            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
 
-            using var sqlConnection = _sqlConnection;
-            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
+            var command = _commandFactory.NewBulkCopyModelsCommand(
+                _batchSize,
+                _timeout,
+                destinationTableName,
+                _connectionString,
+                dataToProcess);
 
-            sqlConnection.Open();
-            SetUpSqlBulkCopier(sqlBulkCopy, destinationTableName);
-
-            using var reader = ObjectReader.Create(dataToProcess, typeof(T).GetPublicPropertyNames());
-            await sqlBulkCopy.WriteToServerAsync(reader);
+            await command.Execute();
         }
 
         public async Task SaveAsync(DataTable dataTable, string destinationTableName)
         {
+            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
+            
+            var command = _commandFactory.NewBulkCopyDataTableCommand(
+                _batchSize,
+                _timeout,
+                destinationTableName,
+                _connectionString,
+                dataTable);
 
-            using var sqlConnection = _sqlConnection;
-            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
-
-            sqlConnection.Open();
-            SetUpSqlBulkCopier(sqlBulkCopy, destinationTableName);
-
-            await sqlBulkCopy.WriteToServerAsync(dataTable);
-
+            await command.Execute();
         }
 
-        private void SetUpSqlBulkCopier(SqlBulkCopy sqlBulkCopy, string destinationTableName)
-        {
-            sqlBulkCopy.BatchSize = _batchSize;
-            sqlBulkCopy.BulkCopyTimeout = _timeout;
-            sqlBulkCopy.DestinationTableName = destinationTableName;
-        }
     }
 }

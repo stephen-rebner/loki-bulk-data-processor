@@ -2,9 +2,9 @@
 {
     public static class TestObjectFactory
     {
-        public static TestDbModelObjectBuilder NewTestDbModel()
+        public static TestDbModelBuilder TestDbModelObject()
         {
-            return new TestDbModelObjectBuilder();
+            return new TestDbModelBuilder();
         }
 
         public static TestDataTableBuilder NewTestDataTable()

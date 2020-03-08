@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using LokiBulkDataProcessor.IntegrationTests.TestModel;
+using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.DependencyInjection;
 
