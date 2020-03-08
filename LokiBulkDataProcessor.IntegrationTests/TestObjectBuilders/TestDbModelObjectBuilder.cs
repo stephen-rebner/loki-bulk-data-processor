@@ -3,7 +3,7 @@ using System;
 
 namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
 {
-    public class ColsInDiffOrderObjectBuilder
+    public class TestDbModelBuilder
     {
         private int _id;
         private string _stringColumn;
@@ -12,45 +12,45 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         private bool? _nullableBoolColumn;
         private DateTime? _nullableDateTimeColumn;
 
-        public ColsInDiffOrderObjectBuilder WithId(int id)
+        public TestDbModelBuilder WithId(int id)
         {
             _id = id;
             return this;
         }
 
-        public ColsInDiffOrderObjectBuilder WithStringColumnValue(string stringColumnValue)
+        public TestDbModelBuilder WithStringColumnValue(string stringColumnValue)
         {
             _stringColumn = stringColumnValue;
             return this;
         }
 
-        public ColsInDiffOrderObjectBuilder WithBoolColumnValue(bool boolColumnValue)
+        public TestDbModelBuilder WithBoolColumnValue(bool boolColumnValue)
         {
             _boolColumn = boolColumnValue;
             return this;
         }
 
-        public ColsInDiffOrderObjectBuilder WithDateColumnValue(DateTime dateColumnValue)
+        public TestDbModelBuilder WithDateColumnValue(DateTime dateColumnValue)
         {
             _dateColumn = dateColumnValue;
             return this;
         }
 
-        public ColsInDiffOrderObjectBuilder WithNullableBoolColumnValue(bool? boolColumnValue)
+        public TestDbModelBuilder WithNullableBoolColumnValue(bool? boolColumnValue)
         {
             _nullableBoolColumn = boolColumnValue;
             return this;
         }
 
-        public ColsInDiffOrderObjectBuilder WithNullableDateColumnValue(DateTime? dateColumnValue)
+        public TestDbModelBuilder WithNullableDateColumnValue(DateTime? dateColumnValue)
         {
             _nullableDateTimeColumn = dateColumnValue;
             return this;
         }
 
-        public ColsInDiffOrderObject Build()
+        public TestDbModel Build()
         {
-            return new ColsInDiffOrderObject
+            return new TestDbModel
             {
                 Id = _id,
                 NullableDateColumn = _nullableDateTimeColumn,

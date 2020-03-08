@@ -7,18 +7,9 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyModelsCommand<T> : IBulkCopyModelsCommand<T> where T : class
+    internal class BulkCopyModelsCommand<T> : BaseBulkCommand, IBulkCopyModelsCommand<T> where T : class
     {
         public IEnumerable<T> DataToCopy { get ; set ; }
-
-        public int BatchSize { get; set; }
-
-        public int Timeout { get; set; }
-
-        public string TableName { get; set; }
-
-        public string ConnectionString { get; set; }
-
 
         public BulkCopyModelsCommand(
             int batchSize, 
@@ -41,9 +32,7 @@ namespace Loki.BulkDataProcessor.Commands
 
             sqlConnection.Open();
 
-            sqlBulkCopy.BatchSize = BatchSize;
-            sqlBulkCopy.BulkCopyTimeout = Timeout;
-            sqlBulkCopy.DestinationTableName = TableName;
+            SetUpSqlBulkCopy(sqlBulkCopy);
 
             var propertyNames = typeof(T).GetPublicPropertyNames();
 

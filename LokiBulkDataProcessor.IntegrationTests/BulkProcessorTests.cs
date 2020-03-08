@@ -25,7 +25,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_ShouldSaveSuccessfully_WhenPropsDiffOrderFromDbColumnNames()
         {
-            var model1 = TestObjectFactory.NewColsInDiffOrderObject()
+            var model1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 26))
@@ -34,7 +34,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(null)
                 .Build();
 
-            var model2 = TestObjectFactory.NewColsInDiffOrderObject()
+            var model2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 27))
@@ -43,7 +43,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
                 .Build(); 
             
-            var model3 = TestObjectFactory.NewColsInDiffOrderObject()
+            var model3 = TestObjectFactory.TestDbModelObject()
                  .WithId(3)
                  .WithStringColumnValue("String Value 3")
                  .WithDateColumnValue(new System.DateTime(2020, 01, 28))
@@ -52,11 +52,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
                  .WithNullableDateColumnValue(new System.DateTime(2020, 1, 10))
                  .Build();
 
-            var models = new List<ColsInDiffOrderObject> { model1, model2, model3 };
+            var models = new List<TestDbModel> { model1, model2, model3 };
 
-            await _bulkProcessor.SaveAsync(models, "ColsInDiffOrderObjects");
+            await _bulkProcessor.SaveAsync(models, nameof(TestDbContext.TestDbModels));
 
-            var results = TestDbContext.ColsInDiffOrderObjects.OrderBy(x => x.Id).ToList();
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
             results.Should().BeEquivalentTo(models);
         }
@@ -69,7 +69,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithRowData(2, "String Value 2", false, new System.DateTime(2020, 01, 27), true, new System.DateTime(2020, 01, 19))
                 .Build();
 
-            var exptectedModel1 = TestObjectFactory.NewColsInDiffOrderObject()
+            var exptectedModel1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 26))
@@ -78,7 +78,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(null)
                 .Build();
 
-            var expectedModel2 = TestObjectFactory.NewColsInDiffOrderObject()
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
                 .WithDateColumnValue(new System.DateTime(2020, 01, 27))
@@ -87,11 +87,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
                 .Build();
 
-            var expctedResults = new List<ColsInDiffOrderObject> { exptectedModel1, expectedModel2 };
+            var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
 
-            await _bulkProcessor.SaveAsync(datatable, "ColsInDiffOrderObjects");
+            await _bulkProcessor.SaveAsync(datatable, nameof(TestDbContext.TestDbModels));
 
-            var results = TestDbContext.ColsInDiffOrderObjects.OrderBy(x => x.Id).ToList();
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
             results.Should().BeEquivalentTo(expctedResults);
         }

@@ -14,7 +14,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.EF
         {
         }
 
-        public DbSet<ColsInDiffOrderObject> ColsInDiffOrderObjects { get; set; }
+        public DbSet<TestDbModel> TestDbModels { get; set; }
 
         public TestDbContext CreateDbContext(string[] args)
         {

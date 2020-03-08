@@ -2,7 +2,7 @@
 
 namespace LokiBulkDataProcessor.IntegrationTests.TestModels
 {
-    public class ColsInDiffOrderObject
+    public class TestDbModel
     {
         public string StringColumn { get; set; }
 

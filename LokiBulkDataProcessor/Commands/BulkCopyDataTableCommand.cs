@@ -1,23 +1,13 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Utils.Reflection;
 using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyDataTableCommand : IBulkCopyDataTableCommand
+    internal class BulkCopyDataTableCommand : BaseBulkCommand, IBulkCopyDataTableCommand
     {
         public DataTable DataToCopy { get ; set ; }
-
-        public int BatchSize { get; set; }
-
-        public int Timeout { get; set; }
-
-        public string TableName { get; set; }
-
-        public string ConnectionString { get; set; }
-
 
         public BulkCopyDataTableCommand(
             int batchSize, 
@@ -40,9 +30,7 @@ namespace Loki.BulkDataProcessor.Commands
 
             sqlConnection.Open();
 
-            sqlBulkCopy.BatchSize = BatchSize;
-            sqlBulkCopy.BulkCopyTimeout = Timeout;
-            sqlBulkCopy.DestinationTableName = TableName;
+            SetUpSqlBulkCopy(sqlBulkCopy);
 
             foreach (DataColumn column in DataToCopy.Columns)
             {
