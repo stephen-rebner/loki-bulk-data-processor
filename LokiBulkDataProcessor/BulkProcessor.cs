@@ -3,7 +3,6 @@ using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -14,7 +13,6 @@ namespace Loki.BulkDataProcessor
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _connectionString;
         private readonly ICommandFactory _commandFactory;
-        private readonly SqlConnection _sqlConnection;
         private int _timeout;
         private int _batchSize;
 
