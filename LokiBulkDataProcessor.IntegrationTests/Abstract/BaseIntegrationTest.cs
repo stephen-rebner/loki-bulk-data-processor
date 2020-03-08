@@ -1,4 +1,6 @@
-﻿using System.Transactions;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Transactions;
 using LokiBulkDataProcessor.IntegrationTests.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +13,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         protected TestDbContext TestDbContext;
 
         [SetUp]
-        public void TestSetup()
+        protected void TestSetup()
         {
             TestDbContext = new TestDbContext().CreateDbContext(null);
 
@@ -20,9 +22,20 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         }
 
         [TearDown]
-        public void TestCleanup()
+        protected void TestCleanup()
         {
             TestDbContext.Dispose();
+        }
+
+        protected async Task<IEnumerable<T>> LoadAllEntities<T>() where T : class
+        {
+            return await TestDbContext.Set<T>().ToListAsync();
+        }
+
+        protected void SaveEntities<T>(params T[] entities) where T : class
+        {
+            TestDbContext.AttachRange(entities);
+            TestDbContext.SaveChanges();
         }
     }
 }

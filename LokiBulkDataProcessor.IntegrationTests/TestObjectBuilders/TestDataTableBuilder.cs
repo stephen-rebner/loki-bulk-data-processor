@@ -17,12 +17,12 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         public TestDataTableBuilder()
         {
             _dataTable = new DataTable();
-            _dataTable.Columns.Add(new DataColumn(IdColumnHeader));
             _dataTable.Columns.Add(new DataColumn(StringColumnHeader));
             _dataTable.Columns.Add(new DataColumn(BoolColumnHeader));
             _dataTable.Columns.Add(new DataColumn(DateColumnHeader));
             _dataTable.Columns.Add(new DataColumn(NullableBoolColumnHeader));
             _dataTable.Columns.Add(new DataColumn(NullableDateColumnHeader));
+            _dataTable.Columns.Add(new DataColumn(IdColumnHeader));
         }
 
         public TestDataTableBuilder WithRowData(

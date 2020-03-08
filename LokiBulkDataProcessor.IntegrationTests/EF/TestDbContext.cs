@@ -16,6 +16,10 @@ namespace LokiBulkDataProcessor.IntegrationTests.EF
 
         public DbSet<TestDbModel> TestDbModels { get; set; }
 
+        public DbSet<Post> Posts { get; set; }
+
+        public DbSet<Blog> Blogs { get; set; }
+
         public TestDbContext CreateDbContext(string[] args)
         {
             var serviceProvider = new ServiceCollection()

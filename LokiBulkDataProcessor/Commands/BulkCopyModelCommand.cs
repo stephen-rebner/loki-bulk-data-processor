@@ -1,6 +1,7 @@
 ﻿using FastMember;
 using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
@@ -27,10 +28,7 @@ namespace Loki.BulkDataProcessor.Commands
 
         public async Task Execute()
         {
-            using var sqlConnection = new SqlConnection(ConnectionString);
-            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
-
-            sqlConnection.Open();
+            using var sqlBulkCopy = new SqlBulkCopy(ConnectionString, SqlBulkCopyOptions.CheckConstraints);
 
             SetUpSqlBulkCopy(sqlBulkCopy);
 
