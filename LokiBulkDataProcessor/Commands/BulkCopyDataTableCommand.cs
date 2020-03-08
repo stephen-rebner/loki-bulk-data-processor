@@ -25,10 +25,7 @@ namespace Loki.BulkDataProcessor.Commands
 
         public async Task Execute()
         {
-            using var sqlConnection = new SqlConnection(ConnectionString);
-            using var sqlBulkCopy = new SqlBulkCopy(sqlConnection);
-
-            sqlConnection.Open();
+            using var sqlBulkCopy = new SqlBulkCopy(ConnectionString, SqlBulkCopyOptions.CheckConstraints);
 
             SetUpSqlBulkCopy(sqlBulkCopy);
 
