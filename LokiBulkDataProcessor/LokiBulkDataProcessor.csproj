@@ -12,7 +12,7 @@
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki stephen rebner bulk data processor sql bulk copy</PackageTags>
-    <Version>2.0.2</Version>
+    <Version>2.0.3</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReleaseNotes>See https://github.com/stephen-rebner/loki-bulk-data-processor</PackageReleaseNotes>
   </PropertyGroup>
