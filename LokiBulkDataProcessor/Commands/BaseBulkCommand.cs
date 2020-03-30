@@ -41,7 +41,7 @@ namespace Loki.BulkDataProcessor.Commands
                 "The given ColumnMapping does not match up with any column in the source or destination.", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    "The given ColumnMapping does not match up with any column in the destination table. Note the mappings are case sensitive");
+                    "The given column mappings doe not match up with any column in the destination table. Note the mappings are case sensitive.");
             }
             else
             {

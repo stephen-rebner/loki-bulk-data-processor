@@ -125,7 +125,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var postDataTable = AndGivenThisPostDataTableAssociatedToBlogId(blog.Id);
 
             await WhenSaveAsyncIsCalled(postDataTable, nameof(TestDbContext.Posts));
-
             var posts = ThesePostsWithThisBlog(postDataTable, blog);
 
             await ShouldExistInTheDatabase(posts);
