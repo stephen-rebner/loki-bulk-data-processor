@@ -17,30 +17,32 @@ namespace Loki.BulkDataProcessor.Commands
             int timeout, 
             string tableName, 
             string connectionString, 
-            IEnumerable<T> dataToCopy)
+            IEnumerable<T> dataToCopy) : base(batchSize, timeout, tableName, connectionString)
         {
-            BatchSize = batchSize;
-            Timeout = timeout;
-            TableName = tableName;
             DataToCopy = dataToCopy;
-            ConnectionString = connectionString;
         }
 
         public async Task Execute()
         {
-            using var sqlBulkCopy = new SqlBulkCopy(ConnectionString, SqlBulkCopyOptions.CheckConstraints);
-
-            SetUpSqlBulkCopy(sqlBulkCopy);
-
             var propertyNames = typeof(T).GetPublicPropertyNames();
 
-            foreach (var property in propertyNames)
-            {
-                sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(property, property));
-            }
+            AddMappings(propertyNames);
 
-            using var reader = ObjectReader.Create(DataToCopy, propertyNames);
-            await sqlBulkCopy.WriteToServerAsync(reader);
+            try
+            {
+                using var reader = ObjectReader.Create(DataToCopy, propertyNames);
+                await SqlBulkCopy.WriteToServerAsync(reader);
+                SaveTransaction(); 
+            }
+            catch(Exception e)
+            {
+                RollbackTransaction();
+                ThrowException(e.Message);
+            }
+            finally
+            {
+                Dispose();
+            }
         }
     }
 }

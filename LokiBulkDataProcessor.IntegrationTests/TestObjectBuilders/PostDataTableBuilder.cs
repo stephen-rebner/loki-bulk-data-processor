@@ -4,7 +4,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
 {
     public class PostDataTableBuilder
     {
-        private const string BlogId = "BlogId";
+        private const string BlogId = "blogId";
         private const string Title = "Title";
         private const string Content = "Content";
 

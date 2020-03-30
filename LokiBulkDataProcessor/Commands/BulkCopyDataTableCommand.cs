@@ -1,6 +1,8 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
+using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
@@ -14,27 +16,33 @@ namespace Loki.BulkDataProcessor.Commands
             int timeout, 
             string tableName, 
             string connectionString, 
-            DataTable dataToCopy)
+            DataTable dataToCopy) : base(batchSize, timeout, tableName, connectionString)
         {
-            BatchSize = batchSize;
-            Timeout = timeout;
-            TableName = tableName;
             DataToCopy = dataToCopy;
-            ConnectionString = connectionString;
         }
 
         public async Task Execute()
         {
-            using var sqlBulkCopy = new SqlBulkCopy(ConnectionString, SqlBulkCopyOptions.CheckConstraints);
+            var columnNames = DataToCopy.Columns.Cast<DataColumn>()
+                                 .Select(x => x.ColumnName)
+                                 .ToArray();
 
-            SetUpSqlBulkCopy(sqlBulkCopy);
+            AddMappings(columnNames);
 
-            foreach (DataColumn column in DataToCopy.Columns)
+            try
             {
-                sqlBulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+                await SqlBulkCopy.WriteToServerAsync(DataToCopy);
+                SaveTransaction();
             }
-
-            await sqlBulkCopy.WriteToServerAsync(DataToCopy);
+            catch(Exception e)
+            {
+                RollbackTransaction();
+                ThrowException(e.Message);
+            }
+            finally
+            {
+                Dispose();
+            }
         }
     }
 }
