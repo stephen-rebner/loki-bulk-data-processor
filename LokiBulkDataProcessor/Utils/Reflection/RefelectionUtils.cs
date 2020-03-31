@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Loki.BulkDataProcessor.Utils.Validation;
 
 namespace Loki.BulkDataProcessor.Utils.Reflection
@@ -19,6 +21,13 @@ namespace Loki.BulkDataProcessor.Utils.Reflection
                 nameof(publicProperties));
 
             return publicProperties;
+        }
+
+        internal static IEnumerable<Type> FindTypesDerivedFrom(this Assembly assembly, Type baseType)
+        {
+            return assembly
+                .GetTypes()
+                .Where(t => baseType.IsAssignableFrom(t) && t != baseType);
         }
     }
 }

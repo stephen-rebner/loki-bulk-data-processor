@@ -1,4 +1,4 @@
-﻿using Loki.BulkDataProcessor.Commands.Factory;
+﻿ using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;

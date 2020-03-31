@@ -1,6 +1,6 @@
 ﻿namespace LokiBulkDataProcessor.UnitTests.TestModels
 {
-    public class ValidModelObject
+    public class ValidModelObject : AbstractModelObject
     {
         public int PublicInt { get; set; }
 

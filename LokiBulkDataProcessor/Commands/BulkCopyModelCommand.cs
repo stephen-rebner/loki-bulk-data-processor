@@ -31,6 +31,7 @@ namespace Loki.BulkDataProcessor.Commands
             try
             {
                 using var reader = ObjectReader.Create(DataToCopy, propertyNames);
+                var test = reader.GetSchemaTable();
                 await SqlBulkCopy.WriteToServerAsync(reader);
                 SaveTransaction(); 
             }
