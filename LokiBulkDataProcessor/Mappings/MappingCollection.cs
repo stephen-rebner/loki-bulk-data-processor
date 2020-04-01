@@ -11,20 +11,28 @@ namespace Loki.BulkDataProcessor.Mappings
     {
         private readonly IList<AbstractModelMapper> _mappings = new List<AbstractModelMapper>();
 
-        public MappingCollection(Assembly assembly)
+        public MappingCollection(Assembly mappingAssmebly)
         {
-            var types = assembly.FindTypesDerivedFrom(typeof(AbstractModelMapper));
-            
-            foreach(var mappingType in types)
-            {
-                var instance = (AbstractModelMapper)Activator.CreateInstance(mappingType);
-                _mappings.Add(instance);
-            }
+            AddMappingsIfMappingAssemblyNotNull(mappingAssmebly);
         }
 
         public AbstractModelMapper GetMappingFor(Type sourceType)
         {
             return _mappings.FirstOrDefault(mapping => mapping.SourceType == sourceType);
+        }
+
+        private void AddMappingsIfMappingAssemblyNotNull(Assembly mappingAssmebly)
+        {
+            if(mappingAssmebly != null)
+            {
+                var types = mappingAssmebly.FindTypesDerivedFrom(typeof(AbstractModelMapper));
+
+                foreach (var mappingType in types)
+                {
+                    var instance = (AbstractModelMapper)Activator.CreateInstance(mappingType);
+                    _mappings.Add(instance);
+                }
+            }
         }
     }
 }

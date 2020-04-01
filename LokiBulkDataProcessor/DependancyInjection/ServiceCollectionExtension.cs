@@ -1,6 +1,7 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
+using Loki.BulkDataProcessor.Context;
+using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Mappings;
-using Loki.BulkDataProcessor.Mappings.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -8,16 +9,11 @@ namespace Loki.BulkDataProcessor.DependancyInjection
 {
     public static class ServiceCollectionExtension
     {
-        public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString)
+        public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString, Assembly mappingAssembly = null)
         {
-            services.AddScoped<IBulkProcessor, BulkProcessor>(x => new BulkProcessor(connectionString, new CommandFactory()));
-            return services;
-        }
-
-        public static IServiceCollection AddMappingsForAssembly(this IServiceCollection services, Assembly assembly)
-        {
-            services.AddSingleton<IMappingCollection, MappingCollection>(
-                x => new MappingCollection(assembly));
+            services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new MappingCollection(mappingAssembly)));
+            services.AddSingleton<ICommandFactory, CommandFactory>();
+            services.AddScoped<IBulkProcessor, BulkProcessor>();
             return services;
         }
     }

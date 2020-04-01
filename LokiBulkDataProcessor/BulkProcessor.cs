@@ -1,5 +1,5 @@
-﻿ using Loki.BulkDataProcessor.Commands.Factory;
-using Loki.BulkDataProcessor.DefaultValues;
+﻿using Loki.BulkDataProcessor.Commands.Factory;
+using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
@@ -13,6 +13,7 @@ namespace Loki.BulkDataProcessor
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _connectionString;
         private readonly ICommandFactory _commandFactory;
+        private readonly IAppContext _appContext;
         private int _timeout;
         private int _batchSize;
 
@@ -20,12 +21,12 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _timeout;
+                return _appContext.Timeout;
             }
             set
             {
                 value.ThrowIfLessThanZero(nameof(Timeout));
-                _timeout = value;
+                _appContext.SetTimeout(value);
             }
         }
 
@@ -33,28 +34,24 @@ namespace Loki.BulkDataProcessor
         {
             get
             {
-                return _batchSize;
+                return _appContext.BatchSize;
             }
             set
             {
                 value.ThrowIfLessThanZero(nameof(BatchSize));
-                _batchSize = value;
+                _appContext.SetBatchSize(value);
             }
         }
 
-        public BulkProcessor(string connectionString, ICommandFactory commandFactory)
+        public BulkProcessor(ICommandFactory commandFactory, IAppContext appContext)
         {
-            connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
-            
-            _timeout = DefaultConfigValues.Timeout;
-            _batchSize = DefaultConfigValues.BatchSize;
-            _connectionString = connectionString;
             _commandFactory = commandFactory;
+            _appContext = appContext;
         }
 
         public IBulkProcessor WithConnectionString(string connectionString)
         {
-            _connectionString = connectionString;
+            _appContext.SetConnectionString(connectionString);
             return this;
         }
 
