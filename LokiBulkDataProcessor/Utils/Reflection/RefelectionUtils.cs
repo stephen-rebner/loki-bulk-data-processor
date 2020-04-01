@@ -27,7 +27,7 @@ namespace Loki.BulkDataProcessor.Utils.Reflection
         {
             return assembly
                 .GetTypes()
-                .Where(t => baseType.IsAssignableFrom(t) && t != baseType);
+                .Where(t => t.IsClass && t.IsSubclassOf(baseType) && !t.IsAbstract);
         }
     }
 }

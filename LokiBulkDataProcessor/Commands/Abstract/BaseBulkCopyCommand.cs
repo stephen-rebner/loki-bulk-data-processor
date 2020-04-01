@@ -2,20 +2,22 @@
 using System;
 using System.Data.SqlClient;
 
-namespace Loki.BulkDataProcessor.Commands
+namespace Loki.BulkDataProcessor.Commands.Abstract
 {
-    internal abstract class BaseBulkCommand : IDisposable
-    { 
+    internal abstract class BaseBulkCopyCommand : IDisposable
+    {
+        private readonly IAppContext _appContext;
         private SqlConnection _sqlConnection;
         private SqlTransaction _transaction;
-        private readonly IAppContext _appContext;
-
         protected SqlBulkCopy SqlBulkCopy { get; set; }
 
-        protected BaseBulkCommand(IAppContext appContext, string tableName)
+        protected BaseBulkCopyCommand(IAppContext appContext)
         {
             _appContext = appContext;
+        }
 
+        protected void StartTransaction(string tableName)
+        {
             _sqlConnection = new SqlConnection(_appContext.ConnectionString);
             _sqlConnection.Open();
             _transaction = _sqlConnection.BeginTransaction();
@@ -28,20 +30,6 @@ namespace Loki.BulkDataProcessor.Commands
             };
         }
 
-        //private void StartTransaction(string tableName)
-        //{
-        //    _sqlConnection = new SqlConnection(_appContext.ConnectionString);
-        //    _sqlConnection.Open();
-        //    _transaction = _sqlConnection.BeginTransaction();
-
-        //    SqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _transaction)
-        //    {
-        //        BatchSize = _appContext.BatchSize,
-        //        BulkCopyTimeout = _appContext.Timeout,
-        //        DestinationTableName = tableName
-        //    };
-        //}
-
         protected void AddMappings(string[] propertyNames)
         {
             foreach (var property in propertyNames)
@@ -52,7 +40,7 @@ namespace Loki.BulkDataProcessor.Commands
 
         protected void ThrowException(string errorMessage)
         {
-            if(errorMessage.Equals(
+            if (errorMessage.Equals(
                 "The given ColumnMapping does not match up with any column in the source or destination.", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
@@ -64,7 +52,7 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        protected void SaveTransaction()
+        protected void CommitTransaction()
         {
             _transaction.Commit();
         }
@@ -80,8 +68,8 @@ namespace Loki.BulkDataProcessor.Commands
             _sqlConnection.Dispose();
             _transaction.Dispose();
 
-            // Close on the SQL Bulk Copy method also dispose the instance. See below, line 789:
-            https://github.com/Microsoft/referencesource/blob/master/System.Data/System/Data/SqlClient/SqlBulkCopy.cs
+        // Close on the SQL Bulk Copy method also dispose the instance. See below, line 789:
+        https://github.com/Microsoft/referencesource/blob/master/System.Data/System/Data/SqlClient/SqlBulkCopy.cs
             SqlBulkCopy.Close();
         }
     }

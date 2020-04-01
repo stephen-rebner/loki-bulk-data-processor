@@ -1,5 +1,6 @@
 ﻿using FastMember;
 using Loki.BulkDataProcessor.Commands.Interfaces;
+using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using System;
 using System.Collections.Generic;
@@ -10,14 +11,9 @@ namespace Loki.BulkDataProcessor.Commands
 {
     internal class BulkCopyModelsCommand<T> : BaseBulkCommand, IBulkCopyModelsCommand<T> where T : class
     {
-        public IEnumerable<T> DataToCopy { get ; set ; }
+        public IEnumerable<T> DataToCopy { get; set; }
 
-        public BulkCopyModelsCommand(
-            int batchSize, 
-            int timeout, 
-            string tableName, 
-            string connectionString, 
-            IEnumerable<T> dataToCopy) : base(batchSize, timeout, tableName, connectionString)
+        public BulkCopyModelsCommand(IEnumerable<T> dataToCopy, string tableName, IAppContext appContext) : base(appContext, tableName)
         {
             DataToCopy = dataToCopy;
         }
@@ -33,9 +29,9 @@ namespace Loki.BulkDataProcessor.Commands
                 using var reader = ObjectReader.Create(DataToCopy, propertyNames);
                 var test = reader.GetSchemaTable();
                 await SqlBulkCopy.WriteToServerAsync(reader);
-                SaveTransaction(); 
+                SaveTransaction();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 RollbackTransaction();
                 ThrowException(e.Message);

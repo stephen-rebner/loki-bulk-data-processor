@@ -6,18 +6,10 @@ namespace Loki.BulkDataProcessor.Commands.Factory
 {
     public interface ICommandFactory
     {
-        IBulkCopyModelsCommand<T> NewBulkCopyModelsCommand<T>(
-            int batchSize,
-            int timeout,
-            string tableName,
-            string connectionString,
-            IEnumerable<T> dataToCopy) where T : class;
+        IBulkCopyModelsCommand<T> NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class;
 
-        IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(
-            int batchSize,
-            int timeout,
-            string tableName,
-            string connectionString,
-            DataTable dataToCopy);
+        //IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(
+        //    string tableName,
+        //    DataTable dataToCopy);
     }
 }

@@ -1,16 +1,17 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Transactions;
+﻿using Loki.BulkDataProcessor;
 using LokiBulkDataProcessor.IntegrationTests.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 {
     public abstract class BaseIntegrationTest
     {
         protected TestDbContext TestDbContext;
+        protected IBulkProcessor BulkProcessor;
 
         [SetUp]
         protected void TestSetup()
@@ -19,6 +20,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
             TestDbContext.Database.EnsureDeleted();
             TestDbContext.Database.Migrate();
+
+            ResolveStartup();
         }
 
         [TearDown]
@@ -36,6 +39,17 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         {
             TestDbContext.AttachRange(entities);
             TestDbContext.SaveChanges();
+        }
+
+        private void ResolveStartup()
+        {
+            IServiceCollection services = new ServiceCollection();
+            var startup = new Startup();
+            startup.ConfigureServices(services);
+            var serviceProvider = services.BuildServiceProvider();
+
+            BulkProcessor = serviceProvider.GetService<IBulkProcessor>();
+            //IServiceProvider serviceProvider = services.BuildServiceProvider();
         }
     }
 }

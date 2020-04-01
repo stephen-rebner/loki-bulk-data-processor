@@ -1,13 +1,16 @@
 ﻿using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Mappings.Interfaces;
+using Loki.BulkDataProcessor.Utils.Validation;
 using System;
+using System.Diagnostics;
 
 namespace Loki.BulkDataProcessor.Context
 {
     internal class AppContext : IAppContext
     {
-        public string ConnectionString { get; }
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public string ConnectionString { get; private set; }
 
         public int BatchSize { get; private set; }
 
@@ -25,7 +28,7 @@ namespace Loki.BulkDataProcessor.Context
 
         public void SetConnectionString(string connectionString)
         {
-            throw new NotImplementedException();
+            ConnectionString = connectionString;
         }
 
         public void SetBatchSize(int batchSize)

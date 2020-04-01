@@ -3,19 +3,15 @@ using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _connectionString;
+        //private readonly IMediator _mediator;
         private readonly ICommandFactory _commandFactory;
         private readonly IAppContext _appContext;
-        private int _timeout;
-        private int _batchSize;
 
         public int Timeout
         {
@@ -51,6 +47,7 @@ namespace Loki.BulkDataProcessor
 
         public IBulkProcessor WithConnectionString(string connectionString)
         {
+            connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
             _appContext.SetConnectionString(connectionString);
             return this;
         }
@@ -60,12 +57,7 @@ namespace Loki.BulkDataProcessor
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
 
-            var command = _commandFactory.NewBulkCopyModelsCommand(
-                _batchSize,
-                _timeout,
-                destinationTableName,
-                _connectionString,
-                dataToProcess);
+            var command = _commandFactory.NewBulkCopyModelsCommand(dataToProcess, destinationTableName);
 
             await command.Execute();
         }
@@ -74,15 +66,15 @@ namespace Loki.BulkDataProcessor
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
-            
-            var command = _commandFactory.NewBulkCopyDataTableCommand(
-                _batchSize,
-                _timeout,
-                destinationTableName,
-                _connectionString,
-                dataTable);
 
-            await command.Execute();
+            //var command = _commandFactory.NewBulkCopyDataTableCommand(
+            //    _batchSize,
+            //    _timeout,
+            //    destinationTableName,
+            //    _connectionString,
+            //    dataTable);
+
+            //await command.Execute();
         }
 
     }

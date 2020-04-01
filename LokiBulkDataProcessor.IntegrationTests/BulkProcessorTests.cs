@@ -1,15 +1,13 @@
-﻿using NUnit.Framework;
-using FluentAssertions;
+﻿using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
-using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
-using Loki.BulkDataProcessor.Commands.Factory;
-using System.Collections.Generic;
-using Loki.BulkDataProcessor;
-using System.Threading.Tasks;
-using System.Linq;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
+using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
+using NUnit.Framework;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace LokiBulkDataProcessor.IntegrationTests
 {
@@ -19,15 +17,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
         private const string Post2 = "Post2";
         private const string PostContent1 = "PostContent2";
         private const string PostContent2 = "PostContent2";
-
-        private BulkProcessor _bulkProcessor;
-
-        [SetUp]
-        public void Setup()
-        {
-            _bulkProcessor = new BulkProcessor("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true", 
-                new CommandFactory());
-        }
 
         [Test]
         public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenTableHasNoForeignKey()
@@ -48,8 +37,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithBoolColumnValue(false)
                 .WithNullableBoolColumnValue(true)
                 .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
-                .Build(); 
-            
+                .Build();
+
             var model3 = TestObjectFactory.TestDbModelObject()
                  .WithId(3)
                  .WithStringColumnValue("String Value 3")
@@ -61,7 +50,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var models = new List<TestDbModel> { model1, model2, model3 };
 
-            await _bulkProcessor.SaveAsync(models, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(models, nameof(TestDbContext.TestDbModels));
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
@@ -96,7 +85,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
 
-            await _bulkProcessor.SaveAsync(datatable, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(datatable, nameof(TestDbContext.TestDbModels));
 
             var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
 
@@ -162,12 +151,12 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
         private async Task WhenSaveAsyncIsCalled<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
         {
-            await _bulkProcessor.SaveAsync(dataToCopy, tableName);
+            await BulkProcessor.SaveAsync(dataToCopy, tableName);
         }
 
         private async Task WhenSaveAsyncIsCalled(DataTable dataToCopy, string tableName)
         {
-            await _bulkProcessor.SaveAsync(dataToCopy, tableName);
+            await BulkProcessor.SaveAsync(dataToCopy, tableName);
         }
 
         private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<PostDto> postDtos, Blog blog)
@@ -176,7 +165,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var currentPostId = TestDbContext.Posts.Min(post => post.Id);
 
-            foreach(var postDto in postDtos)
+            foreach (var postDto in postDtos)
             {
                 var newPost = TestObjectFactory.NewPost()
                 .BuildFromPostDto(postDto)
@@ -186,7 +175,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
                 posts.Add(newPost);
 
-                currentPostId = currentPostId+1;
+                currentPostId = currentPostId + 1;
             }
 
             return posts;

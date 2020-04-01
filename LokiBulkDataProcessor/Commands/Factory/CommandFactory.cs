@@ -1,4 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
+using Loki.BulkDataProcessor.Context;
+using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System.Collections.Generic;
 using System.Data;
@@ -7,34 +9,31 @@ namespace Loki.BulkDataProcessor.Commands.Factory
 {
     internal class CommandFactory : ICommandFactory
     {
-        public IBulkCopyModelsCommand<T> NewBulkCopyModelsCommand<T>(
-            int batchSize,
-            int timeout,
-            string tableName,
-            string connectionString,
-            IEnumerable<T> dataToCopy) where T : class
+        private readonly IAppContext _appContext;
+
+        public CommandFactory(IAppContext appContext)
         {
-            return new BulkCopyModelsCommand<T>(
-                batchSize, 
-                timeout, 
-                tableName, 
-                connectionString, 
-                dataToCopy);
+            _appContext = appContext;
         }
 
-        public IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(
-            int batchSize, 
-            int timeout, 
-            string tableName, 
-            string connectionString, 
-            DataTable dataToCopy)
+        public IBulkCopyModelsCommand<T> NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
         {
-            return new BulkCopyDataTableCommand(
-                batchSize,
-                timeout,
-                tableName,
-                connectionString,
-                dataToCopy);
+            return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext);
         }
+
+        //public IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(
+        //    int batchSize, 
+        //    int timeout, 
+        //    string tableName, 
+        //    string connectionString, 
+        //    DataTable dataToCopy)
+        //{
+        //    return new BulkCopyDataTableCommand(
+        //        batchSize,
+        //        timeout,
+        //        tableName,
+        //        connectionString,
+        //        dataToCopy);
+        //}
     }
 }
