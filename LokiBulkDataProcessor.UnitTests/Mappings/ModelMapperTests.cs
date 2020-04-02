@@ -1,6 +1,4 @@
-﻿using Loki.BulkDataProcessor.Mappings;
-using LokiBulkDataProcessor.UnitTests.Mappings.TestMappers;
-using LokiBulkDataProcessor.UnitTests.TestModels;
+﻿using LokiBulkDataProcessor.UnitTests.Mappings.TestMappers;
 using NUnit.Framework;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings
@@ -18,7 +16,7 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
         [Test]
         public void MapperTest()
         {
-            _testMapper.ValidateTheMappings();
+            //_testMapper.ValidateTheMappings();
             Assert.IsTrue(false);
         }
     }

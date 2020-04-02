@@ -1,4 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Mappings;
 using System;
 using System.Data.SqlClient;
 
@@ -8,21 +9,27 @@ namespace Loki.BulkDataProcessor.Commands
     { 
         private SqlConnection _sqlConnection;
         private SqlTransaction _transaction;
-        protected readonly IAppContext AppContext;
+        protected string _tableName;
+        protected readonly IAppContext _appContext;
 
         protected SqlBulkCopy SqlBulkCopy { get; set; }
 
         protected BaseBulkCommand(IAppContext appContext, string tableName)
         {
-            AppContext = appContext;
-            SetupSqlBulkCopy(tableName);
+            _appContext = appContext;
+            _tableName = tableName;
+            SetupSqlBulkCopy();
         }
 
-        protected void AddDefaultMappings(string[] propertyNames)
+        protected void MapColumns(AbstractMapping mapping, string[] propertyNames)
         {
-            foreach (var property in propertyNames)
+            if(mapping != null)
             {
-                SqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(property, property));
+                AddMappings(mapping);
+            }
+            else
+            {
+                AddDefaultMappings(propertyNames);
             }
         }
 
@@ -61,18 +68,33 @@ namespace Loki.BulkDataProcessor.Commands
             SqlBulkCopy.Close();
         }
 
-        private void SetupSqlBulkCopy(string tableName)
+        private void SetupSqlBulkCopy()
         {
-            _sqlConnection = new SqlConnection(AppContext.ConnectionString);
+            _sqlConnection = new SqlConnection(_appContext.ConnectionString);
             _sqlConnection.Open();
             _transaction = _sqlConnection.BeginTransaction();
 
             SqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _transaction)
             {
-                BatchSize = AppContext.BatchSize,
-                BulkCopyTimeout = AppContext.Timeout,
-                DestinationTableName = tableName
+                BatchSize = _appContext.BatchSize,
+                BulkCopyTimeout = _appContext.Timeout,
+                DestinationTableName = _tableName
             };
+        }
+        private void AddMappings(AbstractMapping mapping)
+        {
+            foreach (var columnMapping in mapping.ColumnMappings)
+            {
+                SqlBulkCopy.ColumnMappings.Add(columnMapping.Key, columnMapping.Value);
+            }
+        }
+
+        private void AddDefaultMappings(string[] propertyNames)
+        {
+            foreach (var property in propertyNames)
+            {
+                SqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(property, property));
+            }
         }
     }
 }

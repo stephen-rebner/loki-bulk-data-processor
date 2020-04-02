@@ -17,11 +17,14 @@ namespace Loki.BulkDataProcessor.Context
         public int Timeout { get; private set; }
 
         public IModelMappingCollection ModelMappingCollection { get; }
+        public IDataTableMappingCollection DataTableMappingCollection { get; }
 
-        public AppContext(string connectionString, IModelMappingCollection mappingCollection)
+
+        public AppContext(string connectionString, IModelMappingCollection mappingCollection, IDataTableMappingCollection dataTableMappingCollection)
         {
             ConnectionString = connectionString;
             ModelMappingCollection = mappingCollection;
+            DataTableMappingCollection = dataTableMappingCollection;
             BatchSize = DefaultConfigValues.BatchSize;
             Timeout = DefaultConfigValues.Timeout;
         }

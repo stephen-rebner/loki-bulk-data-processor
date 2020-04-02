@@ -11,7 +11,7 @@ namespace Loki.BulkDataProcessor.DependancyInjection
     {
         public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString, Assembly mappingAssembly = null)
         {
-            services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new ModelMappingCollection(mappingAssembly)));
+            services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new ModelMappingCollection(mappingAssembly), new DataTableMappingCollection(mappingAssembly)));
             services.AddSingleton<ICommandFactory, CommandFactory>();
             services.AddScoped<IBulkProcessor, BulkProcessor>();
             return services;

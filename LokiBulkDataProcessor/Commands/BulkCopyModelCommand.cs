@@ -26,8 +26,9 @@ namespace Loki.BulkDataProcessor.Commands
             try
             {
                 var propertyNames = typeof(T).GetPublicPropertyNames();
+                var mapping = _appContext.ModelMappingCollection.GetMappingFor(typeof(T));
 
-                MapColumns(propertyNames);
+                MapColumns(mapping, propertyNames);
                 using var reader = ObjectReader.Create(DataToCopy, propertyNames);
                 await SqlBulkCopy.WriteToServerAsync(reader);
                 CommitTransaction();
@@ -40,28 +41,6 @@ namespace Loki.BulkDataProcessor.Commands
             finally
             {
                 Dispose();
-            }
-        }
-
-        private void MapColumns(string[] propertyNames)
-        {
-            var mapping = AppContext.ModelMappingCollection.GetMappingFor(typeof(T));
-
-            if(mapping != null)
-            {
-                AddMappings(mapping);
-            }
-            else
-            {
-                AddDefaultMappings(propertyNames);
-            }
-        }
-
-        private void AddMappings(AbstractModelMapping mapping)
-        {
-            foreach(var columnMapping in mapping.ColumnMappings)
-            {
-                SqlBulkCopy.ColumnMappings.Add(columnMapping.Key, columnMapping.Value);
             }
         }
     }

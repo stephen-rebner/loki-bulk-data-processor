@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
@@ -24,21 +23,14 @@ namespace Loki.BulkDataProcessor.Mappings
         {
             ColumnMappings.Add(_propertyName, destinationColumnName);
         }
-
-        public void ValidateTheMappings()
-        {
-            var test = ColumnMappings;
-        }
     }
 
-    public class AbstractModelMapping
+    public class AbstractModelMapping : AbstractMapping
     {
-        internal Dictionary<string, string> ColumnMappings { get; }
         internal Type SourceType { get; }
 
         public AbstractModelMapping(Type sourceType)
         {
-            ColumnMappings = new Dictionary<string, string>();
             SourceType = sourceType;
         }
     }

@@ -22,11 +22,12 @@ namespace Loki.BulkDataProcessor.Commands
         {
             try
             {
+                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(_tableName);
                 var columnNames = DataToCopy.Columns.Cast<DataColumn>()
                                  .Select(x => x.ColumnName)
                                  .ToArray();
 
-                AddDefaultMappings(columnNames);
+                MapColumns(mapping, columnNames);
                 await SqlBulkCopy.WriteToServerAsync(DataToCopy);
                 CommitTransaction();
             }

@@ -93,7 +93,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenTableHasAForeignKey()
+        public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenTableHasAForeignKey_AndUsesAMapper()
         {
             var blog = GivenThisBlog();
 
