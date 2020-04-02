@@ -26,7 +26,7 @@ namespace Loki.BulkDataProcessor.Commands
                                  .Select(x => x.ColumnName)
                                  .ToArray();
 
-                AddMappings(columnNames);
+                AddDefaultMappings(columnNames);
                 await SqlBulkCopy.WriteToServerAsync(DataToCopy);
                 CommitTransaction();
             }

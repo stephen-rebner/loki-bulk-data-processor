@@ -8,41 +8,17 @@ namespace Loki.BulkDataProcessor.Commands
     { 
         private SqlConnection _sqlConnection;
         private SqlTransaction _transaction;
-        private readonly IAppContext _appContext;
+        protected readonly IAppContext AppContext;
 
         protected SqlBulkCopy SqlBulkCopy { get; set; }
 
         protected BaseBulkCommand(IAppContext appContext, string tableName)
         {
-            _appContext = appContext;
-
-            _sqlConnection = new SqlConnection(_appContext.ConnectionString);
-            _sqlConnection.Open();
-            _transaction = _sqlConnection.BeginTransaction();
-
-            SqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _transaction)
-            {
-                BatchSize = _appContext.BatchSize,
-                BulkCopyTimeout = _appContext.Timeout,
-                DestinationTableName = tableName
-            };
+            AppContext = appContext;
+            SetupSqlBulkCopy(tableName);
         }
 
-        //private void StartTransaction(string tableName)
-        //{
-        //    _sqlConnection = new SqlConnection(_appContext.ConnectionString);
-        //    _sqlConnection.Open();
-        //    _transaction = _sqlConnection.BeginTransaction();
-
-        //    SqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _transaction)
-        //    {
-        //        BatchSize = _appContext.BatchSize,
-        //        BulkCopyTimeout = _appContext.Timeout,
-        //        DestinationTableName = tableName
-        //    };
-        //}
-
-        protected void AddMappings(string[] propertyNames)
+        protected void AddDefaultMappings(string[] propertyNames)
         {
             foreach (var property in propertyNames)
             {
@@ -83,6 +59,20 @@ namespace Loki.BulkDataProcessor.Commands
             // Close on the SQL Bulk Copy method also dispose the instance. See below, line 789:
             https://github.com/Microsoft/referencesource/blob/master/System.Data/System/Data/SqlClient/SqlBulkCopy.cs
             SqlBulkCopy.Close();
+        }
+
+        private void SetupSqlBulkCopy(string tableName)
+        {
+            _sqlConnection = new SqlConnection(AppContext.ConnectionString);
+            _sqlConnection.Open();
+            _transaction = _sqlConnection.BeginTransaction();
+
+            SqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _transaction)
+            {
+                BatchSize = AppContext.BatchSize,
+                BulkCopyTimeout = AppContext.Timeout,
+                DestinationTableName = tableName
+            };
         }
     }
 }

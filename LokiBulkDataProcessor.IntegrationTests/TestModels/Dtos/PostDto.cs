@@ -2,10 +2,10 @@
 {
     public class PostDto
     {
-        public string Title { get; set; }
+        public string TitleB { get; set; }
 
-        public string Content { get; set; }
+        public string ContentA { get; set; }
 
-        public int BlogId { get; set; }
+        public int ABlogId { get; set; }
     }
 }

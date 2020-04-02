@@ -11,8 +11,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         {
              _post = new Post
              {
-                Title = postDto.Title,
-                Content = postDto.Content
+                Title = postDto.TitleB,
+                Content = postDto.ContentA
              };
             return this;
         }
@@ -31,6 +31,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         public PostBuilder WithBlog(Blog blog)
         {
             _post.Blog = blog;
+            _post.BlogId = blog.Id;
             return this;
         }
 

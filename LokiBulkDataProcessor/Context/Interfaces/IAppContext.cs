@@ -7,7 +7,7 @@ namespace Loki.BulkDataProcessor.Context.Interfaces
         public string ConnectionString { get; }
         public int BatchSize { get; }
         public int Timeout { get; }
-        public IMappingCollection MappingCollection { get; }
+        public IModelMappingCollection ModelMappingCollection { get; }
         void SetConnectionString(string connectionString);
         void SetBatchSize(int batchSize);
         void SetTimeout(int timeout);

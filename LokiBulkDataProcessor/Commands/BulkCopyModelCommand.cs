@@ -1,6 +1,8 @@
 ﻿using FastMember;
 using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Mappings;
+using Loki.BulkDataProcessor.Mappings.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using System;
 using System.Collections.Generic;
@@ -13,7 +15,8 @@ namespace Loki.BulkDataProcessor.Commands
     {
         public IEnumerable<T> DataToCopy { get; set; }
 
-        public BulkCopyModelsCommand(IEnumerable<T> dataToCopy, string tableName, IAppContext appContext) : base(appContext, tableName)
+        public BulkCopyModelsCommand(IEnumerable<T> dataToCopy, string tableName, IAppContext appContext) 
+            : base(appContext, tableName)
         {
             DataToCopy = dataToCopy;
         }
@@ -24,7 +27,7 @@ namespace Loki.BulkDataProcessor.Commands
             {
                 var propertyNames = typeof(T).GetPublicPropertyNames();
 
-                AddMappings(propertyNames);
+                MapColumns(propertyNames);
                 using var reader = ObjectReader.Create(DataToCopy, propertyNames);
                 await SqlBulkCopy.WriteToServerAsync(reader);
                 CommitTransaction();
@@ -37,6 +40,28 @@ namespace Loki.BulkDataProcessor.Commands
             finally
             {
                 Dispose();
+            }
+        }
+
+        private void MapColumns(string[] propertyNames)
+        {
+            var mapping = AppContext.ModelMappingCollection.GetMappingFor(typeof(T));
+
+            if(mapping != null)
+            {
+                AddMappings(mapping);
+            }
+            else
+            {
+                AddDefaultMappings(propertyNames);
+            }
+        }
+
+        private void AddMappings(AbstractModelMapping mapping)
+        {
+            foreach(var columnMapping in mapping.ColumnMappings)
+            {
+                SqlBulkCopy.ColumnMappings.Add(columnMapping.Key, columnMapping.Value);
             }
         }
     }

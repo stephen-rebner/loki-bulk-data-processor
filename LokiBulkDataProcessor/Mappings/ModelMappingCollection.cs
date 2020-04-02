@@ -7,16 +7,16 @@ using System.Reflection;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    internal class MappingCollection : IMappingCollection
+    internal class ModelMappingCollection : IModelMappingCollection
     {
-        private readonly IList<AbstractModelMapper> _mappings = new List<AbstractModelMapper>();
+        private readonly IList<AbstractModelMapping> _mappings = new List<AbstractModelMapping>();
 
-        public MappingCollection(Assembly mappingAssmebly)
+        public ModelMappingCollection(Assembly mappingAssmebly)
         {
             AddMappingsIfMappingAssemblyNotNull(mappingAssmebly);
         }
 
-        public AbstractModelMapper GetMappingFor(Type sourceType)
+        public AbstractModelMapping GetMappingFor(Type sourceType)
         {
             return _mappings.FirstOrDefault(mapping => mapping.SourceType == sourceType);
         }
@@ -25,11 +25,11 @@ namespace Loki.BulkDataProcessor.Mappings
         {
             if(mappingAssmebly != null)
             {
-                var types = mappingAssmebly.FindTypesDerivedFrom(typeof(AbstractModelMapper));
+                var types = mappingAssmebly.FindTypesDerivedFrom(typeof(AbstractModelMapping));
 
                 foreach (var mappingType in types)
                 {
-                    var instance = (AbstractModelMapper)Activator.CreateInstance(mappingType);
+                    var instance = (AbstractModelMapping)Activator.CreateInstance(mappingType);
                     _mappings.Add(instance);
                 }
             }

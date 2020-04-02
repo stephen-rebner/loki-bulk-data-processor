@@ -119,6 +119,20 @@ namespace LokiBulkDataProcessor.IntegrationTests
             await ShouldExistInTheDatabase(posts);
         }
 
+        [Test]
+        public async Task SaveAsync_ShouldSaveSuccessfully_WhenUsingColumnMappingsMappedToSameColumns()
+        {
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostsAssociatedToTheBlog(blog);
+
+            await WhenSaveAsyncIsCalled(posts, nameof(TestDbContext.Posts));
+
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
+
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+
         private Blog GivenThisBlog()
         {
             var blog = TestObjectFactory.NewBlog()
@@ -144,9 +158,24 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .WithBlogId(blogId)
                 .Build();
 
-            var postDtos = new PostDto[] { post1, post2 };
+            return new PostDto[] { post1, post2 };
+        }
 
-            return postDtos;
+        private Post[] AndGivenThesePostsAssociatedToTheBlog(Blog blog)
+        {
+            var post1 = TestObjectFactory.NewPost()
+                .WithTitle("Post1")
+                .WithContent("Post 1 content")
+                .WithBlog(blog)
+                .Build();
+
+            var post2 = TestObjectFactory.NewPost()
+                .WithTitle("Post2")
+                .WithContent("Post 2 content")
+                .WithBlog(blog)
+                .Build();
+
+            return new Post[] { post1, post2 };
         }
 
         private async Task WhenSaveAsyncIsCalled<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
@@ -174,6 +203,20 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .Build();
 
                 posts.Add(newPost);
+
+                currentPostId = currentPostId + 1;
+            }
+
+            return posts;
+        }
+
+        private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<Post> posts, Blog blog)
+        {
+            var currentPostId = TestDbContext.Posts.Min(post => post.Id);
+
+            foreach (var post in posts)
+            {
+                post.Id = currentPostId;
 
                 currentPostId = currentPostId + 1;
             }

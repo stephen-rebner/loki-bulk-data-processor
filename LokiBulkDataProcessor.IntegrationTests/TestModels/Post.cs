@@ -10,5 +10,6 @@
 
         public Blog Blog { get; set; }
 
+        public int BlogId { get; set; }
     }
 }

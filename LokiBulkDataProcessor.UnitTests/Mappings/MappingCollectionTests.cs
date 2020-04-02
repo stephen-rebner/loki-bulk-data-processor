@@ -9,14 +9,14 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
 {
     public class MappingCollectionTests
     {
-        private MappingCollection _mappingCollection;
+        private ModelMappingCollection _mappingCollection;
 
         [SetUp]
         public void SetUp()
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
 
-            _mappingCollection = new MappingCollection(executingAssembly);
+            _mappingCollection = new ModelMappingCollection(executingAssembly);
         }
 
         [Test]
