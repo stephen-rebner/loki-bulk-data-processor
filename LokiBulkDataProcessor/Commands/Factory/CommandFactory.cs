@@ -1,7 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context;
 using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System.Collections.Generic;
 using System.Data;
 
@@ -21,19 +19,9 @@ namespace Loki.BulkDataProcessor.Commands.Factory
             return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext);
         }
 
-        //public IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(
-        //    int batchSize, 
-        //    int timeout, 
-        //    string tableName, 
-        //    string connectionString, 
-        //    DataTable dataToCopy)
-        //{
-        //    return new BulkCopyDataTableCommand(
-        //        batchSize,
-        //        timeout,
-        //        tableName,
-        //        connectionString,
-        //        dataToCopy);
-        //}
+        public IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
+        {
+            return new BulkCopyDataTableCommand(dataToCopy, tableName, _appContext);
+        }
     }
 }

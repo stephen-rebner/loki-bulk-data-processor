@@ -50,7 +50,7 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        protected void ThrowException(string errorMessage)
+        protected void ThrowInvalidOperationException(string errorMessage)
         {
             if(errorMessage.Equals(
                 "The given ColumnMapping does not match up with any column in the source or destination.", StringComparison.OrdinalIgnoreCase))
@@ -64,7 +64,7 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        protected void SaveTransaction()
+        protected void CommitTransaction()
         {
             _transaction.Commit();
         }

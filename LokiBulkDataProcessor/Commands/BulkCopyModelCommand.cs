@@ -20,21 +20,19 @@ namespace Loki.BulkDataProcessor.Commands
 
         public async Task Execute()
         {
-            var propertyNames = typeof(T).GetPublicPropertyNames();
-
-            AddMappings(propertyNames);
-
             try
             {
+                var propertyNames = typeof(T).GetPublicPropertyNames();
+
+                AddMappings(propertyNames);
                 using var reader = ObjectReader.Create(DataToCopy, propertyNames);
-                var test = reader.GetSchemaTable();
                 await SqlBulkCopy.WriteToServerAsync(reader);
-                SaveTransaction();
+                CommitTransaction();
             }
             catch (Exception e)
             {
                 RollbackTransaction();
-                ThrowException(e.Message);
+                ThrowInvalidOperationException(e.Message);
             }
             finally
             {

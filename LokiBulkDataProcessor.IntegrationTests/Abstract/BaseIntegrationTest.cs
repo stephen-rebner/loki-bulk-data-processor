@@ -11,17 +11,15 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
     public abstract class BaseIntegrationTest
     {
         protected TestDbContext TestDbContext;
+        protected ServiceProvider ServiceProvider;
         protected IBulkProcessor BulkProcessor;
 
         [SetUp]
         protected void TestSetup()
         {
-            TestDbContext = new TestDbContext().CreateDbContext(null);
-
-            TestDbContext.Database.EnsureDeleted();
-            TestDbContext.Database.Migrate();
-
+            CreateDatabase();
             ResolveStartup();
+            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
         }
 
         [TearDown]
@@ -41,15 +39,20 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             TestDbContext.SaveChanges();
         }
 
+        private void CreateDatabase()
+        {
+            TestDbContext = new TestDbContext().CreateDbContext(null);
+
+            TestDbContext.Database.EnsureDeleted();
+            TestDbContext.Database.Migrate();
+        }
+
         private void ResolveStartup()
         {
             IServiceCollection services = new ServiceCollection();
             var startup = new Startup();
             startup.ConfigureServices(services);
-            var serviceProvider = services.BuildServiceProvider();
-
-            BulkProcessor = serviceProvider.GetService<IBulkProcessor>();
-            //IServiceProvider serviceProvider = services.BuildServiceProvider();
+            ServiceProvider = services.BuildServiceProvider();
         }
     }
 }

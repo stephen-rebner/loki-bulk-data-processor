@@ -67,14 +67,9 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            //var command = _commandFactory.NewBulkCopyDataTableCommand(
-            //    _batchSize,
-            //    _timeout,
-            //    destinationTableName,
-            //    _connectionString,
-            //    dataTable);
+            var command = _commandFactory.NewBulkCopyDataTableCommand(dataTable, destinationTableName);
 
-            //await command.Execute();
+            await command.Execute();
         }
 
     }
