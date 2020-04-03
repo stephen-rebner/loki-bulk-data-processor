@@ -107,11 +107,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenTableHasAForeignKey()
+        public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenTableHasAForeignKey_AndHasNoMapping()
         {
             var blog = GivenThisBlog();
 
-            var postDataTable = AndGivenThisPostDataTableAssociatedToBlogId(blog.Id);
+            var postDataTable = AndGivenAPostDataTableWithNoMapping(blog.Id);
 
             await WhenSaveAsyncIsCalled(postDataTable, nameof(TestDbContext.Posts));
             var posts = ThesePostsWithThisBlog(postDataTable, blog);
@@ -120,7 +120,20 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldSaveSuccessfully_WhenUsingColumnMappingsMappedToSameColumns()
+        public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenTableHasAForeignKey_AndHasAMapping()
+        {
+            var blog = GivenThisBlog();
+
+            var postDataTable = AndGivenAPostDataTableWithAMapping(blog.Id);
+
+            await WhenSaveAsyncIsCalled(postDataTable, nameof(TestDbContext.Posts));
+            var posts = ThesePostsWithThisBlog(postDataTable, blog);
+
+            await ShouldExistInTheDatabase(posts);
+        }
+
+        [Test]
+        public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenUsingColumnMappingsMappedToSameColumns()
         {
             var blog = GivenThisBlog();
 
@@ -233,8 +246,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
             foreach (DataRow postDataRow in postDataTable.Rows)
             {
                 var newPost = TestObjectFactory.NewPost()
-                .WithContent((string)postDataRow["Content"])
-                .WithTitle((string)postDataRow["Title"])
+                .WithContent((string)postDataRow[2])
+                .WithTitle((string)postDataRow[1])
                 .WithBlog(blog)
                 .WithId(currentPostId)
                 .Build();
@@ -254,9 +267,22 @@ namespace LokiBulkDataProcessor.IntegrationTests
             expectedPosts.Should().BeEquivalentTo(actualPosts);
         }
 
-        private DataTable AndGivenThisPostDataTableAssociatedToBlogId(int blogId)
+        private DataTable AndGivenAPostDataTableWithNoMapping(int blogId)
         {
             return TestObjectFactory.NewPostDataTable()
+                .Create()
+                .WithDefaultColumnNames()
+                .WithRowData(blogId, Post1, PostContent1)
+                .WithRowData(blogId, Post2, PostContent2)
+                .Build();
+        }
+
+        private DataTable AndGivenAPostDataTableWithAMapping(int blogId)
+        {
+            return TestObjectFactory.NewPostDataTable()
+                .Create()
+                .WithTableName("Posts")
+                .WithCustomColumnNames("ATitle", "ContentA", "ABlogId")
                 .WithRowData(blogId, Post1, PostContent1)
                 .WithRowData(blogId, Post2, PostContent2)
                 .Build();

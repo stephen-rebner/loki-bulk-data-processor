@@ -3,9 +3,9 @@ using LokiBulkDataProcessor.UnitTests.TestModels;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class TestMapping1 : AbstractModelMapping<ValidModelObject>
+    public class ValidModelMapping1 : AbstractModelMapper<ValidModelObject>
     {
-        public TestMapping1()
+        public ValidModelMapping1()
         {
             Map(o => o.PublicInt).ToDestinationColumn("public_int");
             Map(o => o.PublicBool).ToDestinationColumn("public_bool");

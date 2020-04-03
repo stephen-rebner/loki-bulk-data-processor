@@ -21,7 +21,7 @@ namespace Loki.BulkDataProcessor.Commands
             SetupSqlBulkCopy();
         }
 
-        protected void MapColumns(AbstractMapping mapping, string[] propertyNames)
+        protected void MapColumns(AbstractMapper mapping, string[] propertyNames)
         {
             if(mapping != null)
             {
@@ -81,7 +81,7 @@ namespace Loki.BulkDataProcessor.Commands
                 DestinationTableName = _tableName
             };
         }
-        private void AddMappings(AbstractMapping mapping)
+        private void AddMappings(AbstractMapper mapping)
         {
             foreach (var columnMapping in mapping.ColumnMappings)
             {

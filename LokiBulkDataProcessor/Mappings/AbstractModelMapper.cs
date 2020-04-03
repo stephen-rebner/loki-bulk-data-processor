@@ -1,35 +1,51 @@
-﻿using System;
+﻿using Loki.BulkDataProcessor.Exceptions;
+using System;
+using System.Diagnostics;
 using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class AbstractModelMapping<TSource> : AbstractModelMapping where TSource : class
+    public abstract class AbstractModelMapper<TSource> : AbstractModelMapper where TSource : class
     {
-        private string _propertyName;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _currentPropertyName;
 
-        public AbstractModelMapping() : base(typeof(TSource))
+        public AbstractModelMapper() : base(typeof(TSource))
         {
         }
 
-        public AbstractModelMapping<TSource> Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
+        public AbstractModelMapper<TSource> Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {
             var member = keySelector.Body as MemberExpression;
 
-            _propertyName = member.Member.Name;
+            _currentPropertyName = member.Member.Name;
+
+            ThrowIfDuplicateSourceColumn(_currentPropertyName);
+
             return this;
         }
 
         public void ToDestinationColumn(string destinationColumnName)
         {
-            ColumnMappings.Add(_propertyName, destinationColumnName);
+            if(string.IsNullOrWhiteSpace(destinationColumnName))
+            {
+                throw new MappingException($"The mapping for the {SourceType.Name} model contains a null or empty destination column.");
+            }
+
+            if (ColumnMappings.ContainsValue(destinationColumnName))
+            {
+                throw new MappingException($"The mapping for the {SourceType.Name} model contains duplicate destination columns.");
+            }
+
+            ColumnMappings.Add(_currentPropertyName, destinationColumnName);
         }
     }
 
-    public class AbstractModelMapping : AbstractMapping
+    public class AbstractModelMapper : AbstractMapper
     {
         internal Type SourceType { get; }
 
-        public AbstractModelMapping(Type sourceType)
+        public AbstractModelMapper(Type sourceType)
         {
             SourceType = sourceType;
         }
