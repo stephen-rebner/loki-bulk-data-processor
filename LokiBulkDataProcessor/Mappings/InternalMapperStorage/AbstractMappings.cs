@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Loki.BulkDataProcessor.Mappings
+namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
 {
     public abstract class AbstractMappings<T> where T : AbstractMapper
     {

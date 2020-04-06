@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-namespace Loki.BulkDataProcessor.Mappings
+namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
 {
     internal class ModelMappings : AbstractMappings<AbstractModelMapper>, IModelMappingCollection
     {

@@ -1,7 +1,7 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Context;
 using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Mappings;
+using Loki.BulkDataProcessor.Mappings.InternalMapperStorage;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
