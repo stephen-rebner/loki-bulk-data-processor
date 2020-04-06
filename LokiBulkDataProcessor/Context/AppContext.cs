@@ -17,7 +17,6 @@ namespace Loki.BulkDataProcessor.Context
         public IModelMappingCollection ModelMappingCollection { get; }
         public IDataTableMappingCollection DataTableMappingCollection { get; }
 
-
         public AppContext(string connectionString, IModelMappingCollection mappingCollection, IDataTableMappingCollection dataTableMappingCollection)
         {
             ConnectionString = connectionString;

@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor.Commands.Interfaces;
+﻿using Loki.BulkDataProcessor.Commands.Abstract;
+using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using System;
 using System.Data;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyDataTableCommand : BaseBulkCommand, IBulkCopyDataTableCommand
+    internal class BulkCopyDataTableCommand : BaseBulkCopyCommand, IBulkCopyDataTableCommand
     {
         public DataTable DataToCopy { get; set; }
 

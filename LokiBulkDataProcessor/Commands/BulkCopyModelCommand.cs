@@ -1,4 +1,5 @@
 ﻿using FastMember;
+using Loki.BulkDataProcessor.Commands.Abstract;
 using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyModelsCommand<T> : BaseBulkCommand, IBulkCopyModelsCommand<T> where T : class
+    internal class BulkCopyModelsCommand<T> : BaseBulkCopyCommand, IBulkCopyModelsCommand<T> where T : class
     {
         public IEnumerable<T> DataToCopy { get; set; }
 

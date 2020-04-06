@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Loki.BulkDataProcessor.DefaultValues
+﻿namespace Loki.BulkDataProcessor.DefaultValues
 {
     internal static class DefaultConfigValues
     {

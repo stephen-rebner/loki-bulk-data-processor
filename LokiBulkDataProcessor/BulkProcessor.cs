@@ -9,7 +9,6 @@ namespace Loki.BulkDataProcessor
 {
     public class BulkProcessor : IBulkProcessor
     {
-        //private readonly IMediator _mediator;
         private readonly ICommandFactory _commandFactory;
         private readonly IAppContext _appContext;
 
