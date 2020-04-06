@@ -4,9 +4,10 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
     public class DataTableMappingWithDuplicateDestCol : AbstractDataTableMapper
     {
+        public override string SourceTableName => "DataTableMappingWithDuplicateDestCol";
+
         public DataTableMappingWithDuplicateDestCol()
         {
-            ForDataTable("DataTableMappingWithDuplicateDestCol");
             Map("PublicInt").ToDestinationColumn("public_int");
             Map("PublicBool").ToDestinationColumn("public_bool");
             Map("BaseInt").ToDestinationColumn("base_int");
@@ -14,5 +15,4 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
             Map("PublicString1").ToDestinationColumn("public_string");
         }
     }
-
 }

@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor;
+﻿
+using Loki.BulkDataProcessor;
 using LokiBulkDataProcessor.IntegrationTests.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

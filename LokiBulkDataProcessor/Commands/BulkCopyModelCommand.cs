@@ -1,8 +1,6 @@
 ﻿using FastMember;
 using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Mappings;
-using Loki.BulkDataProcessor.Mappings.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using System;
 using System.Collections.Generic;

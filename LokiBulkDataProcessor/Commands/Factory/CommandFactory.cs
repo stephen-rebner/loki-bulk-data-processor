@@ -1,6 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System.Collections.Generic;
 using System.Data;
 

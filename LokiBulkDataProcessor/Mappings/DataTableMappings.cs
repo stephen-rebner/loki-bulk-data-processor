@@ -14,7 +14,7 @@ namespace Loki.BulkDataProcessor.Mappings
 
         public AbstractDataTableMapper GetMappingFor(string tableName)
         {
-            return _mappings.FirstOrDefault(mapping => mapping.TableName.Equals(tableName, StringComparison.Ordinal));
+            return _mappings.FirstOrDefault(mapping => mapping.SourceTableName.Equals(tableName, StringComparison.Ordinal));
         }
     }
 }
