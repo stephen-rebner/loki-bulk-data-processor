@@ -5,14 +5,14 @@ using System.Reflection;
 
 namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
 {
-    internal class DataTableMappings : AbstractMappings<AbstractDataTableMapper>, IDataTableMappingCollection
+    internal class DataTableMappings : AbstractMappings<DataTableMapping>, IDataTableMappingCollection
     {
         public DataTableMappings(Assembly mappingAssmebly)
         {
             AddMappingsIfMappingAssemblyNotNull(mappingAssmebly);
         }
 
-        public AbstractDataTableMapper GetMappingFor(string tableName)
+        public DataTableMapping GetMappingFor(string tableName)
         {
             return _mappings.FirstOrDefault(mapping => mapping.SourceTableName.Equals(tableName, StringComparison.Ordinal));
         }

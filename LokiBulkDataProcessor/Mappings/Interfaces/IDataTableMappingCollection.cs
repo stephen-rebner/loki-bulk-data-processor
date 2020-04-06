@@ -2,6 +2,6 @@
 {
     public interface IDataTableMappingCollection
     {
-        AbstractDataTableMapper GetMappingFor(string tableName);
+        DataTableMapping GetMappingFor(string tableName);
     }
 }

@@ -3,7 +3,7 @@ using LokiBulkDataProcessor.UnitTests.TestModels;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class ModelMappingWithDuplicateSourceColumn : AbstractModelMapper<ValidModelObject>
+    public class ModelMappingWithDuplicateSourceColumn : ModelMapping<ValidModelObject>
     {
         public ModelMappingWithDuplicateSourceColumn()
         {

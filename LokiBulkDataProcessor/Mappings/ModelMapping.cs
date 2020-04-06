@@ -5,16 +5,16 @@ using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class AbstractModelMapper<TSource> : AbstractModelMapper where TSource : class
+    public abstract class ModelMapping<TSource> : AbstractModelMapper where TSource : class
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _currentPropertyName;
 
-        public AbstractModelMapper() : base(typeof(TSource))
+        public ModelMapping() : base(typeof(TSource))
         {
         }
 
-        public AbstractModelMapper<TSource> Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
+        public ModelMapping<TSource> Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {
             var member = keySelector.Body as MemberExpression;
 

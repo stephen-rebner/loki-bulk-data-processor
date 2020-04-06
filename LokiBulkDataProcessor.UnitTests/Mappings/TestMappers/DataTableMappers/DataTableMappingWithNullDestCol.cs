@@ -2,7 +2,7 @@
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class DataTableMappingWithNullDestCol : AbstractDataTableMapper
+    public class DataTableMappingWithNullDestCol : DataTableMapping
     {
         public override string SourceTableName => "DataTableMappingWithNullDestCol";
 

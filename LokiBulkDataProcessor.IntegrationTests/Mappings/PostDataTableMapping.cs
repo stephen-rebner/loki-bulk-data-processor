@@ -2,7 +2,7 @@
 
 namespace LokiBulkDataProcessor.IntegrationTests.Mappings
 {
-    public class PostDataTableMapping : AbstractDataTableMapper
+    public class PostDataTableMapping : DataTableMapping
     {
         public override string SourceTableName => "Posts";
 

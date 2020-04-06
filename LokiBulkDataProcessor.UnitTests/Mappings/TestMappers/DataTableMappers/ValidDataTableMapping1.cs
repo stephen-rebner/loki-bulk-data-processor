@@ -2,7 +2,7 @@
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class ValidDataTableMapping1 : AbstractDataTableMapper
+    public class ValidDataTableMapping1 : DataTableMapping
     {
         public override string SourceTableName => throw new System.NotImplementedException();
 

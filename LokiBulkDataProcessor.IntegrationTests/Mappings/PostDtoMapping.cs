@@ -3,7 +3,7 @@ using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Mappings
 {
-    public class PostDtoMapping : AbstractModelMapper<PostDto>
+    public class PostDtoMapping : ModelMapping<PostDto>
     {
         public PostDtoMapping()
         {

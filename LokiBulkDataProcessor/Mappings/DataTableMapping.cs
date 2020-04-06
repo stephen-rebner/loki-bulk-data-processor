@@ -3,13 +3,13 @@ using System.Diagnostics;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class AbstractDataTableMapper : AbstractMapper
+    public abstract class DataTableMapping : AbstractMapper
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _currentColumnName;
         public abstract string SourceTableName { get; }
 
-        public AbstractDataTableMapper Map(string columnName)
+        public DataTableMapping Map(string columnName)
         {
             _currentColumnName = columnName;
 

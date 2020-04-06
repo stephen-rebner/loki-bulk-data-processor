@@ -3,7 +3,7 @@ using LokiBulkDataProcessor.UnitTests.TestModels;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class ValidModelMapping1 : AbstractModelMapper<ValidModelObject>
+    public class ValidModelMapping1 : ModelMapping<ValidModelObject>
     {
         public ValidModelMapping1()
         {
