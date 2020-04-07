@@ -10,3 +10,7 @@ Or by searching for "**Loki Bulk Data Processor**" in the "**Manage Nuget Packag
 The documentation for the library can be found in the Wiki: 
 
 https://github.com/stephen-rebner/loki-bulk-data-processor/wiki
+
+There are also code examples in the following Git Hub repository:
+
+https://github.com/stephen-rebner/loki-bulk-data-processor-examples
