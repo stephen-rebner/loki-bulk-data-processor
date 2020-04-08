@@ -7,11 +7,11 @@ The package can be downloaded on Nuget by running the following command:
 
 Or by searching for "**Loki Bulk Data Processor**" in the "**Manage Nuget Packages for Solution**" window.
 
-#### Performance Compared to Entity Framework
+### Performance Compared to Entity Framework
 
 The following performance benchmarks were recorded against a laptop with an I7-4800MQ 2.70 Ghz CPU, 16 GB of RAM and a 256GB solid state hard drive. 
 
-*Bulk Data Processor
+#### Bulk Data Processor
 
 <table>
   <thead>
@@ -28,7 +28,7 @@ The following performance benchmarks were recorded against a laptop with an I7-4
   </tbody>
 </table>
 
-*Entity Framework
+#### Entity Framework
 
 <table>
   <thead>
