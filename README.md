@@ -54,3 +54,7 @@ https://github.com/stephen-rebner/loki-bulk-data-processor/wiki
 There are also code examples in the following Git Hub repository:
 
 https://github.com/stephen-rebner/loki-bulk-data-processor-examples
+
+If you found this project helpful, please consider making a donation at the link below:
+
+https://www.paypal.com/paypalme2/StephenRebner?locale.x=en_GB 
