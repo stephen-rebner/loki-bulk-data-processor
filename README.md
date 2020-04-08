@@ -47,13 +47,19 @@ The following performance benchmarks were recorded against a laptop with an I7-4
 
 Note: Both results were recorded against an empty database, inserting records into a database table with 4 columns, which included 1 primary key and 1 foreign key.
 
+### Documentation
+
 The documentation for the library can be found in the Wiki: 
 
 https://github.com/stephen-rebner/loki-bulk-data-processor/wiki
 
+### Code Examples
+
 There are also code examples in the following Git Hub repository:
 
 https://github.com/stephen-rebner/loki-bulk-data-processor-examples
+
+### Donations
 
 If you found this project helpful, please consider making a donation at the link below:
 
