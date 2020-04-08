@@ -61,6 +61,6 @@ https://github.com/stephen-rebner/loki-bulk-data-processor-examples
 
 ### Donations
 
-If you found this project helpful, please consider making a donation at the link below:
+If you have found this project helpful, please consider making a donation at the link below:
 
 https://www.paypal.com/paypalme2/StephenRebner?locale.x=en_GB 
