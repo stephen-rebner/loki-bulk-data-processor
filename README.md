@@ -53,6 +53,10 @@ The documentation for the library can be found in the Wiki:
 
 https://github.com/stephen-rebner/loki-bulk-data-processor/wiki
 
+Alternatively, a tutorial has been uploaded to YouTube:
+
+https://www.youtube.com/watch?v=LG6N_5AWMEk
+
 ### Code Examples
 
 There are also code examples in the following Git Hub repository:
