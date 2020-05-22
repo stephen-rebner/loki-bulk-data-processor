@@ -2,7 +2,7 @@
 
 namespace Loki.BulkDataProcessor.Commands.Interfaces
 {
-    public interface IBulkCopyModelsCommand<T> : IBulkCopyCommand where T : class
+    public interface IBulkProcessorModelsCommand<T> : IBulkProcessorCommand where T : class
     {
         public IEnumerable<T> DataToCopy { get; set; }
     }

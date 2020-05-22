@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyModelsCommand<T> : BaseBulkCopyCommand, IBulkCopyModelsCommand<T> where T : class
+    internal class BulkCopyModelsCommand<T> : BaseBulkProcessorCommand, IBulkProcessorModelsCommand<T> where T : class
     {
         public IEnumerable<T> DataToCopy { get; set; }
 

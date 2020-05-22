@@ -14,14 +14,19 @@ namespace Loki.BulkDataProcessor.Commands.Factory
             _appContext = appContext;
         }
 
-        public IBulkCopyModelsCommand<T> NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
+        public IBulkProcessorModelsCommand<T> NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
         {
             return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext);
         }
 
-        public IBulkCopyDataTableCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
+        public IBulkProcessorDataTableCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
         {
             return new BulkCopyDataTableCommand(dataToCopy, tableName, _appContext);
+        }
+
+        public IBulkProcessorDataTableCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName)
+        {
+            return new BulkUpdateDataTableCommand(dataToCopy, tableName, _appContext);
         }
     }
 }

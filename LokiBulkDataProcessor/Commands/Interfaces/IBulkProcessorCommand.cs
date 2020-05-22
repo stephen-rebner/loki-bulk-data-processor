@@ -2,7 +2,7 @@
 
 namespace Loki.BulkDataProcessor.Commands.Interfaces
 {
-    public interface IBulkCopyCommand
+    public interface IBulkProcessorCommand
     {
         Task Execute();
     }

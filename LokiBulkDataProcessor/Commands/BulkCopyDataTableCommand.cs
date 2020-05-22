@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyDataTableCommand : BaseBulkCopyCommand, IBulkCopyDataTableCommand
+    internal class BulkCopyDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorDataTableCommand
     {
         public DataTable DataToCopy { get; set; }
 

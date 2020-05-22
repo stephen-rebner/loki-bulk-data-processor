@@ -2,7 +2,7 @@
 
 namespace Loki.BulkDataProcessor.Commands.Interfaces
 {
-    public interface IBulkCopyDataTableCommand : IBulkCopyCommand
+    public interface IBulkProcessorDataTableCommand : IBulkProcessorCommand
     {
         public DataTable DataToCopy { get; set; }
     }

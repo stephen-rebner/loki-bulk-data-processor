@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.Commands.Abstract
 {
-    internal abstract class BaseBulkCopyCommand : IDisposable
+    internal abstract class BaseBulkProcessorCommand : IDisposable
     { 
         private SqlConnection _sqlConnection;
         private SqlTransaction _transaction;
@@ -14,7 +14,7 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
 
         protected SqlBulkCopy SqlBulkCopy { get; set; }
 
-        protected BaseBulkCopyCommand(IAppContext appContext, string tableName)
+        protected BaseBulkProcessorCommand(IAppContext appContext, string tableName)
         {
             _appContext = appContext;
             _tableName = tableName;
