@@ -6,10 +6,17 @@ namespace Loki.BulkDataProcessor.Mappings
     public class AbstractMapper
     {
         internal Dictionary<string, string> ColumnMappings { get; }
+        
+        internal string PrimaryKey { get; private set; }
 
         protected AbstractMapper()
         {
             ColumnMappings = new Dictionary<string, string>();
+        }
+
+        protected void SetPrimaryKey(string primaryKey)
+        {
+            PrimaryKey = primaryKey;
         }
 
         protected void ThrowIfDuplicateSourceColumn(string sourceColumn)

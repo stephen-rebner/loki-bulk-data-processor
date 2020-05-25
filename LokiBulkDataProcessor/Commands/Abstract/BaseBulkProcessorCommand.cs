@@ -7,17 +7,16 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
 {
     internal abstract class BaseBulkProcessorCommand : IDisposable
     { 
-        private SqlConnection _sqlConnection;
-        private SqlTransaction _transaction;
-        protected string _tableName;
+        protected string _destinationTableName;
         protected readonly IAppContext _appContext;
-
+        protected SqlConnection _sqlConnection;
+        protected SqlTransaction _transaction;
         protected SqlBulkCopy SqlBulkCopy { get; set; }
 
-        protected BaseBulkProcessorCommand(IAppContext appContext, string tableName)
+        protected BaseBulkProcessorCommand(IAppContext appContext, string destinationTableName)
         {
             _appContext = appContext;
-            _tableName = tableName;
+            _destinationTableName = destinationTableName;
             SetupSqlBulkCopy();
         }
 
@@ -78,10 +77,10 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
             {
                 BatchSize = _appContext.BatchSize,
                 BulkCopyTimeout = _appContext.Timeout,
-                DestinationTableName = _tableName
+                DestinationTableName = _destinationTableName
             };
         }
-        private void AddMappings(AbstractMapper mapping)
+        protected void AddMappings(AbstractMapper mapping)
         {
             foreach (var columnMapping in mapping.ColumnMappings)
             {
@@ -89,7 +88,7 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
             }
         }
 
-        private void AddDefaultMappings(string[] propertyNames)
+        protected void AddDefaultMappings(string[] propertyNames)
         {
             foreach (var property in propertyNames)
             {

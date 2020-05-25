@@ -1,31 +1,90 @@
 ﻿using Loki.BulkDataProcessor.Commands.Abstract;
 using Loki.BulkDataProcessor.Commands.Interfaces;
+using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
+using Loki.BulkDataProcessor.Mappings;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkUpdateDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorDataTableCommand
+    internal class BulkUpdateDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorCommand
     {
-        private readonly string _destinationTableName;
+        private readonly ITempTable _tempTable;
+        private readonly ISqlCommand _sqlCommand;
+        private readonly DataTable _dataToCopy;
 
-        public DataTable DataToCopy { get; set; }
-
-        public BulkUpdateDataTableCommand(DataTable dataTable, string destinationTableName, IAppContext appContext)
+        public BulkUpdateDataTableCommand(
+            DataTable dataToCopy, 
+            string destinationTableName, 
+            IAppContext appContext, 
+            ITempTable tempTable, 
+            ISqlCommand sqlCommand)
             : base(appContext, destinationTableName)
         {
-            DataToCopy = dataTable;
+            _tempTable = tempTable;
+            _sqlCommand = sqlCommand;
+            _dataToCopy = dataToCopy;
         }
 
-        public Task Execute()
+        public async Task Execute()
         {
             var mapping = _appContext.DataTableMappingCollection.GetMappingFor(_destinationTableName);
+            ThrowExecptionIfMappingIsNull(mapping);
 
-            throw new NotImplementedException();
+            try
+            {
+                AddMappings(mapping);
+
+                _tempTable.Create(mapping.ColumnMappings.Values, _sqlConnection);
+
+                SqlBulkCopy.ColumnMappings.Add(mapping.PrimaryKey, mapping.PrimaryKey);
+                SqlBulkCopy.DestinationTableName = DbConstants.TempTableName;
+                await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
+
+                var batches = Math.Ceiling((double)_dataToCopy.Rows.Count / _appContext.BatchSize);
+
+                for (var i = 1; i <= batches; i++)
+                {
+                    var updateStatement = BuildUpdateStatement(mapping);
+                }
+            }
+            catch(Exception e)
+            {
+                ThrowInvalidOperationException(e.Message);
+            }
+            finally
+            {
+                _tempTable.DropIfExists(_sqlConnection);
+                Dispose();
+            }
+        }
+
+        private void ThrowExecptionIfMappingIsNull(AbstractMapper mapping)
+        {
+            if(mapping == null)
+            {
+                ThrowInvalidOperationException("A mapping is required for bulk updates which has a primary key specified.");
+            }
+        }
+
+        private string BuildUpdateStatement(AbstractMapper mapping)
+        {
+            var sqlBuilder = new StringBuilder();
+            sqlBuilder.Append($"UPDATE {_destinationTableName} dest");
+            sqlBuilder.Append("SET ");
+
+            foreach(var mappingValues in mapping.ColumnMappings)
+            {
+                
+            }
+            
+            sqlBuilder.Append($"INNER JOIN { DbConstants.TempTableName } t ON t.");
+
+            return sqlBuilder.ToString();
         }
     }
 }

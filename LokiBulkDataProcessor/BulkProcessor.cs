@@ -1,6 +1,7 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -71,14 +72,16 @@ namespace Loki.BulkDataProcessor
             await command.Execute();
         }
 
-        public async Task UpdateAsync(DataTable dataTable, string destinationTableName)
+        public Task UpdateAsync(DataTable dataTable, string destinationTableName)
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            var command = _commandFactory.NewBulkUpdateDataTableCommand(dataTable, destinationTableName);
+            //var command = _commandFactory.NewBulkUpdateDataTableCommand(dataTable, destinationTableName);
 
-            await command.Execute();
+            //await command.Execute();
+
+            throw new NotImplementedException();
         }
     }
 }
