@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
 {
-    public abstract class AbstractMappings<T> where T : AbstractMapper
+    public abstract class AbstractMappings<T> where T : AbstractMapping
     {
         protected readonly IList<T> _mappings = new List<T>();
 

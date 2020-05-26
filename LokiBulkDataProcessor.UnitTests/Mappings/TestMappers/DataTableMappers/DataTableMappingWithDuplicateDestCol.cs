@@ -1,5 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Mappings;
 
+
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
     public class DataTableMappingWithDuplicateDestCol : DataTableMapping

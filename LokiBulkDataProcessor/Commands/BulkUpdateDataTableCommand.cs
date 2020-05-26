@@ -6,6 +6,7 @@ using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings;
 using System;
 using System.Data;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -38,10 +39,9 @@ namespace Loki.BulkDataProcessor.Commands
             try
             {
                 AddMappings(mapping);
+                var sourceColumns = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.SourceColumn);
+                _tempTable.Create(sourceColumns, _sqlConnection);
 
-                _tempTable.Create(mapping.ColumnMappings.Values, _sqlConnection);
-
-                SqlBulkCopy.ColumnMappings.Add(mapping.PrimaryKey, mapping.PrimaryKey);
                 SqlBulkCopy.DestinationTableName = DbConstants.TempTableName;
                 await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
 
@@ -63,7 +63,7 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        private void ThrowExecptionIfMappingIsNull(AbstractMapper mapping)
+        private void ThrowExecptionIfMappingIsNull(AbstractMapping mapping)
         {
             if(mapping == null)
             {
@@ -71,13 +71,13 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        private string BuildUpdateStatement(AbstractMapper mapping)
+        private string BuildUpdateStatement(AbstractMapping mapping)
         {
             var sqlBuilder = new StringBuilder();
             sqlBuilder.Append($"UPDATE {_destinationTableName} dest");
             sqlBuilder.Append("SET ");
 
-            foreach(var mappingValues in mapping.ColumnMappings)
+            foreach(var mappingValues in mapping.MappingInfo.MappingMetaDataCollection)
             {
                 
             }

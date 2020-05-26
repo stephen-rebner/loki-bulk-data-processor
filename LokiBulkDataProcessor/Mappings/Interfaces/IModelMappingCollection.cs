@@ -4,6 +4,6 @@ namespace Loki.BulkDataProcessor.Mappings.Interfaces
 {
     public interface IModelMappingCollection
     {
-        AbstractModelMapper GetMappingFor(Type sourceType);
+        AbstractModelMapping GetMappingFor(Type sourceType);
     }
 }

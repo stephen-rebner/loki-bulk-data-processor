@@ -2,6 +2,7 @@
 using Loki.BulkDataProcessor.Mappings;
 using System;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace Loki.BulkDataProcessor.Commands.Abstract
 {
@@ -20,7 +21,7 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
             SetupSqlBulkCopy();
         }
 
-        protected void MapColumns(AbstractMapper mapping, string[] propertyNames)
+        protected void MapColumns(AbstractMapping mapping, string[] propertyNames)
         {
             if(mapping != null)
             {
@@ -80,11 +81,13 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
                 DestinationTableName = _destinationTableName
             };
         }
-        protected void AddMappings(AbstractMapper mapping)
+        protected void AddMappings(AbstractMapping mapping)
         {
-            foreach (var columnMapping in mapping.ColumnMappings)
+            var nonPrimaryKeyMappings = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey);
+
+            foreach (var mappingMetaData in nonPrimaryKeyMappings)
             {
-                SqlBulkCopy.ColumnMappings.Add(columnMapping.Key, columnMapping.Value);
+                SqlBulkCopy.ColumnMappings.Add(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn);
             }
         }
 

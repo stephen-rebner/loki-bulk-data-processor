@@ -1,36 +1,46 @@
-﻿using Loki.BulkDataProcessor.Exceptions;
-using System.Diagnostics;
+﻿using Loki.BulkDataProcessor.Mappings.Interfaces;
+using Loki.BulkDataProcessor.Mappings.MappingLogic;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class DataTableMapping : AbstractMapper
+    public abstract class DataTableMapping : AbstractMapping, IMapDataTableSource
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string _currentColumnName;
         public abstract string SourceTableName { get; }
 
-        public DataTableMapping Map(string columnName)
+        public DataTableMapping() : base (new DataTableMappingInfo())
         {
-            _currentColumnName = columnName;
-
-            ThrowIfDuplicateSourceColumn(_currentColumnName);
-
-            return this;
         }
 
-        public void ToDestinationColumn(string destinationColumnName)
+        public IToDestination Map(string sourceColumn)
         {
-            if(string.IsNullOrWhiteSpace(destinationColumnName))
-            {
-                throw new MappingException($"The mapping for the {SourceTableName} data table contains a null or empty destination column.");
-            }
+            //ThrowIfDuplicateSourceColumn(sourceColumn);
+            var mappingInfo = (DataTableMappingInfo)MappingInfo;
 
-            if(ColumnMappings.ContainsValue(destinationColumnName))
-            {
-                throw new MappingException($"The mapping for the {SourceTableName} data table contains duplicate destination columns.");
-            }
+            mappingInfo.Map(sourceColumn);
 
-            ColumnMappings.Add(_currentColumnName, destinationColumnName);
+            return MappingInfo;
         }
+
+        //public IAsPrimaryKey ToDestinationColumn(string destinationColumnName)
+        //{
+        //    //if (string.IsNullOrWhiteSpace(destinationColumnName))
+        //    //{
+        //    //    throw new MappingException($"The mapping for the {SourceTableName} data table contains a null or empty destination column.");
+        //    //}
+
+        //    //if (ColumnMappings.ContainsValue(destinationColumnName))
+        //    //{
+        //    //    throw new MappingException($"The mapping for the {SourceTableName} data table contains duplicate destination columns.");
+        //    //}
+
+        //    //ColumnMappings.Add(_currentColumnName, destinationColumnName);
+
+        //    return this;
+        //}
+
+        //public void AsPrimaryKey()
+        //{
+
+        //}
     }
 }
