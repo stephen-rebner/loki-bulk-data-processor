@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 {
-    internal abstract class AbstractMappingInfo : IToDestination, IAsPrimaryKey
+    internal abstract class AbstractMappingInfo : IAsPrimaryKey
     {
         protected MappingMetaData _currentMappingMetaData;
 
@@ -16,13 +16,12 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
             MappingMetaDataCollection[MappingMetaDataCollection.Count -1] = _currentMappingMetaData;
         }
 
-        public IAsPrimaryKey ToDestinationColumn(string destinationColumnName)
+        protected void ThrowIfDuplicateSourceColumn(string sourceColumn)
         {
-            _currentMappingMetaData.DestinationColumn = destinationColumnName;
-
-            UpdateMappingCollection(_currentMappingMetaData);
-
-            return this;
+            //if (ColumnMappings.ContainsKey(sourceColumn))
+            //{
+            //    throw new MappingException($"The mapping contains a duplicate source column: {sourceColumn}");
+            //}
         }
 
         private void UpdateMappingCollection(MappingMetaData mappingMetaData)

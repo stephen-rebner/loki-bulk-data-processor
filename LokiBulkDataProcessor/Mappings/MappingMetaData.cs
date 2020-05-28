@@ -11,5 +11,10 @@ namespace Loki.BulkDataProcessor.Mappings
         internal string DestinationColumn { get; set; }
 
         internal bool IsPrimaryKey { get; set; }
+
+        internal void Add()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

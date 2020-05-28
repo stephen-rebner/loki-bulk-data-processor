@@ -10,13 +10,5 @@ namespace Loki.BulkDataProcessor.Mappings
         {
             MappingInfo = mappingInfo;
         }
-
-        //protected void ThrowIfDuplicateSourceColumn(string sourceColumn)
-        //{
-        //    if (ColumnMappings.ContainsKey(sourceColumn))
-        //    {
-        //        throw new MappingException($"The mapping contains a duplicate source column: {sourceColumn}");
-        //    }
-        //}
     }
 }

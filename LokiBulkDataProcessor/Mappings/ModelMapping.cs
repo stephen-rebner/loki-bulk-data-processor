@@ -5,19 +5,20 @@ using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class ModelMapping<TSource> : AbstractModelMapping, IMapModelSource<TSource> where TSource : class
+    public abstract class ModelMapping<TSource> : IMapModelSource<TSource> where TSource : class
     {
-        public ModelMapping() : base(typeof(TSource))
+        internal ModelMappingInfo<TSource> MappingInfo { get; }
+
+        public ModelMapping()
         {
+            MappingInfo = new ModelMappingInfo<TSource>();
         }
 
         public IToDestination Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {
-            var mappingInfo = (ModelMappingInfo)MappingInfo;
+            MappingInfo.Map(keySelector);
 
-            mappingInfo.Map(keySelector);
-
-            return mappingInfo;
+            return MappingInfo;
         }
 
         //public void ToDestinationColumn(string destinationColumnName)
@@ -34,15 +35,5 @@ namespace Loki.BulkDataProcessor.Mappings
 
         //    ColumnMappings.Add(_currentPropertyName, destinationColumnName);
         //}
-    }
-
-    public class AbstractModelMapping : AbstractMapping
-    {
-        internal Type SourceType { get; }
-
-        public AbstractModelMapping(Type sourceType) : base(new ModelMappingInfo())
-        {
-            SourceType = sourceType;
-        }
     }
 }
