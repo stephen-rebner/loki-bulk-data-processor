@@ -53,5 +53,6 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
                 throw new MappingException($"The mapping for the {_sourceTableName} data table contains duplicate destination columns.");
             }
         }
+
     }
 }

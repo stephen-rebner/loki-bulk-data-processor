@@ -5,9 +5,11 @@ using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class ModelMapping<TSource> : IMapModelSource<TSource> where TSource : class
+    public abstract class ModelMapping<TSource> : IModelMapping, IMapModelSource<TSource> where TSource : class
     {
         internal ModelMappingInfo<TSource> MappingInfo { get; }
+
+        public Type SourceType => typeof(TSource);
 
         public ModelMapping()
         {
@@ -20,20 +22,5 @@ namespace Loki.BulkDataProcessor.Mappings
 
             return MappingInfo;
         }
-
-        //public void ToDestinationColumn(string destinationColumnName)
-        //{
-        //    if(string.IsNullOrWhiteSpace(destinationColumnName))
-        //    {
-        //        throw new MappingException($"The mapping for the {SourceType.Name} model contains a null or empty destination column.");
-        //    }
-
-        //    if (ColumnMappings.ContainsValue(destinationColumnName))
-        //    {
-        //        throw new MappingException($"The mapping for the {SourceType.Name} model contains duplicate destination columns.");
-        //    }
-
-        //    ColumnMappings.Add(_currentPropertyName, destinationColumnName);
-        //}
     }
 }
