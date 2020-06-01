@@ -1,6 +1,7 @@
 ﻿using Loki.BulkDataProcessor.Exceptions;
 using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings.MappingLogic
@@ -9,7 +10,6 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
     {
         public IToDestination Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {
-
             var member = keySelector.Body as MemberExpression;
 
             var propertyName = member.Member.Name;
@@ -36,20 +36,28 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
             return this;
         }
 
-        public void ThrowIfDestinationColumnIsNullOrWhiteSpace(string destinationColumnName)
+        protected void ThrowIfDuplicateSourceColumn(string sourceColumn)
+        {
+            if (MappingMetaDataCollection.Any(metaData => metaData.SourceColumn.Equals(sourceColumn, StringComparison.Ordinal)))
+            {
+                throw new MappingException($"The mapping contains a duplicate source column: {sourceColumn}");
+            }
+        }
+
+        private void ThrowIfDestinationColumnIsNullOrWhiteSpace(string destinationColumnName)
         {
             if (string.IsNullOrWhiteSpace(destinationColumnName))
             {
-                throw new MappingException($"The mapping for the {SourceType.Name} model contains a null or empty destination column.");
+                throw new MappingException($"The mapping for the {typeof(TSource).Name} model contains a null or empty destination column.");
             }
         }
 
         private void ThrowIfDuplicateDestinationColumn(string destinationColumnName)
         {
-            //if (ColumnMappings.ContainsValue(destinationColumnName))
-            //{
-            //    throw new MappingException($"The mapping for the {SourceType.Name} model contains duplicate destination columns.");
-            //}
+            if (MappingMetaDataCollection.Any(metaData => metaData.DestinationColumn.Equals(destinationColumnName, StringComparison.Ordinal)))
+            {
+                throw new MappingException($"The mapping for the {typeof(TSource).Name} model contains duplicate destination columns.");
+            }
         }
     }
 }

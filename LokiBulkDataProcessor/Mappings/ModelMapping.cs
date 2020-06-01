@@ -5,22 +5,36 @@ using System.Linq.Expressions;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class ModelMapping<TSource> : IModelMapping, IMapModelSource<TSource> where TSource : class
+    public abstract class ModelMapping<TSource> : AbstractModelMapping, IMapModelSource<TSource> where TSource : class
     {
-        internal ModelMappingInfo<TSource> MappingInfo { get; }
-
-        public Type SourceType => typeof(TSource);
-
-        public ModelMapping()
-        {
+        public ModelMapping() : base(typeof(TSource))
+        { 
             MappingInfo = new ModelMappingInfo<TSource>();
         }
 
+        /// <summary>
+        /// Determines the property on the model object to map as the source
+        /// </summary>
+        /// <typeparam name="TKey"></typeparam>
+        /// <param name="keySelector"></param>
+        /// <returns></returns>
         public IToDestination Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {
-            MappingInfo.Map(keySelector);
+            var mappingInfo = (ModelMappingInfo<TSource>)MappingInfo;
 
-            return MappingInfo;
+            mappingInfo.Map(keySelector);
+
+            return mappingInfo;
+        }
+    }
+
+    public abstract class AbstractModelMapping : AbstractMapping
+    {
+        internal Type SourceType { get; }
+
+        public AbstractModelMapping(Type sourceType)
+        {
+            SourceType = sourceType;
         }
     }
 }

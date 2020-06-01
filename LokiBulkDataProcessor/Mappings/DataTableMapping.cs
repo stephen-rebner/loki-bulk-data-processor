@@ -3,10 +3,8 @@ using Loki.BulkDataProcessor.Mappings.MappingLogic;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class DataTableMapping : IMapDataTableSource
+    public abstract class DataTableMapping : AbstractMapping, IMapDataTableSource
     {
-        internal DataTableMappingInfo MappingInfo;
-
         public abstract string SourceTableName { get; }
 
         public DataTableMapping()
@@ -14,11 +12,18 @@ namespace Loki.BulkDataProcessor.Mappings
             MappingInfo = new DataTableMappingInfo(SourceTableName);
         }
 
+        /// <summary>
+        /// Determines the data table column to map as the source
+        /// </summary>
+        /// <param name="sourceColumn"></param>
+        /// <returns></returns>
         public IToDestination Map(string sourceColumn)
         {
-            MappingInfo.Map(sourceColumn);
+            var mappingInfo = (DataTableMappingInfo)MappingInfo;
 
-            return MappingInfo;
+            mappingInfo.Map(sourceColumn);
+
+            return mappingInfo;
         }
     }
 }

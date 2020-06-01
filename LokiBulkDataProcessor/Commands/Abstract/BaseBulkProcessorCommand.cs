@@ -64,7 +64,7 @@ namespace Loki.BulkDataProcessor.Commands.Abstract
             _transaction.Dispose();
 
             // Close on the SQL Bulk Copy method also dispose the instance. See below, line 789:
-            https://github.com/Microsoft/referencesource/blob/master/System.Data/System/Data/SqlClient/SqlBulkCopy.cs
+            //https://github.com/Microsoft/referencesource/blob/master/System.Data/System/Data/SqlClient/SqlBulkCopy.cs
             SqlBulkCopy.Close();
         }
 

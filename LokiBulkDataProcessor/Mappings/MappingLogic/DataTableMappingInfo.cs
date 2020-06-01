@@ -38,7 +38,15 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
             return this;
         }
 
-        public void ThrowIfDestinationColumnIsNullOrWhiteSpace(string destinationColumnName)
+        private void ThrowIfDuplicateSourceColumn(string sourceColumn)
+        {
+            if (MappingMetaDataCollection.Any(metaData => metaData.SourceColumn.Equals(sourceColumn, StringComparison.Ordinal)))
+            {
+                throw new MappingException($"The mapping for the {_sourceTableName} data table contains a duplicate source column: {sourceColumn}");
+            }
+        }
+
+        private void ThrowIfDestinationColumnIsNullOrWhiteSpace(string destinationColumnName)
         {
             if (string.IsNullOrWhiteSpace(destinationColumnName))
             {

@@ -13,21 +13,12 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
         {
             _currentMappingMetaData.IsPrimaryKey = true;
 
-            MappingMetaDataCollection[MappingMetaDataCollection.Count -1] = _currentMappingMetaData;
-        }
-
-        protected void ThrowIfDuplicateSourceColumn(string sourceColumn)
-        {
-            //if (ColumnMappings.ContainsKey(sourceColumn))
-            //{
-            //    throw new MappingException($"The mapping contains a duplicate source column: {sourceColumn}");
-            //}
+            UpdateMappingCollection(_currentMappingMetaData);
         }
 
         private void UpdateMappingCollection(MappingMetaData mappingMetaData)
         {
             MappingMetaDataCollection[MappingMetaDataCollection.Count - 1] = mappingMetaData;
-
         }
     }
 }
