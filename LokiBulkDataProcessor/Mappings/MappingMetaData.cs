@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Loki.BulkDataProcessor.Mappings
+﻿namespace Loki.BulkDataProcessor.Mappings
 {
     internal class MappingMetaData
     {
@@ -11,10 +7,5 @@ namespace Loki.BulkDataProcessor.Mappings
         internal string DestinationColumn { get; set; }
 
         internal bool IsPrimaryKey { get; set; }
-
-        internal void Add()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -3,15 +3,14 @@ using LokiBulkDataProcessor.UnitTests.TestModels;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class ValidModelMapping1 : ModelMapping<ValidModelObject>
+    public class ModelMappingWithDuplicatePrimaryKey : ModelMapping<ValidModelObject>
     {
-        public ValidModelMapping1()
+        public ModelMappingWithDuplicatePrimaryKey()
         {
             Map(o => o.PublicInt).ToDestinationColumn("public_int").AsPrimaryKey();
-            Map(o => o.PublicBool).ToDestinationColumn("public_bool");
+            Map(o => o.PublicBool).ToDestinationColumn("public_bool").AsPrimaryKey();
             Map(o => o.BaseInt).ToDestinationColumn("base_int");
-            Map(o => o.PublicString).ToDestinationColumn("public_string");
+            Map(o => o.PublicString).ToDestinationColumn("base_int");
         }
     }
-
 }

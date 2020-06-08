@@ -49,7 +49,7 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
             Action action = () => new DataTableMappingWithDuplicateSourceColumn();
 
             action.Should().ThrowExactly<MappingException>()
-                .WithMessage($"The mapping contains a duplicate source column: PublicString");
+                .WithMessage($"The mapping for the DataTableMappingWithEmptyDestCol data table contains a duplicate source column: PublicString");
         }
     }
 }

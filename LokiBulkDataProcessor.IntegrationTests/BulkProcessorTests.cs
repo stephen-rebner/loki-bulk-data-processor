@@ -217,7 +217,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
                 posts.Add(newPost);
 
-                currentPostId = currentPostId + 1;
+                currentPostId += 1;
             }
 
             return posts;
@@ -231,7 +231,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
             {
                 post.Id = currentPostId;
 
-                currentPostId = currentPostId + 1;
+                currentPostId += 1;
             }
 
             return posts;
@@ -254,7 +254,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
                 posts.Add(newPost);
 
-                currentPostId = currentPostId + 1;
+                currentPostId += 1;
             }
 
             return posts;
