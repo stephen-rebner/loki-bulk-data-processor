@@ -9,6 +9,11 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 
         internal IList<MappingMetaData> MappingMetaDataCollection { get; set; }
 
+        internal AbstractMappingInfo()
+        {
+            MappingMetaDataCollection = new List<MappingMetaData>();
+        }
+
         public void AsPrimaryKey()
         {
             _currentMappingMetaData.IsPrimaryKey = true;

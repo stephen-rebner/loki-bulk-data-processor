@@ -18,8 +18,6 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 
             _currentMappingMetaData = new MappingMetaData { SourceColumn = propertyName };
 
-            MappingMetaDataCollection.Add(_currentMappingMetaData);
-
             return this;
         }
 
