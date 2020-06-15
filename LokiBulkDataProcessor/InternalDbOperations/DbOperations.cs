@@ -21,10 +21,12 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         private SqlBulkCopy _sqlBulkCopy;
 
         private readonly IAppContext _appContext;
+        private readonly ITempTable _tempTable;
 
-        public DbOperations(IAppContext appContext)
+        public DbOperations(IAppContext appContext, ITempTable tempTable)
         {
             _appContext = appContext;
+            _tempTable = tempTable;
         }
 
         /// <summary>
@@ -62,26 +64,15 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             _sqlTransaction = _sqlConnection.BeginTransaction();
         }
 
-        public async Task BulkCopyModelData<T>(IEnumerable<T> modelObjectsToCopy, ObjectReader reader) where T : class
+        public void BulkCopyModelData<T>(IEnumerable<T> modelObjectsToCopy, ObjectReader reader) where T : class
         {
-            await _sqlBulkCopy.WriteToServerAsync(reader);
+            _sqlBulkCopy.WriteToServerAsync(reader);
         }
 
-        public async Task BulkCopyDataTable(DataTable dataTableToCopy)
+        public void BulkCopyDataTable(DataTable dataTableToCopy, string destinationTableName)
         {
-            await _sqlBulkCopy.WriteToServerAsync(dataTableToCopy);
-        }
-
-        public void CreateSqlBulkCopier(string destinationTable)
-        {
-
-            // todo: check what happens if you pass a null transaction below
-            _sqlBulkCopy = new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _sqlTransaction)
-            {
-                BatchSize = _appContext.BatchSize,
-                BulkCopyTimeout = _appContext.Timeout,
-                DestinationTableName = destinationTable
-            };
+            using var sqlBulkCopy = CreateSqlBulkCopier(destinationTableName);
+            sqlBulkCopy.WriteToServerAsync(dataTableToCopy);
         }
 
         public void CommitTransaction()
@@ -108,6 +99,20 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             _sqlConnection = new SqlConnection(_appContext.ConnectionString);
             _sqlConnection.Open();
+        }
+
+        private SqlBulkCopy CreateSqlBulkCopier(string destinationTable)
+        {
+            _sqlConnection = new SqlConnection(_appContext.ConnectionString);
+            _sqlTransaction = _sqlConnection.BeginTransaction();
+
+            // todo: check what happens if you pass a null transaction below
+            return new SqlBulkCopy(_sqlConnection, SqlBulkCopyOptions.CheckConstraints, _sqlTransaction)
+            {
+                BatchSize = _appContext.BatchSize,
+                BulkCopyTimeout = _appContext.Timeout,
+                DestinationTableName = destinationTable
+            };
         }
 
         private void CloseSqlBulkCopy()

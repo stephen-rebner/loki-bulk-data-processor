@@ -22,7 +22,7 @@ namespace LokiBulkDataProcessor.UnitTests
         private IBulkProcessor _bulkProcessor;
         private Mock<ICommandFactory> _commandFactory;
         private Mock<IBulkProcessorCommand> _bulkCopyModelCommand;
-        private Mock<IBulkProcessorDataTableCommand> _bulkCopyDataTableCommand;
+        private Mock<IBulkProcessorCommand> _bulkCopyDataTableCommand;
         private Mock<IAppContext> _appContext;
 
         [SetUp]
@@ -30,7 +30,7 @@ namespace LokiBulkDataProcessor.UnitTests
         {
             _commandFactory = new Mock<ICommandFactory>();
             _bulkCopyModelCommand = new Mock<IBulkProcessorCommand>();
-            _bulkCopyDataTableCommand = new Mock<IBulkProcessorDataTableCommand>();
+            _bulkCopyDataTableCommand = new Mock<IBulkProcessorCommand>();
             _appContext = new Mock<IAppContext>(MockBehavior.Strict);
             _bulkProcessor = new BulkProcessor(_commandFactory.Object, _appContext.Object);
         }

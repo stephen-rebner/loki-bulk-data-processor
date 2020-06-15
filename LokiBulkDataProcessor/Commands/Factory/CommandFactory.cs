@@ -9,27 +9,29 @@ namespace Loki.BulkDataProcessor.Commands.Factory
     internal class CommandFactory : ICommandFactory
     {
         private readonly IAppContext _appContext;
-        private readonly IDbOperations _dbOperations;
+        private readonly ITempTable _tempTable;
+        private readonly ISqlCommand _sqlCommand;
 
-        public CommandFactory(IAppContext appContext, IDbOperations dbOperations)
+        public CommandFactory(IAppContext appContext, IDbOperations dbOperations, ITempTable tempTable, ISqlCommand sqlCommand)
         {
             _appContext = appContext;
-            _dbOperations = dbOperations;
+            _tempTable = tempTable;
+            _sqlCommand = sqlCommand;
         }
 
         public IBulkProcessorCommand NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
         {
-            return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext, _dbOperations);
+            return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext);
         }
 
-        public IBulkProcessorDataTableCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
+        public IBulkProcessorCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
         {
             return new BulkCopyDataTableCommand(dataToCopy, tableName, _appContext);
         }
 
-        //public IBulkProcessorCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName)
-        //{
-        //    return new BulkUpdateDataTableCommand(dataToCopy, tableName, _appContext, _tempTable);
-        //}
+        public IBulkProcessorCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName)
+        {
+            return new BulkUpdateDataTableCommand(dataToCopy, tableName, _appContext, _tempTable, _sqlCommand);
+        }
     }
 }

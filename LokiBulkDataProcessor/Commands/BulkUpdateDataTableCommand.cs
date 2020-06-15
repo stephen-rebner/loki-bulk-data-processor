@@ -50,6 +50,7 @@ namespace Loki.BulkDataProcessor.Commands
                 for (var i = 1; i <= batches; i++)
                 {
                     var updateStatement = BuildUpdateStatement(mapping);
+                    _sqlCommand.Execute(updateStatement, _sqlConnection);
                 }
             }
             catch(Exception e)

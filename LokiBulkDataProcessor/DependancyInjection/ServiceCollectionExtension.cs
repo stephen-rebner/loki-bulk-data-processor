@@ -7,6 +7,7 @@ using Loki.BulkDataProcessor.InternalDbOperations;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings.InternalMapperStorage;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 using System.Reflection;
 
 namespace Loki.BulkDataProcessor.DependancyInjection
@@ -19,6 +20,7 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             services.AddScoped<ITempTable, TempTable>();
             services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new ModelMappings(mappingAssembly), new DataTableMappings(mappingAssembly)));
             services.AddScoped<IDbOperations, DbOperations>();
+            services.AddScoped<IDbConnection, SqlDbConnection>();
             services.AddSingleton<ICommandFactory, CommandFactory>();
             services.AddScoped<IBulkProcessor, BulkProcessor>();
             return services;

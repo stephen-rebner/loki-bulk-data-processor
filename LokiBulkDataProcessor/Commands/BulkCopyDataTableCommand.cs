@@ -9,27 +9,27 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorDataTableCommand
+    internal class BulkCopyDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorCommand
     {
-        public DataTable DataToCopy { get; set; }
+        private readonly DataTable _dataToCopy;
 
         public BulkCopyDataTableCommand(DataTable dataToCopy, string tableName, IAppContext appContext) 
             : base(appContext, tableName)
         {
-            DataToCopy = dataToCopy;
+            _dataToCopy = dataToCopy;
         }
 
         public async Task Execute()
         {
             try
             {
-                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(DataToCopy.TableName);
-                var columnNames = DataToCopy.Columns.Cast<DataColumn>()
+                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(_dataToCopy.TableName);
+                var columnNames = _dataToCopy.Columns.Cast<DataColumn>()
                                  .Select(x => x.ColumnName)
                                  .ToArray();
 
                 MapColumns(mapping, columnNames);
-                await SqlBulkCopy.WriteToServerAsync(DataToCopy);
+                await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
                 CommitTransaction();
             }
             catch (Exception e)

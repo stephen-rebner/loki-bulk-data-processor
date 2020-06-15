@@ -19,11 +19,9 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
         
         void RollbackTransaction();
 
-        Task BulkCopyModelData<T>(IEnumerable<T> modelObjectsToCopy, ObjectReader reader) where T : class;
+        void BulkCopyModelData<T>(IEnumerable<T> modelObjectsToCopy, ObjectReader reader) where T : class;
 
-        Task BulkCopyDataTable(DataTable dataTableToCopy);
-
-        void CreateSqlBulkCopier(string destinationTable);
+        void BulkCopyDataTable(DataTable dataTableToCopy, string destinationTableName);
 
         void OpenSqlConnection();
     }

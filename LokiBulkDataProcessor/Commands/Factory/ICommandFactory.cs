@@ -8,7 +8,8 @@ namespace Loki.BulkDataProcessor.Commands.Factory
     {
         IBulkProcessorCommand NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class;
 
-        IBulkProcessorDataTableCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName);
-        //IBulkProcessorCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName);
+        IBulkProcessorCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName);
+
+        IBulkProcessorCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName);
     }
 }
