@@ -12,10 +12,12 @@ namespace Loki.BulkDataProcessor.Commands
     internal class BulkCopyDataTableCommand : IBulkDataTableCommand
     {
         private readonly IAppContext _appContext;
+        private readonly IDbConnection _dbConnection;
 
-        public BulkCopyDataTableCommand(IAppContext appContext)
+        public BulkCopyDataTableCommand(IAppContext appContext, IDbConnection dbConnection)
         {
             _appContext = appContext;
+            _dbConnection = dbConnection;
         }
 
         public async Task Execute(DataTable dataToCopy, string destinationTableName)
@@ -26,6 +28,14 @@ namespace Loki.BulkDataProcessor.Commands
                 var columnNames = dataToCopy.Columns.Cast<DataColumn>()
                                  .Select(x => x.ColumnName)
                                  .ToArray();
+
+                using(_dbConnection)
+                {
+                    _dbConnection.Open();
+                    using var transaction = _dbConnection.BeginTransaction();
+
+                    var test = "test";
+                }
 
                 //MapColumns(mapping, columnNames);
                 //await SqlBulkCopy.WriteToServerAsync(dataToCopy);
