@@ -1,7 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -41,8 +40,8 @@ namespace Loki.BulkDataProcessor
 
         public BulkProcessor(ICommandFactory commandFactory, IAppContext appContext)
         {
-            _commandFactory = commandFactory;
             _appContext = appContext;
+            _commandFactory = commandFactory;
         }
 
         public IBulkProcessor WithConnectionString(string connectionString)
@@ -57,9 +56,9 @@ namespace Loki.BulkDataProcessor
             dataToProcess.ThrowIfCollectionIsNullOrEmpty(nameof(dataToProcess));
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
 
-            var command = _commandFactory.NewBulkCopyModelsCommand(dataToProcess, destinationTableName);
+            var command = _commandFactory.NewBulkCopyModelsCommand();
 
-            await command.Execute();
+            await command.Execute(dataToProcess, destinationTableName);
         }
 
         public async Task SaveAsync(DataTable dataTable, string destinationTableName)
@@ -67,9 +66,9 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            var command = _commandFactory.NewBulkCopyDataTableCommand(dataTable, destinationTableName);
+            var command = _commandFactory.NewBulkCopyDataTableCommand();
 
-            await command.Execute();
+            await command.Execute(dataTable, destinationTableName);
         }
 
         public async Task UpdateAsync(DataTable dataTable, string destinationTableName)
@@ -77,9 +76,9 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            var command = _commandFactory.NewBulkUpdateDataTableCommand(dataTable, destinationTableName);
+            var command = _commandFactory.NewBulkUpdateDataTableCommand();
 
-            await command.Execute();
+            await command.Execute(dataTable, destinationTableName);
         }
     }
 }

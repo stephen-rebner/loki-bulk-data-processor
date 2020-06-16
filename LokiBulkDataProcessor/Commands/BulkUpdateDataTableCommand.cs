@@ -12,55 +12,53 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkUpdateDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorCommand
+    internal class BulkUpdateDataTableCommand : IBulkDataTableCommand
     {
+        private readonly IAppContext _appContext;
         private readonly ITempTable _tempTable;
         private readonly ISqlCommand _sqlCommand;
         private readonly DataTable _dataToCopy;
 
         public BulkUpdateDataTableCommand(
-            DataTable dataToCopy, 
-            string destinationTableName, 
             IAppContext appContext, 
             ITempTable tempTable, 
             ISqlCommand sqlCommand)
-            : base(appContext, destinationTableName)
         {
+            _appContext = appContext;
             _tempTable = tempTable;
             _sqlCommand = sqlCommand;
-            _dataToCopy = dataToCopy;
         }
 
-        public async Task Execute()
+        public async Task Execute(DataTable dataToProcess, string destinationTableName)
         {
-            var mapping = _appContext.DataTableMappingCollection.GetMappingFor(_destinationTableName);
+            var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
             ThrowExecptionIfMappingIsNull(mapping);
 
             try
             {
-                AddMappings(mapping);
-                var sourceColumns = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.SourceColumn);
-                _tempTable.Create(sourceColumns, _sqlConnection);
+                //AddMappings(mapping);
+                //var sourceColumns = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.SourceColumn);
+                //_tempTable.Create(sourceColumns, _sqlConnection);
 
-                SqlBulkCopy.DestinationTableName = DbConstants.TempTableName;
-                await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
+                //SqlBulkCopy.DestinationTableName = DbConstants.TempTableName;
+                //await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
 
-                var batches = Math.Ceiling((double)_dataToCopy.Rows.Count / _appContext.BatchSize);
+                //var batches = Math.Ceiling((double)_dataToCopy.Rows.Count / _appContext.BatchSize);
 
-                for (var i = 1; i <= batches; i++)
-                {
-                    var updateStatement = BuildUpdateStatement(mapping);
-                    _sqlCommand.Execute(updateStatement, _sqlConnection);
-                }
+                //for (var i = 1; i <= batches; i++)
+                //{
+                //    var updateStatement = BuildUpdateStatement(mapping);
+                //    _sqlCommand.Execute(updateStatement, _sqlConnection);
+                //}
             }
             catch(Exception e)
             {
-                ThrowInvalidOperationException(e.Message);
+                //ThrowInvalidOperationException(e.Message);
             }
             finally
             {
-                _tempTable.DropIfExists(_sqlConnection);
-                Dispose();
+                //_tempTable.DropIfExists(_sqlConnection);
+                //Dispose();
             }
         }
 
@@ -68,14 +66,14 @@ namespace Loki.BulkDataProcessor.Commands
         {
             if(mapping == null)
             {
-                ThrowInvalidOperationException("A mapping is required for bulk updates which has a primary key specified.");
+                //ThrowInvalidOperationException("A mapping is required for bulk updates which has a primary key specified.");
             }
         }
 
         private string BuildUpdateStatement(AbstractMapping mapping)
         {
             var sqlBuilder = new StringBuilder();
-            sqlBuilder.Append($"UPDATE {_destinationTableName} dest");
+            //sqlBuilder.Append($"UPDATE {_destinationTableName} dest");
             sqlBuilder.Append("SET ");
 
             foreach(var mappingValues in mapping.MappingInfo.MappingMetaDataCollection)

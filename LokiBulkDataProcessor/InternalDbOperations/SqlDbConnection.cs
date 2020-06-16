@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using Loki.BulkDataProcessor.Context.Interfaces;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.InternalDbOperations
@@ -6,56 +7,74 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
     internal class SqlDbConnection : IDbConnection
     {
         private SqlConnection _sqlConnection;
+        private readonly IAppContext _appContext;
+
+        private SqlConnection SqlConnection
+        {
+            get
+            {
+                if(_sqlConnection == null)
+                {
+                    _sqlConnection = new SqlConnection(_appContext.ConnectionString);
+                }
+
+                return _sqlConnection;
+            }
+        }
+
+        public SqlDbConnection(IAppContext appContext)
+        {
+            _appContext = appContext;
+        }
 
         public string ConnectionString 
         { 
-            get => _sqlConnection.ConnectionString; 
-            set => _sqlConnection.ConnectionString = value; 
+            get => SqlConnection.ConnectionString; 
+            set => SqlConnection.ConnectionString = value; 
         }
 
-        public int ConnectionTimeout => _sqlConnection.ConnectionTimeout;
+        public int ConnectionTimeout => SqlConnection.ConnectionTimeout;
 
-        public string Database => _sqlConnection.Database;
+        public string Database => SqlConnection.Database;
 
-        public ConnectionState State => _sqlConnection.State;
+        public ConnectionState State => SqlConnection.State;
 
         public IDbTransaction BeginTransaction()
         {
-            return _sqlConnection.BeginTransaction();
+            return SqlConnection.BeginTransaction();
         }
 
         public IDbTransaction BeginTransaction(IsolationLevel il)
         {
-            return _sqlConnection.BeginTransaction(il);
+            return SqlConnection.BeginTransaction(il);
         }
 
         public void ChangeDatabase(string databaseName)
         {
-            _sqlConnection.ChangeDatabase(databaseName);
+            SqlConnection.ChangeDatabase(databaseName);
         }
 
         public void Close()
         {
-            if (_sqlConnection.State != ConnectionState.Closed)
+            if (SqlConnection.State != ConnectionState.Closed)
             {
-                _sqlConnection.Close();
+                SqlConnection.Close();
             }
         }
 
         public IDbCommand CreateCommand()
         {
-            return _sqlConnection.CreateCommand();
+            return SqlConnection.CreateCommand();
         }
 
         public void Dispose()
         {
-            _sqlConnection.Dispose();
+            SqlConnection.Dispose();
         }
 
         public void Open()
         {
-            _sqlConnection = new SqlConnection();
-            _sqlConnection.Open();
+            SqlConnection.Open();
         }
     }
 }

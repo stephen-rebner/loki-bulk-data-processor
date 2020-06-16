@@ -10,36 +10,35 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyModelsCommand<T> : BaseBulkProcessorCommand, IBulkProcessorCommand where T : class
+    internal class BulkCopyModelsCommand : IBulkModelsCommand
     {
-        private readonly IEnumerable<T> _dataToCopy;
+        private readonly IAppContext _appContext;
 
-        public BulkCopyModelsCommand(IEnumerable<T> dataToCopy, string tableName, IAppContext appContext)
-            : base(appContext, tableName)
+        public BulkCopyModelsCommand(IAppContext appContext)
         {
-            _dataToCopy = dataToCopy;
+            _appContext = appContext;
         }
 
-        public async Task Execute()
+        public async Task Execute<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class
         {
             try
             {
                 var propertyNames = typeof(T).GetPublicPropertyNames();
                 var mapping = _appContext.ModelMappingCollection.GetMappingFor(typeof(T));
 
-                MapColumns(mapping, propertyNames);
-                using var reader = ObjectReader.Create(_dataToCopy, propertyNames);
-                await SqlBulkCopy.WriteToServerAsync(reader);
-                CommitTransaction();
+                //MapColumns(mapping, propertyNames);
+                //using var reader = ObjectReader.Create(_dataToCopy, propertyNames);
+                //await SqlBulkCopy.WriteToServerAsync(reader);
+                //CommitTransaction();
             }
             catch (Exception e)
             {
-                RollbackTransaction();
-                ThrowInvalidOperationException(e.Message);
+                //RollbackTransaction();
+                //ThrowInvalidOperationException(e.Message);
             }
             finally
             {
-                Dispose();
+                //Dispose();
             }
         }
     }

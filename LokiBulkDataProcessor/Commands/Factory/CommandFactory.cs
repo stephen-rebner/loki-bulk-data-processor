@@ -3,35 +3,36 @@ using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Collections.Generic;
 using System.Data;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Linq;
 
 namespace Loki.BulkDataProcessor.Commands.Factory
 {
     internal class CommandFactory : ICommandFactory
     {
-        private readonly IAppContext _appContext;
-        private readonly ITempTable _tempTable;
-        private readonly ISqlCommand _sqlCommand;
+        private readonly IServiceProvider _serviceProvider;
 
-        public CommandFactory(IAppContext appContext, IDbOperations dbOperations, ITempTable tempTable, ISqlCommand sqlCommand)
+        public CommandFactory(IServiceProvider serviceProvider)
         {
-            _appContext = appContext;
-            _tempTable = tempTable;
-            _sqlCommand = sqlCommand;
+            _serviceProvider = serviceProvider;
         }
 
-        public IBulkProcessorCommand NewBulkCopyModelsCommand<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
+        public IBulkModelsCommand NewBulkCopyModelsCommand()
         {
-            return new BulkCopyModelsCommand<T>(dataToCopy, tableName, _appContext);
+            return _serviceProvider.GetService<IBulkModelsCommand>();
         }
 
-        public IBulkProcessorCommand NewBulkCopyDataTableCommand(DataTable dataToCopy, string tableName)
+        public IBulkDataTableCommand NewBulkCopyDataTableCommand()
         {
-            return new BulkCopyDataTableCommand(dataToCopy, tableName, _appContext);
+            return _serviceProvider.GetServices<IBulkDataTableCommand>()
+                .First(service => service.GetType() == typeof(BulkCopyDataTableCommand));
         }
 
-        public IBulkProcessorCommand NewBulkUpdateDataTableCommand(DataTable dataToCopy, string tableName)
+        public IBulkDataTableCommand NewBulkUpdateDataTableCommand()
         {
-            return new BulkUpdateDataTableCommand(dataToCopy, tableName, _appContext, _tempTable, _sqlCommand);
+            return _serviceProvider.GetServices<IBulkDataTableCommand>()
+                 .First(service => service.GetType() == typeof(BulkUpdateDataTableCommand));
         }
     }
 }

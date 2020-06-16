@@ -9,37 +9,36 @@ using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor.Commands
 {
-    internal class BulkCopyDataTableCommand : BaseBulkProcessorCommand, IBulkProcessorCommand
+    internal class BulkCopyDataTableCommand : IBulkDataTableCommand
     {
-        private readonly DataTable _dataToCopy;
+        private readonly IAppContext _appContext;
 
-        public BulkCopyDataTableCommand(DataTable dataToCopy, string tableName, IAppContext appContext) 
-            : base(appContext, tableName)
+        public BulkCopyDataTableCommand(IAppContext appContext)
         {
-            _dataToCopy = dataToCopy;
+            _appContext = appContext;
         }
 
-        public async Task Execute()
+        public async Task Execute(DataTable dataToCopy, string destinationTableName)
         {
             try
             {
-                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(_dataToCopy.TableName);
-                var columnNames = _dataToCopy.Columns.Cast<DataColumn>()
+                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(dataToCopy.TableName);
+                var columnNames = dataToCopy.Columns.Cast<DataColumn>()
                                  .Select(x => x.ColumnName)
                                  .ToArray();
 
-                MapColumns(mapping, columnNames);
-                await SqlBulkCopy.WriteToServerAsync(_dataToCopy);
-                CommitTransaction();
+                //MapColumns(mapping, columnNames);
+                //await SqlBulkCopy.WriteToServerAsync(dataToCopy);
+                //CommitTransaction();
             }
             catch (Exception e)
             {
-                RollbackTransaction();
-                ThrowInvalidOperationException(e.Message);
+                //RollbackTransaction();
+                //ThrowInvalidOperationException(e.Message);
             }
             finally
             {
-                Dispose();
+                //Dispose();
             }
         }
     }
