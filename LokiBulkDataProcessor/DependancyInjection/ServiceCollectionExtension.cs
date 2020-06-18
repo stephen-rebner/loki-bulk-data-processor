@@ -17,9 +17,8 @@ namespace Loki.BulkDataProcessor.DependancyInjection
         public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString, Assembly mappingAssembly = null)
         {
             services.AddScoped<ISqlCommand, SqlServerCommand>();
-            services.AddScoped<ITempTable, TempTable>();
             services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new ModelMappings(mappingAssembly), new DataTableMappings(mappingAssembly)));
-            services.AddScoped<ISqlDbConnection, SqlDbConnection>();
+            services.AddTransient<ISqlDbConnection, SqlDbConnection>();
             services.AddScoped<IBulkModelsCommand, BulkCopyModelsCommand>();
             services.AddScoped<IBulkDataTableCommand, BulkCopyDataTableCommand>();
             services.AddScoped<IBulkDataTableCommand, BulkUpdateDataTableCommand>();

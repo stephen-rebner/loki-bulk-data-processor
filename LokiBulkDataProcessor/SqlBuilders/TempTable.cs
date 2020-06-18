@@ -7,18 +7,11 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 
-namespace Loki.BulkDataProcessor.InternalDbOperations
+namespace Loki.BulkDataProcessor.SqlBuilders
 {
-    public class TempTable : ITempTable
+    internal static class TempTable
     {
-        private readonly ISqlCommand _sqlCommand;
-
-        public TempTable(ISqlCommand sqlCommand)
-        {
-            _sqlCommand = sqlCommand;
-        }
-
-        public void Create(IEnumerable<string> sourceColumnNames, SqlConnection sqlConnection)
+        internal static string GenerateCreateSqlStatement(IEnumerable<string> sourceColumnNames)
         {
             var queryBuilder = new StringBuilder();
 
@@ -39,12 +32,12 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
             queryBuilder.AppendFormat(")");
 
-            _sqlCommand.Execute(queryBuilder.ToString(), sqlConnection);
+           return queryBuilder.ToString();
         }
 
-        public void DropIfExists(SqlConnection sqlConnection)
+        internal static string GenerateDropSqlStatement()
         {
-            _sqlCommand.Execute($"IF OBJECT_ID('tempdb..#{ DbConstants.TempTableName }') IS NOT NULL DROP TABLE { DbConstants.TempTableName }", sqlConnection);
+            return $"IF OBJECT_ID('tempdb..#{ DbConstants.TempTableName }') IS NOT NULL DROP TABLE { DbConstants.TempTableName }";
         }
     }
 }

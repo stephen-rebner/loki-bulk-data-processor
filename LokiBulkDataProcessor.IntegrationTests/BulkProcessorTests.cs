@@ -130,6 +130,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var posts = ThesePostsWithThisBlog(postDataTable, blog);
 
             await ShouldExistInTheDatabase(posts);
+
+            await BulkProcessor.UpdateAsync(postDataTable, nameof(TestDbContext.Posts));
         }
 
         [Test]
