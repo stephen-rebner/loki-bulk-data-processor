@@ -1,8 +1,4 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
-using System.Collections.Generic;
-using System.Data;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;

@@ -1,10 +1,11 @@
 ﻿using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data;
 using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.InternalDbOperations
 {
-    internal class SqlDbConnection : IDbConnection
+    internal class SqlDbConnection : ISqlDbConnection
     {
         private SqlConnection _sqlConnection;
         private readonly IAppContext _appContext;
@@ -65,6 +66,11 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         public IDbCommand CreateCommand()
         {
             return SqlConnection.CreateCommand();
+        }
+
+        public IBulkCopyCommand CreateNewBulkCopyCommand(SqlTransaction transaction)
+        {
+            return new BulkCopyCommand(_sqlConnection, transaction, _appContext);
         }
 
         public void Dispose()

@@ -1,9 +1,7 @@
-﻿using FastMember;
-using Loki.BulkDataProcessor.Commands.Abstract;
-using Loki.BulkDataProcessor.Commands.Interfaces;
+﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
-using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
@@ -13,32 +11,39 @@ namespace Loki.BulkDataProcessor.Commands
     internal class BulkCopyModelsCommand : IBulkModelsCommand
     {
         private readonly IAppContext _appContext;
+        private readonly ISqlDbConnection _dbConnection;
 
-        public BulkCopyModelsCommand(IAppContext appContext)
+        public BulkCopyModelsCommand(IAppContext appContext, ISqlDbConnection sqlDbConnection)
         {
             _appContext = appContext;
+            _dbConnection = sqlDbConnection;
         }
 
         public async Task Execute<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class
         {
-            try
+            using (_dbConnection)
             {
-                var propertyNames = typeof(T).GetPublicPropertyNames();
-                var mapping = _appContext.ModelMappingCollection.GetMappingFor(typeof(T));
+                _dbConnection.Open();
+                using var transaction = _dbConnection.BeginTransaction();
 
-                //MapColumns(mapping, propertyNames);
-                //using var reader = ObjectReader.Create(_dataToCopy, propertyNames);
-                //await SqlBulkCopy.WriteToServerAsync(reader);
-                //CommitTransaction();
-            }
-            catch (Exception e)
-            {
-                //RollbackTransaction();
-                //ThrowInvalidOperationException(e.Message);
-            }
-            finally
-            {
-                //Dispose();
+                try
+                {
+                    var type = typeof(T);
+                    var mapping = _appContext.ModelMappingCollection.GetMappingFor(type);
+                    var propertyNames = type.GetPublicPropertyNames();
+
+                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
+
+                    bulkCopyCommand.MapColumns(mapping, propertyNames);
+                    await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
             }
         }
     }

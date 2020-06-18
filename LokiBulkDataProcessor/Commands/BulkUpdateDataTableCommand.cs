@@ -1,12 +1,10 @@
-﻿using Loki.BulkDataProcessor.Commands.Abstract;
-using Loki.BulkDataProcessor.Commands.Interfaces;
+﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings;
 using System;
 using System.Data;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
