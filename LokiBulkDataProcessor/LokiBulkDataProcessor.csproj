@@ -7,15 +7,14 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Loki Bulk Data Processor</Title>
     <Authors>Stephen Rebner</Authors>
-    <Description>The Loki Bulk Data Processor is an Asp.Net Core library which enables the fast bulk processing of data. 
-    It uses the SQL Bulk Copy class under the hood, and can process data model collections or data tables.</Description>
-    <PackageProjectUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</PackageProjectUrl>
+    <Description>The Loki Bulk Data Processor is an Asp.Net Core library which enables the fast bulk processing of data. It uses the SQL Bulk Copy class under the hood, and can process data model collections or data tables.</Description>
+    <PackageProjectUrl>https://www.youtube.com/playlist?list=PLIK1UgJL4iLZRUKXxFCMHfS9oWdVkqeKx</PackageProjectUrl>
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
-    <PackageTags>loki stephen rebner bulk data processor sql bulk copy</PackageTags>
-    <Version>3.0.3</Version>
+    <PackageTags>loki bulk data processor sql bulk copy stephen rebner</PackageTags>
+    <Version>3.5.0</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageReleaseNotes>Added mapping support and improved error handling.</PackageReleaseNotes>
+    <PackageReleaseNotes>Improvements to mapping functionality.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repository\**" />
