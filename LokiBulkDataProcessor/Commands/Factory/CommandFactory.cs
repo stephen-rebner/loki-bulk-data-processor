@@ -21,8 +21,7 @@ namespace Loki.BulkDataProcessor.Commands.Factory
 
         public IBulkDataTableCommand NewBulkCopyDataTableCommand()
         {
-            return _serviceProvider.GetServices<IBulkDataTableCommand>()
-                .First(service => service.GetType() == typeof(BulkCopyDataTableCommand));
+            return _serviceProvider.GetService<IBulkDataTableCommand>();
         }
     }
 }
