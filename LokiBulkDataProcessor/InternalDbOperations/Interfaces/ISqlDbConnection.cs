@@ -6,5 +6,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
     public interface ISqlDbConnection : IDbConnection
     {
         IBulkCopyCommand CreateNewBulkCopyCommand(SqlTransaction transaction);
+
+        IDbCommand CreateCommand(string commandText, SqlTransaction transaction);
     }
 }

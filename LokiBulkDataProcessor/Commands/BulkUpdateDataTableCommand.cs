@@ -40,9 +40,7 @@ namespace Loki.BulkDataProcessor.Commands
 
                     var columnNames = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.DestinationColumn);
 
-                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand();
-                    tempTableCommand.CommandText = TempTable.GenerateCreateSqlStatement(columnNames);
-                    tempTableCommand.CommandTimeout = _appContext.Timeout;
+                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTable.GenerateCreateSqlStatement(columnNames), (SqlTransaction)transaction);
                     await tempTableCommand.ExecuteNonQueryAsync();
 
                     using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
@@ -53,9 +51,8 @@ namespace Loki.BulkDataProcessor.Commands
 
                     for (var i = 1; i <= batches; i++)
                     {
-                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand();
-                        saveCommand.CommandText = BuildUpdateStatement(mapping, destinationTableName);
-                        saveCommand.CommandTimeout = _appContext.Timeout;
+                        var commandText = BuildUpdateStatement(mapping, destinationTableName);
+                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, (SqlTransaction)transaction);
                         await saveCommand.ExecuteNonQueryAsync();
                     }
 

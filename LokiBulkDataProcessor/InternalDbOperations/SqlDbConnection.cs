@@ -65,7 +65,15 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         public IDbCommand CreateCommand()
         {
-            return SqlConnection.CreateCommand();
+            return new SqlCommand { CommandTimeout = _appContext.Timeout };
+        }
+
+        public IDbCommand CreateCommand(string commandText, SqlTransaction transaction)
+        {
+            return new SqlCommand(commandText, _sqlConnection, transaction)
+            {
+                CommandTimeout = _appContext.Timeout
+            };
         }
 
         public IBulkCopyCommand CreateNewBulkCopyCommand(SqlTransaction transaction)
