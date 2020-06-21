@@ -1,7 +1,4 @@
-﻿using Loki.BulkDataProcessor.Exceptions;
-using Loki.BulkDataProcessor.Mappings.Interfaces;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 {
