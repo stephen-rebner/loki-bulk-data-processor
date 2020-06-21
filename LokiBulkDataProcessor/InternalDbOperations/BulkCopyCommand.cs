@@ -76,9 +76,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         private void AddMappings(AbstractMapping mapping)
         {
-            var nonPrimaryKeyMappings = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey);
-
-            foreach (var mappingMetaData in nonPrimaryKeyMappings)
+            foreach (var mappingMetaData in mapping.MappingInfo.MappingMetaDataCollection)
             {
                 _sqlBulkCopy.ColumnMappings.Add(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn);
             }

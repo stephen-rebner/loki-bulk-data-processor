@@ -21,7 +21,7 @@ namespace LokiBulkDataProcessor.UnitTests
 
         private IBulkProcessor _bulkProcessor;
         private Mock<ICommandFactory> _commandFactory;
-        private Mock<IBulkDataTableCommand> _bulkCopyModelCommand;
+        private Mock<IBulkModelsCommand> _bulkCopyModelCommand;
         private Mock<IBulkDataTableCommand> _bulkCopyDataTableCommand;
         private Mock<IAppContext> _appContext;
 
@@ -29,10 +29,10 @@ namespace LokiBulkDataProcessor.UnitTests
         public void SetUp()
         {
             _commandFactory = new Mock<ICommandFactory>();
-            _bulkCopyModelCommand = new Mock<IBulkDataTableCommand>();
+            _bulkCopyModelCommand = new Mock<IBulkModelsCommand>();
             _bulkCopyDataTableCommand = new Mock<IBulkDataTableCommand>();
             _appContext = new Mock<IAppContext>(MockBehavior.Strict);
-            //_bulkProcessor = new BulkProcessor(_commandFactory.Object, _appContext.Object);
+            _bulkProcessor = new BulkProcessor(_commandFactory.Object, _appContext.Object);
         }
 
         [Test]
@@ -43,9 +43,6 @@ namespace LokiBulkDataProcessor.UnitTests
             ActionShouldThrowArgExceptionWithMessage(
                 action,
                 "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
-
-            Assert.IsTrue(false);
-
         }
 
         [TestCase(0)]
@@ -55,9 +52,6 @@ namespace LokiBulkDataProcessor.UnitTests
             Action action = () => WhenTimeoutIsUpdatedWithValue(timeoutValue);
 
             action.Should().NotThrow<ArgumentException>();
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -68,9 +62,6 @@ namespace LokiBulkDataProcessor.UnitTests
             ActionShouldThrowArgExceptionWithMessage(
                 action,
                 "The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
-
-            Assert.IsTrue(false);
-
         }
 
         [TestCase(0)]
@@ -80,9 +71,6 @@ namespace LokiBulkDataProcessor.UnitTests
             Action action = () => WhenBatchSizeIsUpdatedWithValue(batchSizeValue);
 
             action.Should().NotThrow<ArgumentException>();
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -94,9 +82,6 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -108,9 +93,6 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
-
-            Assert.IsTrue(false);
-
         }
 
         [TestCase(null)]
@@ -123,9 +105,6 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("DestinationTableName must not be null or empty. (Parameter 'destinationTableName')");
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -136,9 +115,6 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -152,9 +128,6 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should()
               .Throw<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -162,16 +135,13 @@ namespace LokiBulkDataProcessor.UnitTests
         {
             var modelObjects = new ValidModelObject[] { new ValidModelObject() };
 
-            TheCommandFactoryShouldCreateBulkCopyModelCommand(modelObjects);
+            TheCommandFactoryShouldCreateBulkCopyModelCommand();
 
-            AndTheBulkCopyModelsCommandShouldBeCalled();
+            AndTheBulkCopyModelsCommandShouldBeCalled(modelObjects);
 
             await _bulkProcessor.SaveAsync(modelObjects, TestDestinationTableName);
 
             VerifyTheBulkCopyModelCalls();
-
-            Assert.IsTrue(false);
-
         }
 
         [Test]
@@ -181,13 +151,11 @@ namespace LokiBulkDataProcessor.UnitTests
 
             TheCommandFactoryShouldCreateBulkCopyDataTableCommand(dataTable);
 
-            AndTheBulkCopyDataTableCommandShouldBeCalled();
+            AndTheBulkCopyDataTableCommandShouldBeCalled(dataTable);
 
             await _bulkProcessor.SaveAsync(dataTable, TestDestinationTableName);
 
             VerifyTheBulkCopyDataTableCalls();
-
-            Assert.IsTrue(false);
         }
 
         private DataTable GivenADataTableWithRows()
@@ -222,11 +190,11 @@ namespace LokiBulkDataProcessor.UnitTests
               .WithMessage(errorMessage);
         }
 
-        private void TheCommandFactoryShouldCreateBulkCopyModelCommand(ValidModelObject[] modelObjects)
+        private void TheCommandFactoryShouldCreateBulkCopyModelCommand()
         {
-            //_commandFactory
-            //    .Setup(x => x.NewBulkCopyModelsCommand(modelObjects, TestDestinationTableName))
-            //    .Returns(_bulkCopyModelCommand.Object);
+            _commandFactory
+                .Setup(x => x.NewBulkCopyModelsCommand())
+                .Returns(_bulkCopyModelCommand.Object);
         }
 
         private void VerifyTheBulkCopyModelCalls()
@@ -241,21 +209,21 @@ namespace LokiBulkDataProcessor.UnitTests
             _bulkCopyModelCommand.VerifyAll();
         }
 
-        private void AndTheBulkCopyModelsCommandShouldBeCalled()
+        private void AndTheBulkCopyModelsCommandShouldBeCalled<T>(IEnumerable<T> dataToProcess) where T : class
         {
-            //_bulkCopyModelCommand.Setup(cmd => cmd.Execute());
+            _bulkCopyModelCommand.Setup(cmd => cmd.Execute(dataToProcess, TestDestinationTableName));
         }
 
-        private void AndTheBulkCopyDataTableCommandShouldBeCalled()
+        private void AndTheBulkCopyDataTableCommandShouldBeCalled(DataTable dataToProcess)
         {
-            //_bulkCopyDataTableCommand.Setup(cmd => cmd.Execute());
+            _bulkCopyDataTableCommand.Setup(cmd => cmd.Execute(dataToProcess, TestDestinationTableName));
         }
 
         private void TheCommandFactoryShouldCreateBulkCopyDataTableCommand(DataTable dataTable)
         {
-            //_commandFactory
-            //    .Setup(x => x.NewBulkCopyDataTableCommand(dataTable, TestDestinationTableName))
-            //    .Returns(_bulkCopyDataTableCommand.Object);
+            _commandFactory
+                .Setup(x => x.NewBulkCopyDataTableCommand())
+                .Returns(_bulkCopyDataTableCommand.Object);
         }
 
         #endregion

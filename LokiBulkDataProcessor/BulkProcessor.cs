@@ -70,15 +70,5 @@ namespace Loki.BulkDataProcessor
 
             await command.Execute(dataTable, destinationTableName);
         }
-
-        public async Task UpdateAsync(DataTable dataTable, string destinationTableName)
-        {
-            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
-            dataTable.ThrowIfNullOrHasZeroRows();
-
-            var command = _commandFactory.NewBulkUpdateDataTableCommand();
-
-            await command.Execute(dataTable, destinationTableName);
-        }
     }
 }

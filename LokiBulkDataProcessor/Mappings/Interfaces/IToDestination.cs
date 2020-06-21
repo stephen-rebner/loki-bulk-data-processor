@@ -8,6 +8,6 @@
         /// <typeparam name="TKey"></typeparam>
         /// <param name="keySelector"></param>
         /// <returns></returns>
-        IAsPrimaryKey ToDestinationColumn(string destinationColumnName);
+        void ToDestinationColumn(string destinationColumnName);
     }
 }

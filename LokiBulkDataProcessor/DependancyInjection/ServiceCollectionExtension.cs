@@ -21,7 +21,6 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             services.AddTransient<ISqlDbConnection, SqlDbConnection>();
             services.AddScoped<IBulkModelsCommand, BulkCopyModelsCommand>();
             services.AddScoped<IBulkDataTableCommand, BulkCopyDataTableCommand>();
-            services.AddScoped<IBulkDataTableCommand, BulkUpdateDataTableCommand>();
             services.AddTransient<IDbConnection, SqlDbConnection>();
             services.AddSingleton<ICommandFactory, CommandFactory>();
             services.AddScoped<IBulkProcessor, BulkProcessor>();

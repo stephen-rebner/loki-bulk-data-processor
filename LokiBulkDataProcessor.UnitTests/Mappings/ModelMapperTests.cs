@@ -51,14 +51,5 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
             action.Should().ThrowExactly<MappingException>()
                 .WithMessage($"The mapping contains a duplicate source column: PublicString");
         }
-
-        [Test]
-        public void ShouldThrow_WhenMappingHasDuplicatePrimaryKey()
-        {
-            Action action = () => new ModelMappingWithDuplicatePrimaryKey();
-
-            action.Should().ThrowExactly<MappingException>()
-                .WithMessage($"Composite primary keys are currently not supported");
-        }
     }
 }

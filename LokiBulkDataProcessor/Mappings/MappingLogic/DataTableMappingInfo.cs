@@ -23,7 +23,7 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
             return this;
         }
 
-        public IAsPrimaryKey ToDestinationColumn(string destinationColumnName)
+        public void ToDestinationColumn(string destinationColumnName)
         {
             ThrowIfDestinationColumnIsNullOrWhiteSpace(destinationColumnName);
 
@@ -32,8 +32,6 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
             _currentMappingMetaData.DestinationColumn = destinationColumnName;
 
             MappingMetaDataCollection.Add(_currentMappingMetaData);
-
-            return this;
         }
 
         private void ThrowIfDuplicateSourceColumn(string sourceColumn)

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 {
-    internal abstract class AbstractMappingInfo : IAsPrimaryKey
+    internal abstract class AbstractMappingInfo
     {
         protected MappingMetaData _currentMappingMetaData;
 
@@ -23,22 +23,22 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
         /// <summary>
         /// Maps the object property / in-memory datatable column as the primary key
         /// </summary>
-        public void AsPrimaryKey()
-        {
-            ThrowIfDuplicatePrimaryKey();
+        //public void AsPrimaryKey()
+        //{
+        //    ThrowIfDuplicatePrimaryKey();
 
-            _currentMappingMetaData.IsPrimaryKey = true;
+        //    _currentMappingMetaData.IsPrimaryKey = true;
 
-            UpdateMappingCollection(_currentMappingMetaData);
-        }
+        //    UpdateMappingCollection(_currentMappingMetaData);
+        //}
 
-        private void ThrowIfDuplicatePrimaryKey()
-        {
-            if(MappingMetaDataCollection.Any(metaData => metaData.IsPrimaryKey))
-            {
-                throw new MappingException("Composite primary keys are currently not supported");
-            }
-        }
+        //private void ThrowIfDuplicatePrimaryKey()
+        //{
+        //    if(MappingMetaDataCollection.Any(metaData => metaData.IsPrimaryKey))
+        //    {
+        //        throw new MappingException("Composite primary keys are currently not supported");
+        //    }
+        //}
 
         private void UpdateMappingCollection(MappingMetaData mappingMetaData)
         {
