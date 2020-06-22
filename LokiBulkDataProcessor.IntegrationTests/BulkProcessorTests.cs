@@ -130,8 +130,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var posts = ThesePostsWithThisBlog(postDataTable, blog);
 
             await ShouldExistInTheDatabase(posts);
-
-            await BulkProcessor.UpdateAsync(postDataTable, nameof(TestDbContext.Posts));
         }
 
         [Test]
@@ -146,6 +144,22 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var expectedPosts = ThesePostsWithThisBlog(posts, blog);
 
             await ShouldExistInTheDatabase(expectedPosts);
+        }
+
+        [Test]
+        public async Task SaveaSYNC_ShouldUpdateDataTableSuccessfully()
+        {
+            var blog = GivenThisBlog();
+
+            var postDataTable = AndGivenAPostDataTableWithAMapping(blog.Id);
+
+            await WhenSaveAsyncIsCalled(postDataTable, nameof(TestDbContext.Posts));
+            var posts = ThesePostsWithThisBlog(postDataTable, blog);
+
+            postDataTable.Rows[0].SetField("ATitle", "A new title 1");
+            postDataTable.Rows[0].SetField("ContentA", "New Content 1");
+
+            await BulkProcessor.UpdateAsync(postDataTable, nameof(TestDbContext.Posts));
         }
 
         private Blog GivenThisBlog()

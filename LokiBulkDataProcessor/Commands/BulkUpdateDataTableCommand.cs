@@ -30,7 +30,7 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                using var transaction = _dbConnection.BeginTransaction();
+                //using var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
@@ -40,11 +40,13 @@ namespace Loki.BulkDataProcessor.Commands
 
                     var columnNames = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.DestinationColumn);
 
-                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTable.GenerateCreateSqlStatement(columnNames), transaction);
+                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTableSqlGenerator.GenerateCreateStatement(columnNames), null);
                     await tempTableCommand.ExecuteNonQueryAsync();
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
-                    
+                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(null);
+
+                    bulkCopyCommand.MapColumns(mapping, columnNames);
+
                     await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
 
                     var batches = Math.Ceiling((double)dataToCopy.Rows.Count / _appContext.BatchSize);
@@ -52,15 +54,15 @@ namespace Loki.BulkDataProcessor.Commands
                     for (var i = 1; i <= batches; i++)
                     {
                         var commandText = BuildUpdateStatement(mapping, destinationTableName);
-                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, transaction);
+                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, null);
                         await saveCommand.ExecuteNonQueryAsync();
                     }
 
-                    transaction.Commit();
+                    //transaction.Commit();
                 }
                 catch
                 {
-                    transaction.Rollback();
+                    //transaction.Rollback();
                     throw;
                 }
             }
@@ -86,11 +88,11 @@ namespace Loki.BulkDataProcessor.Commands
             foreach(var columnName in columnsToUpdate)
             {
 
-                sqlBuilder.AppendLine($"dest.{columnName} = t.{columnName}");
+                sqlBuilder.Append($"dest.{columnName} = t.{columnName}");
                 
-                if(columnsToUpdate.Last().Equals(columnName, StringComparison.Ordinal))
+                if(!columnsToUpdate.Last().Equals(columnName, StringComparison.Ordinal))
                 {
-                    sqlBuilder.Append(", ");
+                    sqlBuilder.AppendLine(", ");
                 }
             }
 

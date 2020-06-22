@@ -29,9 +29,7 @@ namespace Loki.BulkDataProcessor.Commands
                 try
                 {
                     var mapping = _appContext.DataTableMappingCollection.GetMappingFor(dataToCopy.TableName);
-                    var columnNames = dataToCopy.Columns.Cast<DataColumn>()
-                                     .Select(x => x.ColumnName)
-                                     .ToArray();
+                    var columnNames = dataToCopy.Columns.Cast<DataColumn>().Select(x => x.ColumnName);
 
                     using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
 

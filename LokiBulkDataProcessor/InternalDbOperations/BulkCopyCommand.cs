@@ -55,7 +55,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             }
         }
 
-        public void MapColumns(AbstractMapping mapping, string[] propertyNames)
+        public void MapColumns(AbstractMapping mapping, IEnumerable<string> propertyNames)
         {
             if (mapping != null)
             {
@@ -84,7 +84,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             }
         }
 
-        private void AddDefaultMappings(string[] propertyNames)
+        private void AddDefaultMappings(IEnumerable<string> propertyNames)
         {
             foreach (var property in propertyNames)
             {

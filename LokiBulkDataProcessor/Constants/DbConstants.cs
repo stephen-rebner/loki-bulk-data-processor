@@ -2,6 +2,6 @@
 {
     public static class DbConstants
     {
-        public static string TempTableName = "#TempTableData";
+        public static string TempTableName = "TempTableData";
     }
 }
