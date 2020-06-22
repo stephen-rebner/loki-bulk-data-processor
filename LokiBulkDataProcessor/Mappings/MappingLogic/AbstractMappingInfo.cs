@@ -21,20 +21,20 @@ namespace Loki.BulkDataProcessor.Mappings.MappingLogic
         }
 
         /// <summary>
-        /// Maps the object property / in-memory datatable column as the primary key
+        /// Maps the object property / in-memory datatable column as an idenity column
         /// </summary>
-        public void AsPrimaryKey()
+        public void AsIdentityColumn()
         {
             ThrowIfDuplicatePrimaryKey();
 
-            _currentMappingMetaData.IsPrimaryKey = true;
+            _currentMappingMetaData.IsIdentityColumn = true;
 
             UpdateMappingCollection(_currentMappingMetaData);
         }
 
         private void ThrowIfDuplicatePrimaryKey()
         {
-            if(MappingMetaDataCollection.Any(metaData => metaData.IsPrimaryKey))
+            if(MappingMetaDataCollection.Any(metaData => metaData.IsIdentityColumn))
             {
                 throw new MappingException("Composite primary keys are currently not supported");
             }

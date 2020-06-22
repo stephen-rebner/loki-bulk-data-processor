@@ -7,8 +7,8 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
     {
         public ModelMappingWithDuplicatePrimaryKey()
         {
-            Map(o => o.PublicInt).ToDestinationColumn("public_int").AsPrimaryKey();
-            Map(o => o.PublicBool).ToDestinationColumn("public_bool").AsPrimaryKey();
+            Map(o => o.PublicInt).ToDestinationColumn("public_int").AsIdentityColumn();
+            Map(o => o.PublicBool).ToDestinationColumn("public_bool").AsIdentityColumn();
             Map(o => o.BaseInt).ToDestinationColumn("base_int");
             Map(o => o.PublicString).ToDestinationColumn("base_int");
         }

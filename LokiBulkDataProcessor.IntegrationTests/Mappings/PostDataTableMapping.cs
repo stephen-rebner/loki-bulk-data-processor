@@ -8,7 +8,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Mappings
 
         public PostDataTableMapping()
         {
-            Map("Id").ToDestinationColumn("Id").AsPrimaryKey();
+            Map("Id").ToDestinationColumn("Id").AsIdentityColumn();
             Map("ATitle").ToDestinationColumn("Title");
             Map("ContentA").ToDestinationColumn("Content");
             Map("ABlogId").ToDestinationColumn("BlogId");

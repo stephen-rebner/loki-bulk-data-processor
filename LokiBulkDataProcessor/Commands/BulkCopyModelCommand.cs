@@ -32,7 +32,7 @@ namespace Loki.BulkDataProcessor.Commands
                     var mapping = _appContext.ModelMappingCollection.GetMappingFor(type);
                     var propertyNames = type.GetPublicPropertyNames();
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
+                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
 
                     bulkCopyCommand.MapColumns(mapping, propertyNames);
                     await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);

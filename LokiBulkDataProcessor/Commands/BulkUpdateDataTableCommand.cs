@@ -40,10 +40,10 @@ namespace Loki.BulkDataProcessor.Commands
 
                     var columnNames = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.DestinationColumn);
 
-                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTable.GenerateCreateSqlStatement(columnNames), (SqlTransaction)transaction);
+                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTable.GenerateCreateSqlStatement(columnNames), transaction);
                     await tempTableCommand.ExecuteNonQueryAsync();
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
+                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
                     
                     await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
 
@@ -52,7 +52,7 @@ namespace Loki.BulkDataProcessor.Commands
                     for (var i = 1; i <= batches; i++)
                     {
                         var commandText = BuildUpdateStatement(mapping, destinationTableName);
-                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, (SqlTransaction)transaction);
+                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, transaction);
                         await saveCommand.ExecuteNonQueryAsync();
                     }
 
@@ -68,7 +68,7 @@ namespace Loki.BulkDataProcessor.Commands
 
         private void ThrowExecptionIfMappingIsNull(AbstractMapping mapping)
         {
-            if(mapping == null || !mapping.MappingInfo.MappingMetaDataCollection.Any(metaData => metaData.IsPrimaryKey))
+            if(mapping == null || !mapping.MappingInfo.MappingMetaDataCollection.Any(metaData => metaData.IsIdentityColumn))
             {
                 throw new MappingException("A mapping is required for bulk updates which has a primary key specified.");
             }
@@ -76,8 +76,8 @@ namespace Loki.BulkDataProcessor.Commands
 
         private string BuildUpdateStatement(AbstractMapping mapping, string destinationTableName)
         {
-            var primaryKeyColumn = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsPrimaryKey);
-            var columnsToUpdate = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey).Select(x => x.DestinationColumn);
+            var primaryKeyColumn = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsIdentityColumn);
+            var columnsToUpdate = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsIdentityColumn).Select(x => x.DestinationColumn);
 
             var sqlBuilder = new StringBuilder();
             sqlBuilder.AppendLine($"UPDATE dest");
