@@ -1,6 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Constants;
 using System;
-using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 
@@ -8,22 +8,30 @@ namespace Loki.BulkDataProcessor.SqlBuilders
 {
     internal static class TempTableSqlGenerator
     {
-        internal static string GenerateCreateStatement(IEnumerable<string> sourceColumnNames)
+        internal static string GenerateCreateStatement(DataTable destinationTableInfo)
         {
             var queryBuilder = new StringBuilder();
 
             queryBuilder.AppendLine($"CREATE TABLE { DbConstants.TempTableName }");
+
             queryBuilder.AppendLine("(");
 
-            foreach(var column in sourceColumnNames)
+            var lastColumnNameValue= destinationTableInfo.Rows
+                .Cast<DataRow>()
+                .Last()
+                .Field<string>("COLUMN_NAME");
+
+            foreach (DataRow dataRow in destinationTableInfo.Rows)
             {
-                if(sourceColumnNames.Last().Equals(column, StringComparison.Ordinal))
+                var currentColumnName = dataRow["COLUMN_NAME"].ToString();
+
+                if (lastColumnNameValue.Equals(currentColumnName, StringComparison.Ordinal))
                 {
-                    queryBuilder.AppendLine($"  { column } NVARCHAR (MAX)");
+                    queryBuilder.AppendLine($"  { currentColumnName } { DetermineColumnType(dataRow["DATA_TYPE"]) }");
                 }
                 else
                 {
-                    queryBuilder.AppendLine($"  { column } NVARCHAR (MAX),");
+                    queryBuilder.AppendLine($"  { dataRow["COLUMN_NAME"] } {DetermineColumnType(dataRow["DATA_TYPE"])},");
                 }
             }
 
@@ -35,6 +43,14 @@ namespace Loki.BulkDataProcessor.SqlBuilders
         internal static string GenerateDropStatement()
         {
             return $"IF OBJECT_ID('tempdb..#{ DbConstants.TempTableName }') IS NOT NULL DROP TABLE { DbConstants.TempTableName }";
+        }
+
+        private static string DetermineColumnType(object columnType)
+        {
+            var convertedColumnType = columnType.ToString();
+
+            return convertedColumnType.Equals("NVARCHAR", StringComparison.OrdinalIgnoreCase) || convertedColumnType.Equals("VARCHAR", StringComparison.OrdinalIgnoreCase) 
+                ? $"{ convertedColumnType } (max)" : convertedColumnType;
         }
     }
 }

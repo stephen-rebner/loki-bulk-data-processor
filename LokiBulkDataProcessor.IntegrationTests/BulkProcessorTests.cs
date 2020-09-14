@@ -147,7 +147,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveaSYNC_ShouldUpdateDataTableSuccessfully()
+        public async Task UpdateAsync_ShouldUpdateDataTableSuccessfully()
         {
             var blog = GivenThisBlog();
 

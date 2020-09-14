@@ -1,13 +1,11 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Exceptions;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings;
 using Loki.BulkDataProcessor.SqlBuilders;
 using System;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,37 +28,28 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                //using var transaction = _dbConnection.BeginTransaction();
+                using var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
-                    var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
+                    var tableInfoDataTable = LoadDestinationTableInfo(destinationTableName, transaction);
 
-                    ThrowExecptionIfMappingIsNull(mapping);
+                    CreateTempTable(tableInfoDataTable, transaction);
 
-                    var columnNames = mapping.MappingInfo.MappingMetaDataCollection.Select(metaData => metaData.DestinationColumn);
+                    await CopyDataToTempTableAsync(destinationTableName, dataToCopy, transaction);
 
-                    using var tempTableCommand = (SqlCommand)_dbConnection.CreateCommand(TempTableSqlGenerator.GenerateCreateStatement(columnNames), null);
-                    await tempTableCommand.ExecuteNonQueryAsync();
+                    //var batches = Math.Ceiling((double)dataToCopy.Rows.Count / _appContext.BatchSize);
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(null);
+                    //for (var i = 1; i <= batches; i++)
+                    //{
+                    //    var commandText = BuildUpdateStatement(mapping, destinationTableName);
+                    //    using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, null);
+                    //    await saveCommand.ExecuteNonQueryAsync();
+                    //}
 
-                    bulkCopyCommand.MapColumns(mapping, columnNames);
-
-                    await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
-
-                    var batches = Math.Ceiling((double)dataToCopy.Rows.Count / _appContext.BatchSize);
-
-                    for (var i = 1; i <= batches; i++)
-                    {
-                        var commandText = BuildUpdateStatement(mapping, destinationTableName);
-                        using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, null);
-                        await saveCommand.ExecuteNonQueryAsync();
-                    }
-
-                    //transaction.Commit();
+                    transaction.Commit();
                 }
-                catch
+                catch(Exception e)
                 {
                     //transaction.Rollback();
                     throw;
@@ -68,12 +57,30 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        private void ThrowExecptionIfMappingIsNull(AbstractMapping mapping)
+        private DataTable LoadDestinationTableInfo(string destinationTableName, IDbTransaction transaction)
         {
-            if(mapping == null || !mapping.MappingInfo.MappingMetaDataCollection.Any(metaData => metaData.IsIdentityColumn))
-            {
-                throw new MappingException("A mapping is required for bulk updates which has a primary key specified.");
-            }
+            using var query = _dbConnection.CreateQuery(transaction);
+            // todo: write unit test for query builder below
+            return query.Load(SchemaQuery.GenerateDataTableInfoQuery(destinationTableName, _dbConnection.Database));
+        }
+
+        private void CreateTempTable(DataTable tableInfoDataTable, IDbTransaction transaction)
+        {
+            using var createTempTableCommand = _dbConnection.CreateCommand(
+                       TempTableSqlGenerator.GenerateCreateStatement(tableInfoDataTable), transaction);
+
+            createTempTableCommand.ExecuteNonQuery();
+        }
+
+        private async Task CopyDataToTempTableAsync(string destinationTableName, DataTable dataToCopy, IDbTransaction transaction)
+        {
+            var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
+            var columnNames = dataToCopy.Columns.Cast<DataColumn>().Select(x => x.ColumnName);
+
+            using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
+            bulkCopyCommand.MapColumns(mapping, columnNames);
+            // todo: create map column method on bulk copy command and call here to add primary key
+            await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
         }
 
         private string BuildUpdateStatement(AbstractMapping mapping, string destinationTableName)

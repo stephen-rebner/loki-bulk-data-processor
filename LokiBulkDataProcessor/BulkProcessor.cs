@@ -1,6 +1,7 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -38,12 +39,25 @@ namespace Loki.BulkDataProcessor
             }
         }
 
+        public string ConnectionString
+        {
+            get => _appContext.ConnectionString;
+            set 
+            {
+                value.ThrowIfNullOrEmptyString(nameof(ConnectionString));
+                _appContext.SetConnectionString(value);
+            }
+        }
+
+
         public BulkProcessor(ICommandFactory commandFactory, IAppContext appContext)
         {
             _appContext = appContext;
             _commandFactory = commandFactory;
         }
 
+
+        [Obsolete]
         public IBulkProcessor WithConnectionString(string connectionString)
         {
             connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));

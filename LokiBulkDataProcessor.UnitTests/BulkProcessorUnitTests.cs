@@ -82,7 +82,18 @@ namespace LokiBulkDataProcessor.UnitTests
             action.Should().NotThrow<ArgumentException>();
 
             Assert.IsTrue(false);
+        }
 
+        [Test]
+        public void ConnectionString_ShouldNotThrow_WhenUpdatedWithConnectionStringValue()
+        {
+            Assert.IsTrue(false);
+        }
+
+        [Test]
+        public void ConnectionString_ShouldThrow_WhenUpdatedWithNullOrEmptyValue()
+        {
+            Assert.IsTrue(false);
         }
 
         [Test]
