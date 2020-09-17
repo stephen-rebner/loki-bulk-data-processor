@@ -86,6 +86,8 @@ namespace Loki.BulkDataProcessor
             await command.Execute(dataTable, destinationTableName);
         }
 
+        /// todo: due to global temp tables not being able to be shared accross different connections,
+        /// restructure to use base class to create temp tables and copy data to them
         public async Task UpdateAsync(DataTable dataTable, string destinationTableName)
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));

@@ -17,6 +17,9 @@ namespace Loki.BulkDataProcessor.Commands
         private readonly IAppContext _appContext;
         private readonly ISqlDbConnection _dbConnection;
 
+
+        /// todo: due to global temp tables not being able to be shared accross different connections,
+        /// restructure to use base class to create temp tables and copy data to them
         public BulkUpdateDataTableCommand(IAppContext appContext, ISqlDbConnection dbConnection)
         {
             _appContext = appContext;
