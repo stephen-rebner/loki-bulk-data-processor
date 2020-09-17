@@ -153,13 +153,25 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var postDataTable = AndGivenAPostDataTableWithAMapping(blog.Id);
 
+            // todo: update this save via EF instead to simplify things
             await WhenSaveAsyncIsCalled(postDataTable, nameof(TestDbContext.Posts));
-            var posts = ThesePostsWithThisBlog(postDataTable, blog);
 
-            postDataTable.Rows[0].SetField("ATitle", "A new title 1");
-            postDataTable.Rows[0].SetField("ContentA", "New Content 1");
+            var postsToUpdate = await LoadAllEntities<Post>();
 
-            await BulkProcessor.UpdateAsync(postDataTable, nameof(TestDbContext.Posts));
+            // todo: update builder to be more coherent when creating table with Ids
+            var updatedPostsDataTable = TestObjectFactory.NewPostDataTable()
+                .Create()
+                .WithTableName("Posts")
+                .WithCustomPrimaryKey("AnId")
+                .WithCustomColumnNames("ATitle", "ContentA", "ABlogId")
+                .WithRowData(blog.Id, string.Concat(postsToUpdate[0].Content, "Updated Content 1"), string.Concat(postsToUpdate[0].Title, "Updated Title 1"))
+                .WithPrimaryKeyValue(postsToUpdate[0].Id, 0)
+                .WithRowData(blog.Id, string.Concat(postsToUpdate[1].Content, "Updated Content 2"), string.Concat(postsToUpdate[0].Title, "Updated Title 2"))
+                .WithPrimaryKeyValue(postsToUpdate[1].Id, 1)
+                .Build();
+
+
+            await BulkProcessor.UpdateAsync(updatedPostsDataTable, nameof(TestDbContext.Posts));
         }
 
         private Blog GivenThisBlog()

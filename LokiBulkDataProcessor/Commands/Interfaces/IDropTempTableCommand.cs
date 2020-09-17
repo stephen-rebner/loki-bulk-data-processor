@@ -2,8 +2,8 @@
 
 namespace Loki.BulkDataProcessor.Commands.Interfaces
 {
-    public interface IBulkProcessorCommand
+    public interface IDropTempTableCommand
     {
-        Task Execute();
+        void Execute();
     }
 }

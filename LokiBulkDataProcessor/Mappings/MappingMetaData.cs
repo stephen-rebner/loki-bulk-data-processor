@@ -6,6 +6,6 @@
         
         internal string DestinationColumn { get; set; }
 
-        internal bool IsIdentityColumn { get; set; }
+        internal bool IsPrimaryKey { get; set; }
     }
 }

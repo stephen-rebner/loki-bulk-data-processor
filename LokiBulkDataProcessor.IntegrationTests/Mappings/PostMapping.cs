@@ -7,7 +7,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Mappings
     {
         public PostMapping()
         {
-            Map(post => post.Id).ToDestinationColumn("Id");
+            Map(post => post.Id).ToDestinationColumn("Id").AsPrimaryKey();
             Map(post => post.BlogId).ToDestinationColumn("BlogId");
             Map(post => post.Title).ToDestinationColumn("Title");
             Map(post => post.Content).ToDestinationColumn("Content");

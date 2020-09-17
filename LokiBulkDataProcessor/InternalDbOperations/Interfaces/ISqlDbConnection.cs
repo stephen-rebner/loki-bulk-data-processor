@@ -9,6 +9,6 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
 
         IDbCommand CreateCommand(string commandText, IDbTransaction transaction);
 
-        IQuery CreateQuery(IDbTransaction transaction);
+        IQuery CreateQuery();
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
@@ -29,7 +30,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             TestDbContext.Dispose();
         }
 
-        protected async Task<IEnumerable<T>> LoadAllEntities<T>() where T : class
+        protected async Task<List<T>> LoadAllEntities<T>() where T : class
         {
             return await TestDbContext.Set<T>().ToListAsync();
         }

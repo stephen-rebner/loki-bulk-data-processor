@@ -33,7 +33,7 @@ namespace Loki.BulkDataProcessor.Commands
 
                     using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
 
-                    bulkCopyCommand.MapColumns(mapping, columnNames);
+                    bulkCopyCommand.MapNonPrimaryKeyColumns(mapping, columnNames);
                     await bulkCopyCommand.WriteToServerAsync(dataToCopy, destinationTableName);
 
                     transaction.Commit();

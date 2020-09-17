@@ -55,7 +55,16 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             }
         }
 
-        public void MapColumns(AbstractMapping mapping, IEnumerable<string> propertyNames)
+        public void MapPrimaryKey(AbstractMapping mapping)
+        {
+            var primaryKeyMapping = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsPrimaryKey);
+
+            if(primaryKeyMapping == null) throw new InvalidOperationException("The Bulk Data Processor cannot map the primary key because it is not defined in your mapping");
+
+            _sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(primaryKeyMapping.SourceColumn, primaryKeyMapping.DestinationColumn));
+        }
+
+        public void MapNonPrimaryKeyColumns(AbstractMapping mapping, IEnumerable<string> propertyNames)
         {
             if (mapping != null)
             {
@@ -76,7 +85,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         private void AddMappings(AbstractMapping mapping)
         {
-            var nonIdentityColumns = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsIdentityColumn);
+            var nonIdentityColumns = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey);
 
             foreach (var mappingMetaData in nonIdentityColumns)
             {

@@ -4,9 +4,10 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
 {
     public class PostDataTableBuilder
     {
-        private const string BlogId = "BlogId";
-        private const string Title = "Title";
-        private const string Content = "Content";
+        private string Id = "Id";
+        private string BlogId = "BlogId";
+        private string Title = "Title";
+        private string Content = "Content";
 
         private DataTable _dataTable;
 
@@ -25,11 +26,31 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
             return this;
         }
 
+        public PostDataTableBuilder WithDefaultPrimaryKey()
+        {
+            _dataTable.Columns.Add(new DataColumn(Id));
+
+            return this;
+        }
+
+        public PostDataTableBuilder WithCustomPrimaryKey(string primaryKey)
+        {
+            Id = primaryKey;
+
+            _dataTable.Columns.Add(new DataColumn(primaryKey));
+
+            return this;
+        }
+
         public PostDataTableBuilder WithCustomColumnNames(string titleColumnName, string contentColumnName, string blogIdColumnName)
         {
-            _dataTable.Columns.Add(new DataColumn(blogIdColumnName));
-            _dataTable.Columns.Add(new DataColumn(titleColumnName));
-            _dataTable.Columns.Add(new DataColumn(contentColumnName));
+            Title = titleColumnName;
+            Content = contentColumnName;
+            BlogId = blogIdColumnName;
+
+            _dataTable.Columns.Add(new DataColumn(BlogId));
+            _dataTable.Columns.Add(new DataColumn(Title));
+            _dataTable.Columns.Add(new DataColumn(Content));
 
             return this;
         }
@@ -47,11 +68,18 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
             string content)
         {
             var dataRow = _dataTable.NewRow();
-            dataRow[0] = blogId;
-            dataRow[1] = title;
-            dataRow[2] = content;
+            dataRow[BlogId] = blogId;
+            dataRow[Title] = title;
+            dataRow[Content] = content;
 
             _dataTable.Rows.Add(dataRow);
+            return this;
+        }
+
+        public PostDataTableBuilder WithPrimaryKeyValue(int primaryKey, int rowIndex)
+        {
+            _dataTable.Rows[rowIndex].SetField(Id, primaryKey);
+
             return this;
         }
 

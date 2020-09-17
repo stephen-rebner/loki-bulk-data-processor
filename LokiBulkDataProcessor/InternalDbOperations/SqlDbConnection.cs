@@ -85,11 +85,11 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             return new BulkCopyCommand(_sqlConnection, (SqlTransaction)transaction, _appContext);
         }
 
-        public IQuery CreateQuery(IDbTransaction transaction)
+        public IQuery CreateQuery()
         {
             var command = CreateCommand();
             
-            command.Transaction = transaction;
+            //command.Transaction = transaction;
 
             return new Query(command);
         }

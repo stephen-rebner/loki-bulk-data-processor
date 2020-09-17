@@ -28,15 +28,32 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                using var transaction = _dbConnection.BeginTransaction();
+                //using var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
-                    var tableInfoDataTable = LoadDestinationTableInfo(destinationTableName, transaction);
 
-                    CreateTempTable(tableInfoDataTable, transaction);
+                    var query = _dbConnection.CreateQuery();
 
-                    await CopyDataToTempTableAsync(destinationTableName, dataToCopy, transaction);
+                    var test = query.Load("select * from ##tempTableData");
+
+                    //var tableInfoDataTable = LoadDestinationTableInfo(destinationTableName, null);
+
+                    //CreateTempTable(tableInfoDataTable, null);
+
+                    //await CopyDataToTempTableAsync(destinationTableName, dataToCopy, null);
+
+
+                    var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
+
+                    //_tempTable.Create(destinationTableName);
+
+                    //await _tempTable.CopyData(dataToCopy, mapping);
+
+                    //_tempTable.Drop();
+
+
+                    //_tempTable.Dispose();
 
                     //var batches = Math.Ceiling((double)dataToCopy.Rows.Count / _appContext.BatchSize);
 
@@ -47,7 +64,7 @@ namespace Loki.BulkDataProcessor.Commands
                     //    await saveCommand.ExecuteNonQueryAsync();
                     //}
 
-                    transaction.Commit();
+                    //transaction.Commit();
                 }
                 catch(Exception e)
                 {
@@ -57,36 +74,22 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        private DataTable LoadDestinationTableInfo(string destinationTableName, IDbTransaction transaction)
-        {
-            using var query = _dbConnection.CreateQuery(transaction);
-            // todo: write unit test for query builder below
-            return query.Load(SchemaQuery.GenerateDataTableInfoQuery(destinationTableName, _dbConnection.Database));
-        }
-
-        private void CreateTempTable(DataTable tableInfoDataTable, IDbTransaction transaction)
-        {
-            using var createTempTableCommand = _dbConnection.CreateCommand(
-                       TempTableSqlGenerator.GenerateCreateStatement(tableInfoDataTable), transaction);
-
-            createTempTableCommand.ExecuteNonQuery();
-        }
-
         private async Task CopyDataToTempTableAsync(string destinationTableName, DataTable dataToCopy, IDbTransaction transaction)
         {
             var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
             var columnNames = dataToCopy.Columns.Cast<DataColumn>().Select(x => x.ColumnName);
 
             using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
-            bulkCopyCommand.MapColumns(mapping, columnNames);
-            // todo: create map column method on bulk copy command and call here to add primary key
+            bulkCopyCommand.MapNonPrimaryKeyColumns(mapping, columnNames);
+            bulkCopyCommand.MapPrimaryKey(mapping);
+
             await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
         }
 
         private string BuildUpdateStatement(AbstractMapping mapping, string destinationTableName)
         {
-            var primaryKeyColumn = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsIdentityColumn);
-            var columnsToUpdate = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsIdentityColumn).Select(x => x.DestinationColumn);
+            var primaryKeyColumn = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsPrimaryKey);
+            var columnsToUpdate = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey).Select(x => x.DestinationColumn);
 
             var sqlBuilder = new StringBuilder();
             sqlBuilder.AppendLine($"UPDATE dest");

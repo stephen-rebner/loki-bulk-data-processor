@@ -1,4 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Commands.Factory;
+using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System;
@@ -90,9 +91,15 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            var command = _commandFactory.NewBulkUpdateDataTableCommand();
+            var createTempTableCommand = _commandFactory.NewCreateTempTableCommand();
+            var bulkCopyToTempTableCommand = _commandFactory.NewBulkCopyDataTableToTempTable();
+            var bulkUpdateCommand = _commandFactory.NewBulkUpdateDataTableCommand();
+            var dropTempTableCommand = _commandFactory.NewDropTempTableCommand();
 
-            await command.Execute(dataTable, destinationTableName);
+            //createTempTableCommand.Execute(destinationTableName);
+            await bulkCopyToTempTableCommand.Execute(dataTable, destinationTableName);
+            await bulkUpdateCommand.Execute(dataTable, destinationTableName);
+            dropTempTableCommand.Execute();
         }
     }
 }
