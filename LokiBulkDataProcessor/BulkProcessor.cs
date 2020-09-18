@@ -93,15 +93,9 @@ namespace Loki.BulkDataProcessor
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             dataTable.ThrowIfNullOrHasZeroRows();
 
-            var createTempTableCommand = _commandFactory.NewCreateTempTableCommand();
-            var bulkCopyToTempTableCommand = _commandFactory.NewBulkCopyDataTableToTempTable();
             var bulkUpdateCommand = _commandFactory.NewBulkUpdateDataTableCommand();
-            var dropTempTableCommand = _commandFactory.NewDropTempTableCommand();
 
-            //createTempTableCommand.Execute(destinationTableName);
-            await bulkCopyToTempTableCommand.Execute(dataTable, destinationTableName);
             await bulkUpdateCommand.Execute(dataTable, destinationTableName);
-            dropTempTableCommand.Execute();
         }
     }
 }

@@ -3,7 +3,6 @@ using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings;
-using Loki.BulkDataProcessor.SqlBuilders;
 using System;
 using System.Data;
 using System.Linq;
@@ -31,62 +30,28 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                //using var transaction = _dbConnection.BeginTransaction();
+                using var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
+                    var copyToTempTableCommand = _dbConnection.CreateNewCopyToTempTableCommand(transaction);
 
-                    var query = _dbConnection.CreateQuery();
+                    await copyToTempTableCommand.Copy(dataToCopy, destinationTableName);
 
-                    var test = query.Load("select * from ##tempTableData");
+                    using var query = _dbConnection.CreateQuery(transaction);
 
-                    //var tableInfoDataTable = LoadDestinationTableInfo(destinationTableName, null);
-
-                    //CreateTempTable(tableInfoDataTable, null);
-
-                    //await CopyDataToTempTableAsync(destinationTableName, dataToCopy, null);
-
+                    var test = query.Load("select * from #tempTableData");
 
                     var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
 
-                    //_tempTable.Create(destinationTableName);
-
-                    //await _tempTable.CopyData(dataToCopy, mapping);
-
-                    //_tempTable.Drop();
-
-
-                    //_tempTable.Dispose();
-
-                    //var batches = Math.Ceiling((double)dataToCopy.Rows.Count / _appContext.BatchSize);
-
-                    //for (var i = 1; i <= batches; i++)
-                    //{
-                    //    var commandText = BuildUpdateStatement(mapping, destinationTableName);
-                    //    using var saveCommand = (SqlCommand)_dbConnection.CreateCommand(commandText, null);
-                    //    await saveCommand.ExecuteNonQueryAsync();
-                    //}
-
-                    //transaction.Commit();
+                    transaction.Commit();
                 }
                 catch(Exception e)
                 {
-                    //transaction.Rollback();
+                    transaction.Rollback();
                     throw;
                 }
             }
-        }
-
-        private async Task CopyDataToTempTableAsync(string destinationTableName, DataTable dataToCopy, IDbTransaction transaction)
-        {
-            var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
-            var columnNames = dataToCopy.Columns.Cast<DataColumn>().Select(x => x.ColumnName);
-
-            using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand(transaction);
-            bulkCopyCommand.MapNonPrimaryKeyColumns(mapping, columnNames);
-            bulkCopyCommand.MapPrimaryKey(mapping);
-
-            await bulkCopyCommand.WriteToServerAsync(dataToCopy, DbConstants.TempTableName);
         }
 
         private string BuildUpdateStatement(AbstractMapping mapping, string destinationTableName)

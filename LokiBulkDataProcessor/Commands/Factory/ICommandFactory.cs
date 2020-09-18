@@ -11,11 +11,5 @@ namespace Loki.BulkDataProcessor.Commands.Factory
         IBulkDataTableCommand NewBulkCopyDataTableCommand();
 
         IBulkDataTableCommand NewBulkUpdateDataTableCommand();
-
-        IBulkDataTableCommand NewBulkCopyDataTableToTempTable();
-
-        ICreateTempTableCommand NewCreateTempTableCommand();
-
-        IDropTempTableCommand NewDropTempTableCommand();
     }
 }

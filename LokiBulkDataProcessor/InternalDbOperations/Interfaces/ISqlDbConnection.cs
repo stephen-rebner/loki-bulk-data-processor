@@ -7,8 +7,10 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
     {
         IBulkCopyCommand CreateNewBulkCopyCommand(IDbTransaction transaction);
 
+        ICopyToTempTableCommand CreateNewCopyToTempTableCommand(IDbTransaction transaction);
+
         IDbCommand CreateCommand(string commandText, IDbTransaction transaction);
 
-        IQuery CreateQuery();
+        IQuery CreateQuery(IDbTransaction transaction);
     }
 }
