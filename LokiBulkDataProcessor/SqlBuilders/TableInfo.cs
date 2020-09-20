@@ -2,9 +2,9 @@
 
 namespace Loki.BulkDataProcessor.SqlBuilders
 {
-    internal static class SchemaQuery
+    internal static class TableInfo
     {
-        internal static string GenerateDataTableInfoQuery(string destinationTableName, string databaseName)
+        internal static string GenerateDatabaseTableInfoQuery(string destinationTableName, string databaseName)
         {
             var tableNameElements = destinationTableName.Split('.');
             var tableElementsLength = tableNameElements.Length;
@@ -13,7 +13,7 @@ namespace Loki.BulkDataProcessor.SqlBuilders
             var tableName = tableNameElements[tableElementsLength - 1];
 
             return @$"SELECT 
-                    c.COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_PRECISION_RADIX, tc.CONSTRAINT_TYPE
+                    c.COLUMN_NAME, DATA_TYPE, tc.CONSTRAINT_TYPE
                     FROM INFORMATION_SCHEMA.COLUMNS c 
                     left join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE cu on cu.COLUMN_NAME = c.COLUMN_NAME 
                     and cu.TABLE_NAME = '{ tableName }' and cu.TABLE_SCHEMA = '{ schemaName }'

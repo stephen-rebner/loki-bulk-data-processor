@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Loki.BulkDataProcessor.SqlBuilders
 {
-    internal static class TempTableSqlGenerator
+    internal static class TempTable
     {
         internal static string GenerateCreateStatement(DataTable destinationTableInfo)
         {
