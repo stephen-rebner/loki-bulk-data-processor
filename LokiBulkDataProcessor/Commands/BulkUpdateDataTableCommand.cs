@@ -2,7 +2,7 @@
 using Loki.BulkDataProcessor.Constants;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
-using Loki.BulkDataProcessor.Mappings;
+using Loki.BulkDataProcessor.SqlBuilders;
 using System;
 using System.Data;
 using System.Linq;
@@ -16,9 +16,6 @@ namespace Loki.BulkDataProcessor.Commands
         private readonly IAppContext _appContext;
         private readonly ISqlDbConnection _dbConnection;
 
-
-        /// todo: due to global temp tables not being able to be shared accross different connections,
-        /// restructure to use base class to create temp tables and copy data to them
         public BulkUpdateDataTableCommand(IAppContext appContext, ISqlDbConnection dbConnection)
         {
             _appContext = appContext;
@@ -34,19 +31,22 @@ namespace Loki.BulkDataProcessor.Commands
 
                 try
                 {
-                    var copyToTempTableCommand = _dbConnection.CreateNewCopyToTempTableCommand(transaction);
-
-                    await copyToTempTableCommand.Copy(dataToCopy, destinationTableName);
-
                     using var query = _dbConnection.CreateQuery(transaction);
 
-                    var test = query.Load("select * from #tempTableData");
+                    var destinationTableInfo = query.Load(TableInfo.GenerateDatabaseTableInfoQuery(destinationTableName, _dbConnection.Database));
 
-                    var mapping = _appContext.DataTableMappingCollection.GetMappingFor(destinationTableName);
+                    var copyToTempTableCommand = _dbConnection.CreateNewCopyToTempTableCommand(transaction);
+
+                    await copyToTempTableCommand.Copy(destinationTableInfo, dataToCopy, destinationTableName);
+
+                    using var updateCommand = _dbConnection.CreateCommand(
+                        UpdateJoinOnPrimaryKeySql.Generate(destinationTableInfo, destinationTableName), transaction);
+
+                    updateCommand.ExecuteNonQuery();
 
                     transaction.Commit();
                 }
-                catch(Exception e)
+                catch
                 {
                     transaction.Rollback();
                     throw;
@@ -54,10 +54,19 @@ namespace Loki.BulkDataProcessor.Commands
             }
         }
 
-        private string BuildUpdateStatement(AbstractMapping mapping, string destinationTableName)
+        private string BuildUpdateStatement(DataTable destinationTableInfo, string destinationTableName)
         {
-            var primaryKeyColumn = mapping.MappingInfo.MappingMetaDataCollection.FirstOrDefault(metaData => metaData.IsPrimaryKey);
-            var columnsToUpdate = mapping.MappingInfo.MappingMetaDataCollection.Where(metaData => !metaData.IsPrimaryKey).Select(x => x.DestinationColumn);
+            var primaryKeys = destinationTableInfo
+                .AsEnumerable()
+                .Where(row => row.Field<string>("CONSTRAINT_TYPE") != null && row.Field<string>("CONSTRAINT_TYPE").Equals("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
+                .Select(row => row.Field<string>("COLUMN_NAME"))
+                .ToArray();
+
+            var columnsToUpdate = destinationTableInfo
+                .AsEnumerable()
+                .Where(row => row.Field<string>("CONSTRAINT_TYPE") == null || !row.Field<string>("CONSTRAINT_TYPE").Equals("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
+                .Select(row => row.Field<string>("COLUMN_NAME"))
+                .ToArray(); ;
 
             var sqlBuilder = new StringBuilder();
             sqlBuilder.AppendLine($"UPDATE dest");
@@ -65,18 +74,43 @@ namespace Loki.BulkDataProcessor.Commands
 
             foreach(var columnName in columnsToUpdate)
             {
-
-                sqlBuilder.Append($"dest.{columnName} = t.{columnName}");
+                sqlBuilder.Append($"   dest.{columnName} = t.{columnName}");
                 
                 if(!columnsToUpdate.Last().Equals(columnName, StringComparison.Ordinal))
                 {
                     sqlBuilder.AppendLine(", ");
                 }
+                else
+                {
+                    sqlBuilder.AppendLine();
+                }
             }
 
             sqlBuilder.AppendLine($"FROM {destinationTableName} dest");
 
-            sqlBuilder.Append($"INNER JOIN { DbConstants.TempTableName } t ON t.{primaryKeyColumn.DestinationColumn} = dest.{primaryKeyColumn.DestinationColumn}");
+            sqlBuilder.Append($"INNER JOIN { DbConstants.TempTableName } t ON ");
+
+            foreach (var primaryKey in primaryKeys)
+            {
+                if (!primaryKeys.First().Equals(primaryKey, StringComparison.Ordinal))
+                {
+                    sqlBuilder.Append("AND ");
+                }
+
+                sqlBuilder.Append($"t.{primaryKey} = dest.{primaryKey} ");
+            }
+
+            sqlBuilder.Append("WHERE ");
+
+            foreach(var columnName in columnsToUpdate)
+            {
+                sqlBuilder.Append($"t.{columnName} != dest.{columnName} ");
+
+                if (!columnsToUpdate.Last().Equals(columnName, StringComparison.Ordinal))
+                {
+                    sqlBuilder.Append("OR ");
+                }
+            }
 
             return sqlBuilder.ToString();
         }

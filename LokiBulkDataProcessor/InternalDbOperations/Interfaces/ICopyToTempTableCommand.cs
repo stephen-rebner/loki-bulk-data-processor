@@ -5,6 +5,6 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
 {
     internal interface ICopyToTempTableCommand
     {
-        Task Copy(DataTable dataToCopy, string destinationTableName);
+        Task Copy(DataTable destinationTableInfo, DataTable dataToCopy, string destinationTableName);
     }
 }

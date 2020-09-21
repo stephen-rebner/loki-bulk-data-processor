@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace LokiBulkDataProcessor.UnitTests.SqlBuilders
 {
-    public class SchemaQueryTests
+    public class TableInfoTests
     {
         [Test]
         public void GenerateDataTableInfoQuery_ShouldGenerateQueryCorrectly_WhenTableNameDoesNotContainSchema()

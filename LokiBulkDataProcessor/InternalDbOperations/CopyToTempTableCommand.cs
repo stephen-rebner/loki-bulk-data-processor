@@ -21,14 +21,10 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             _transaction = transaction;
         }
 
-        public async Task Copy(DataTable dataToCopy, string destinationTableName)
+        public async Task Copy(DataTable destinationTableInfo, DataTable dataToCopy, string destinationTableName)
         {
-            using var query = _dbConnection.CreateQuery(_transaction);
-            // todo: write unit test for query builder below
-            var tableInfoDataTable = query.Load(TableInfo.GenerateDatabaseTableInfoQuery(destinationTableName, _dbConnection.Database));
-
             using var createTempTableCommand = _dbConnection.CreateCommand(
-                TempTable.GenerateCreateStatement(tableInfoDataTable), _transaction);
+                TempTable.GenerateCreateStatement(destinationTableInfo), _transaction);
 
             createTempTableCommand.ExecuteNonQuery();
 
