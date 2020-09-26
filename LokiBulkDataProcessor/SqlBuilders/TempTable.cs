@@ -19,19 +19,19 @@ namespace Loki.BulkDataProcessor.SqlBuilders
             var lastColumnNameValue= destinationTableInfo.Rows
                 .Cast<DataRow>()
                 .Last()
-                .Field<string>("COLUMN_NAME");
+                .Field<string>(DestTableInfoColumns.COLUMN_NAME);
 
             foreach (DataRow dataRow in destinationTableInfo.Rows)
             {
-                var currentColumnName = dataRow["COLUMN_NAME"].ToString();
+                var currentColumnName = dataRow[DestTableInfoColumns.COLUMN_NAME].ToString();
 
                 if (lastColumnNameValue.Equals(currentColumnName, StringComparison.Ordinal))
                 {
-                    queryBuilder.AppendLine($"  { currentColumnName } { DetermineColumnType(dataRow["DATA_TYPE"]) }");
+                    queryBuilder.AppendLine($"  { currentColumnName } { DetermineColumnType(dataRow[DestTableInfoColumns.DATA_TYPE]) }");
                 }
                 else
                 {
-                    queryBuilder.AppendLine($"  { dataRow["COLUMN_NAME"] } {DetermineColumnType(dataRow["DATA_TYPE"])},");
+                    queryBuilder.AppendLine($"  { dataRow[DestTableInfoColumns.COLUMN_NAME] } {DetermineColumnType(dataRow[DestTableInfoColumns.DATA_TYPE])},");
                 }
             }
 

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Loki.BulkDataProcessor.Constants;
+using System.Text;
 
 namespace Loki.BulkDataProcessor.SqlBuilders
 {
@@ -13,7 +14,7 @@ namespace Loki.BulkDataProcessor.SqlBuilders
             var tableName = tableNameElements[tableElementsLength - 1];
 
             return @$"SELECT 
-                    c.COLUMN_NAME, DATA_TYPE, tc.CONSTRAINT_TYPE
+                    c.{ DestTableInfoColumns.COLUMN_NAME }, { DestTableInfoColumns.DATA_TYPE }, tc.{DestTableInfoColumns.CONSTRAINT_TYPE}
                     FROM INFORMATION_SCHEMA.COLUMNS c 
                     left join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE cu on cu.COLUMN_NAME = c.COLUMN_NAME 
                     and cu.TABLE_NAME = '{ tableName }' and cu.TABLE_SCHEMA = '{ schemaName }'
