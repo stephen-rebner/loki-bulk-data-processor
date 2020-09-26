@@ -42,12 +42,18 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         public IDbTransaction BeginTransaction()
         {
-            return SqlConnection.BeginTransaction();
+            // todo: create new method to do this
+            return _appContext.Transaction ?? SqlConnection.BeginTransaction();
         }
 
         public IDbTransaction BeginTransaction(IsolationLevel il)
         {
             return SqlConnection.BeginTransaction(il);
+        }
+
+        public IDbTransaction BeginTransactionIfNotGivenByAppContext()
+        {
+            return _appContext.Transaction ?? SqlConnection.BeginTransaction();
         }
 
         public void ChangeDatabase(string databaseName)

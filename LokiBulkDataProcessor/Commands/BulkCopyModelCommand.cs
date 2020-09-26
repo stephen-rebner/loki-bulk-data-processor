@@ -24,7 +24,7 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                using var transaction = _dbConnection.BeginTransaction();
+                var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
@@ -38,6 +38,8 @@ namespace Loki.BulkDataProcessor.Commands
                     await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);
 
                     transaction.Commit();
+
+                    if(_appContext.Transaction == null) transaction.Dispose();
                 }
                 catch
                 {

@@ -24,7 +24,10 @@ namespace Loki.BulkDataProcessor.Commands
             using (_dbConnection)
             {
                 _dbConnection.Open();
-                using var transaction = _dbConnection.BeginTransaction();
+
+                // todo: test
+                // also add different begin transaction method to sql connection class
+                var transaction = _dbConnection.BeginTransaction();
 
                 try
                 {
@@ -39,6 +42,9 @@ namespace Loki.BulkDataProcessor.Commands
                     await bulkCopyCommand.WriteToServerAsync(dataToCopy, destinationTableName);
 
                     transaction.Commit();
+
+                    // todo: create new transaction object to do this (or ext method).
+                    if(_appContext.Transaction == null) transaction.Dispose();
                 }
                 catch
                 {

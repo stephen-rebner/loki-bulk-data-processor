@@ -14,10 +14,7 @@ namespace Loki.BulkDataProcessor
 
         public int Timeout
         {
-            get
-            {
-                return _appContext.Timeout;
-            }
+            get =>  _appContext.Timeout;
             set
             {
                 value.ThrowIfLessThanZero(nameof(Timeout));
@@ -27,14 +24,22 @@ namespace Loki.BulkDataProcessor
 
         public int BatchSize
         {
-            get
-            {
-                return _appContext.BatchSize;
-            }
+            get =>  _appContext.BatchSize;
             set
             {
                 value.ThrowIfLessThanZero(nameof(BatchSize));
                 _appContext.SetBatchSize(value);
+            }
+        }
+
+        public IDbTransaction Transaction 
+        { 
+            get => _appContext.Transaction;
+            set
+            {
+                value.ThrowIfNull(nameof(Transaction));
+
+                _appContext.SetTransaction(value);
             }
         }
 
