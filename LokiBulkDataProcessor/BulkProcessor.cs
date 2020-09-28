@@ -34,7 +34,7 @@ namespace Loki.BulkDataProcessor
 
         public IDbTransaction Transaction 
         { 
-            get => _appContext.Transaction;
+            get => _appContext.ExternalTransaction;
             set
             {
                 value.ThrowIfNull(nameof(Transaction));

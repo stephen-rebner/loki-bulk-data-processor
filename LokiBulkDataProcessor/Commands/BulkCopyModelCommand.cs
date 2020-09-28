@@ -2,6 +2,7 @@
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
+using Loki.BulkDataProcessor.InternalDbOperations.Extensions;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
@@ -11,9 +12,9 @@ namespace Loki.BulkDataProcessor.Commands
     internal class BulkCopyModelsCommand : IBulkModelsCommand
     {
         private readonly IAppContext _appContext;
-        private readonly ISqlDbConnection _dbConnection;
+        private readonly ILokiDbConnection _dbConnection;
 
-        public BulkCopyModelsCommand(IAppContext appContext, ISqlDbConnection sqlDbConnection)
+        public BulkCopyModelsCommand(IAppContext appContext, ILokiDbConnection sqlDbConnection)
         {
             _appContext = appContext;
             _dbConnection = sqlDbConnection;
@@ -21,31 +22,28 @@ namespace Loki.BulkDataProcessor.Commands
 
         public async Task Execute<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class
         {
-            using (_dbConnection)
+            _dbConnection.Init();
+            var transaction = _dbConnection.BeginTransactionIfUsingInternalTransaction();
+
+            try
             {
-                _dbConnection.Open();
-                var transaction = _dbConnection.BeginTransaction();
+                var type = typeof(T);
+                var mapping = _appContext.ModelMappingCollection.GetMappingFor(type);
+                var propertyNames = type.GetPublicPropertyNames();
 
-                try
-                {
-                    var type = typeof(T);
-                    var mapping = _appContext.ModelMappingCollection.GetMappingFor(type);
-                    var propertyNames = type.GetPublicPropertyNames();
+                using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
+                bulkCopyCommand.MapColumns(mapping, propertyNames);
+                await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);
 
-                    bulkCopyCommand.MapColumns(mapping, propertyNames);
-                    await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);
-
-                    transaction.Commit();
-
-                    if(_appContext.Transaction == null) transaction.Dispose();
-                }
-                catch
-                {
-                    transaction.Rollback();
-                    throw;
-                }
+                transaction.CommitIfUsingInternalTransaction(_appContext.IsUsingExternalTransaction);
+                transaction.DisposeIfUsingIntenralTransaction(_appContext.IsUsingExternalTransaction);
+                _dbConnection.DisposeIfUsingInternalTransaction();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
     }

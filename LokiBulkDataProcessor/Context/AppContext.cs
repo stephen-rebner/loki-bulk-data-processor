@@ -15,7 +15,9 @@ namespace Loki.BulkDataProcessor.Context
 
         public int Timeout { get; private set; }
 
-        public IDbTransaction Transaction { get; private set; }
+        public IDbTransaction ExternalTransaction { get; private set; }
+
+        public bool IsUsingExternalTransaction => ExternalTransaction != null;
 
         public IModelMappingCollection ModelMappingCollection { get; }
 
@@ -47,7 +49,7 @@ namespace Loki.BulkDataProcessor.Context
 
         public void SetTransaction(IDbTransaction transaction)
         {
-            Transaction = transaction;
+            ExternalTransaction = transaction;
         }
     }
 }

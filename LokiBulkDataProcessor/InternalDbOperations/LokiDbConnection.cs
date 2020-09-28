@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.InternalDbOperations
 {
-    internal class SqlDbConnection : ISqlDbConnection
+    internal class LokiDbConnection : ILokiDbConnection
     {
         private SqlConnection _sqlConnection;
         private readonly IAppContext _appContext;
@@ -23,7 +23,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             }
         }
 
-        public SqlDbConnection(IAppContext appContext)
+        public LokiDbConnection(IAppContext appContext)
         {
             _appContext = appContext;
         }
@@ -42,8 +42,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         public IDbTransaction BeginTransaction()
         {
-            // todo: create new method to do this
-            return _appContext.Transaction ?? SqlConnection.BeginTransaction();
+            return SqlConnection.BeginTransaction();
         }
 
         public IDbTransaction BeginTransaction(IsolationLevel il)
@@ -51,9 +50,9 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             return SqlConnection.BeginTransaction(il);
         }
 
-        public IDbTransaction BeginTransactionIfNotGivenByAppContext()
+        public IDbTransaction BeginTransactionIfUsingInternalTransaction()
         {
-            return _appContext.Transaction ?? SqlConnection.BeginTransaction();
+            return _appContext.ExternalTransaction ?? SqlConnection.BeginTransaction();
         }
 
         public void ChangeDatabase(string databaseName)
@@ -92,9 +91,40 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             SqlConnection.Dispose();
         }
 
+        public void DisposeIfUsingInternalTransaction()
+        {
+            if(!_appContext.IsUsingExternalTransaction)
+            {
+                SqlConnection.Dispose();
+            }
+        }
+
         public void Open()
         {
             SqlConnection.Open();
         }
+
+        public void Init()
+        {
+            if(_appContext.IsUsingExternalTransaction)
+            {
+                InitWithExternalConnection();
+            }
+            else
+            {
+                Open();
+            }
+        }
+
+        private void InitWithExternalConnection()
+        {
+            _sqlConnection = (SqlConnection)_appContext.ExternalTransaction.Connection;
+
+            if (_sqlConnection.State != ConnectionState.Open)
+            {
+                _sqlConnection.Open();
+            }
+        }
+
     }
 }

@@ -6,6 +6,7 @@ using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -146,6 +147,50 @@ namespace LokiBulkDataProcessor.IntegrationTests
             await ShouldExistInTheDatabase(expectedPosts);
         }
 
+        [Test]
+        public async Task SaveAsync_ShouldSavePostsSuccessfully_WhenCommitingExternalTransaction()
+        {
+            using var sqlConnection = WhenUsingAnExternalSqlConnection();
+            using var transaction = sqlConnection.BeginTransaction();
+
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostsAssociatedToTheBlog(blog);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(posts, nameof(TestDbContext.Posts));
+
+            AndTheTransactionIsCommited(transaction);
+
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
+
+            // todo: Move method below to base class?
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+
+        [Test]
+        public async Task SaveAsync_ShouldNotSavePosts_WhenRoollingBackExternalTransaction()
+        {
+            using var sqlConnection = WhenUsingAnExternalSqlConnection();
+            using var transaction = sqlConnection.BeginTransaction();
+
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostsAssociatedToTheBlog(blog);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(posts, nameof(TestDbContext.Posts));
+
+            AndTheTransactionIsRolledBack(transaction);
+
+            // todo: Create new method in base class to check for empty list from DB?
+            var expectedPosts = await LoadAllEntities<Post>();
+
+            expectedPosts.Should().BeEmpty();
+        }
+
         private Blog GivenThisBlog()
         {
             var blog = TestObjectFactory.NewBlog()
@@ -189,6 +234,29 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .Build();
 
             return new Post[] { post1, post2 };
+        }
+
+        private SqlConnection WhenUsingAnExternalSqlConnection()
+        {
+            var sqlConnection = new SqlConnection("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true");
+            sqlConnection.Open();
+
+            return sqlConnection;
+        }
+
+        private void WhenAnExternalTransactionIsPassedToTheBulkProcessor(IDbTransaction transaction)
+        {
+            BulkProcessor.Transaction = transaction;
+        }
+
+        private void AndTheTransactionIsCommited(IDbTransaction transaction)
+        {
+            transaction.Commit();
+        }
+
+        private void AndTheTransactionIsRolledBack(IDbTransaction transaction)
+        {
+            transaction.Rollback();
         }
 
         private async Task WhenSaveAsyncIsCalled<T>(IEnumerable<T> dataToCopy, string tableName) where T : class
@@ -260,9 +328,9 @@ namespace LokiBulkDataProcessor.IntegrationTests
             return posts;
         }
 
-        private async Task ShouldExistInTheDatabase<T>(IEnumerable<T> expectedPosts)
+        private async Task ShouldExistInTheDatabase<T>(IEnumerable<T> expectedPosts) where T : class
         {
-            var actualPosts = await LoadAllEntities<Post>();
+            var actualPosts = await LoadAllEntities<T>();
 
             expectedPosts.Should().BeEquivalentTo(actualPosts);
         }

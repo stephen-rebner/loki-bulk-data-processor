@@ -1,5 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.InternalDbOperations.Extensions;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data;
 using System.Data.SqlClient;
@@ -11,9 +12,9 @@ namespace Loki.BulkDataProcessor.Commands
     internal class BulkCopyDataTableCommand : IBulkDataTableCommand
     {
         private readonly IAppContext _appContext;
-        private readonly ISqlDbConnection _dbConnection;
+        private readonly ILokiDbConnection _dbConnection;
 
-        public BulkCopyDataTableCommand(IAppContext appContext, ISqlDbConnection dbConnection)
+        public BulkCopyDataTableCommand(IAppContext appContext, ILokiDbConnection dbConnection)
         {
             _appContext = appContext;
             _dbConnection = dbConnection;
@@ -21,38 +22,30 @@ namespace Loki.BulkDataProcessor.Commands
 
         public async Task Execute(DataTable dataToCopy, string destinationTableName)
         {
-            using (_dbConnection)
+            _dbConnection.Init();
+            var transaction = _dbConnection.BeginTransactionIfUsingInternalTransaction();
+
+            try
             {
-                _dbConnection.Open();
+                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(dataToCopy.TableName);
+                var columnNames = dataToCopy.Columns.Cast<DataColumn>()
+                                    .Select(x => x.ColumnName)
+                                    .ToArray();
 
-                // todo: test
-                // also add different begin transaction method to sql connection class
-                var transaction = _dbConnection.BeginTransaction();
+                using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
 
-                try
-                {
-                    var mapping = _appContext.DataTableMappingCollection.GetMappingFor(dataToCopy.TableName);
-                    var columnNames = dataToCopy.Columns.Cast<DataColumn>()
-                                     .Select(x => x.ColumnName)
-                                     .ToArray();
+                bulkCopyCommand.MapColumns(mapping, columnNames);
+                await bulkCopyCommand.WriteToServerAsync(dataToCopy, destinationTableName);
 
-                    using var bulkCopyCommand = _dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
-
-                    bulkCopyCommand.MapColumns(mapping, columnNames);
-                    await bulkCopyCommand.WriteToServerAsync(dataToCopy, destinationTableName);
-
-                    transaction.Commit();
-
-                    // todo: create new transaction object to do this (or ext method).
-                    if(_appContext.Transaction == null) transaction.Dispose();
-                }
-                catch
-                {
-                    transaction.Rollback();
-                    throw;
-                }
+                transaction.CommitIfUsingInternalTransaction(_appContext.IsUsingExternalTransaction);
+                transaction.DisposeIfUsingIntenralTransaction(_appContext.IsUsingExternalTransaction);
+                _dbConnection.DisposeIfUsingInternalTransaction();
             }
-           
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
     }
 }

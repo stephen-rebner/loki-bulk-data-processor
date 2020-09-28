@@ -16,12 +16,11 @@ namespace Loki.BulkDataProcessor.DependancyInjection
     {
         public static IServiceCollection AddLokiBulkDataProcessor(this IServiceCollection services, string connectionString, Assembly mappingAssembly = null)
         {
-            services.AddScoped<ISqlCommand, SqlServerCommand>();
             services.AddSingleton<IAppContext, AppContext>(x => new AppContext(connectionString, new ModelMappings(mappingAssembly), new DataTableMappings(mappingAssembly)));
-            services.AddTransient<ISqlDbConnection, SqlDbConnection>();
+            services.AddTransient<ILokiDbConnection, LokiDbConnection>();
             services.AddTransient<IBulkModelsCommand, BulkCopyModelsCommand>();
             services.AddTransient<IBulkDataTableCommand, BulkCopyDataTableCommand>();
-            services.AddTransient<IDbConnection, SqlDbConnection>();
+            services.AddTransient<IDbConnection, LokiDbConnection>();
             services.AddSingleton<ICommandFactory, CommandFactory>();
             services.AddScoped<IBulkProcessor, BulkProcessor>();
             return services;
