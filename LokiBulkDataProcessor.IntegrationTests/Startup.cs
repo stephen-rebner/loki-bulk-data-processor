@@ -1,4 +1,5 @@
 ﻿using Loki.BulkDataProcessor.DependancyInjection;
+using LokiBulkDataProcessor.IntegrationTests.Constants;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -19,7 +20,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddLokiBulkDataProcessor(
-                "Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true", 
+                TestSettings.ConnectionString, 
                 Assembly.GetExecutingAssembly());
         }
     }

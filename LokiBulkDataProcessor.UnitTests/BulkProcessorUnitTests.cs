@@ -24,6 +24,7 @@ namespace LokiBulkDataProcessor.UnitTests
         private Mock<IBulkModelsCommand> _bulkCopyModelCommand;
         private Mock<IBulkDataTableCommand> _bulkCopyDataTableCommand;
         private Mock<IAppContext> _appContext;
+        private Mock<IDbTransaction> _transaction;
 
         [SetUp]
         public void SetUp()
@@ -32,6 +33,7 @@ namespace LokiBulkDataProcessor.UnitTests
             _bulkCopyModelCommand = new Mock<IBulkModelsCommand>();
             _bulkCopyDataTableCommand = new Mock<IBulkDataTableCommand>();
             _appContext = new Mock<IAppContext>(MockBehavior.Strict);
+            _transaction = new Mock<IDbTransaction>(MockBehavior.Strict);
             _bulkProcessor = new BulkProcessor(_commandFactory.Object, _appContext.Object);
         }
 
@@ -40,9 +42,10 @@ namespace LokiBulkDataProcessor.UnitTests
         {
             Action action = () => WhenTimeoutIsUpdatedWithValue(-1);
 
-            ActionShouldThrowArgExceptionWithMessage(
-                action,
-                "The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("The Timeout value must be greater than or equal to 0 (Parameter 'Timeout')");
+
         }
 
         [TestCase(0)]
@@ -59,9 +62,9 @@ namespace LokiBulkDataProcessor.UnitTests
         {
             Action action = () => WhenBatchSizeIsUpdatedWithValue(-1);
 
-            ActionShouldThrowArgExceptionWithMessage(
-                action,
-                "The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("The BatchSize value must be greater than or equal to 0 (Parameter 'BatchSize')");
         }
 
         [TestCase(0)]
@@ -71,6 +74,26 @@ namespace LokiBulkDataProcessor.UnitTests
             Action action = () => WhenBatchSizeIsUpdatedWithValue(batchSizeValue);
 
             action.Should().NotThrow<ArgumentException>();
+        }
+
+        [Test]
+        public void Transaction_ShouldThrow_IfValueIsNull()
+        {
+            Action action = () => WhenTheTransactionIsUpdatedWith(null);
+
+            action.Should()
+                .Throw<ArgumentNullException>()
+                .WithMessage("Value cannot be null. (Parameter 'Transaction')");
+        }
+
+        [Test]
+        public void Transaction_ShouldNotThrow_IfValueIsSqlTransaction()
+        {
+            Action action = () =>  WhenTheTransactionIsUpdatedWith(_transaction.Object);
+
+            TheTransactionShouldBePassedToTheAppContext();
+
+            action.Should().NotThrow();
         }
 
         [Test]
@@ -183,11 +206,14 @@ namespace LokiBulkDataProcessor.UnitTests
             _bulkProcessor.BatchSize = batchSize;
         }
 
-        private void ActionShouldThrowArgExceptionWithMessage(Action action, string errorMessage)
+        private void WhenTheTransactionIsUpdatedWith(IDbTransaction transaction)
         {
-            action.Should()
-              .Throw<ArgumentException>()
-              .WithMessage(errorMessage);
+            _bulkProcessor.Transaction = transaction;
+        }
+
+        private void TheTransactionShouldBePassedToTheAppContext()
+        {
+            _appContext.Setup(context => context.SetTransaction(_transaction.Object));
         }
 
         private void TheCommandFactoryShouldCreateBulkCopyModelCommand()

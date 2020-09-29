@@ -1,11 +1,12 @@
 ﻿using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Mappings.Interfaces;
+using System.Data;
 using System.Diagnostics;
 
 namespace Loki.BulkDataProcessor.Context
 {
-    internal class AppContext : IAppContext
+    sealed internal class AppContext : IAppContext
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public string ConnectionString { get; private set; }
@@ -14,7 +15,12 @@ namespace Loki.BulkDataProcessor.Context
 
         public int Timeout { get; private set; }
 
+        public IDbTransaction ExternalTransaction { get; private set; }
+
+        public bool IsUsingExternalTransaction => ExternalTransaction != null;
+
         public IModelMappingCollection ModelMappingCollection { get; }
+
         public IDataTableMappingCollection DataTableMappingCollection { get; }
 
         public AppContext(string connectionString, IModelMappingCollection mappingCollection, IDataTableMappingCollection dataTableMappingCollection)
@@ -39,6 +45,11 @@ namespace Loki.BulkDataProcessor.Context
         public void SetTimeout(int timeout)
         {
             Timeout = timeout;
+        }
+
+        public void SetTransaction(IDbTransaction transaction)
+        {
+            ExternalTransaction = transaction;
         }
     }
 }

@@ -10,6 +10,8 @@ namespace Loki.BulkDataProcessor
 
         int BatchSize { get; set;}
 
+        IDbTransaction Transaction { get; set; }
+
         IBulkProcessor WithConnectionString(string connectionString);
 
         Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class;

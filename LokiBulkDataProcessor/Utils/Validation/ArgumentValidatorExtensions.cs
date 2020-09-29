@@ -40,5 +40,13 @@ namespace Loki.BulkDataProcessor.Utils.Validation
                 throw new ArgumentException("The data table provided is either null or contains no data");
             }
         }
+
+        internal static void ThrowIfNull(this object objectToCheck, string paramName)
+        {
+            if(objectToCheck == null)
+            {
+                throw new ArgumentNullException(paramName);
+            }
+        }
     }
 }
