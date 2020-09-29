@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
+using LokiBulkDataProcessor.IntegrationTests.Constants;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
 using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
@@ -165,12 +166,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             var expectedPosts = ThesePostsWithThisBlog(posts, blog);
 
-            // todo: Move method below to base class?
             await ShouldExistInTheDatabase(expectedPosts);
         }
 
         [Test]
-        public async Task SaveAsync_ShouldNotSavePosts_WhenRoollingBackExternalTransaction()
+        public async Task SaveAsync_ShouldNotSavePosts_WhenRollingBackExternalTransaction()
         {
             using var sqlConnection = WhenUsingAnExternalSqlConnection();
             using var transaction = sqlConnection.BeginTransaction();
@@ -185,10 +185,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             AndTheTransactionIsRolledBack(transaction);
 
-            // todo: Create new method in base class to check for empty list from DB?
-            var expectedPosts = await LoadAllEntities<Post>();
-
-            expectedPosts.Should().BeEmpty();
+            await TheDatabaseTableShouldBeEmpty<Post>();
         }
 
         private Blog GivenThisBlog()
@@ -238,7 +235,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
         private SqlConnection WhenUsingAnExternalSqlConnection()
         {
-            var sqlConnection = new SqlConnection("Server=(local);Database=IntegrationTestsDb;Trusted_Connection=True;MultipleActiveResultSets=true");
+            var sqlConnection = new SqlConnection(TestSettings.ConnectionString);
             sqlConnection.Open();
 
             return sqlConnection;
@@ -326,13 +323,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
             }
 
             return posts;
-        }
-
-        private async Task ShouldExistInTheDatabase<T>(IEnumerable<T> expectedPosts) where T : class
-        {
-            var actualPosts = await LoadAllEntities<T>();
-
-            expectedPosts.Should().BeEquivalentTo(actualPosts);
         }
 
         private DataTable AndGivenAPostDataTableWithNoMapping(int blogId)

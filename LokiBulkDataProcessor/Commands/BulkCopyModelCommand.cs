@@ -37,7 +37,7 @@ namespace Loki.BulkDataProcessor.Commands
                 await bulkCopyCommand.WriteToServerAsync(dataToProcess, propertyNames, destinationTableName);
 
                 transaction.CommitIfUsingInternalTransaction(_appContext.IsUsingExternalTransaction);
-                transaction.DisposeIfUsingIntenralTransaction(_appContext.IsUsingExternalTransaction);
+                transaction.DisposeIfUsingInternalTransaction(_appContext.IsUsingExternalTransaction);
                 _dbConnection.DisposeIfUsingInternalTransaction();
             }
             catch

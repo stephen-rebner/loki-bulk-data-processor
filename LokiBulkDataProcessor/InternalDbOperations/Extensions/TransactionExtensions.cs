@@ -12,7 +12,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Extensions
             }
         }
 
-        internal static void DisposeIfUsingIntenralTransaction(this IDbTransaction transaction, bool isUsingExternalTransaction)
+        internal static void DisposeIfUsingInternalTransaction(this IDbTransaction transaction, bool isUsingExternalTransaction)
         {
             if(!isUsingExternalTransaction)
             {

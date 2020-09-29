@@ -108,23 +108,12 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             if(_appContext.IsUsingExternalTransaction)
             {
-                InitWithExternalConnection();
+                _sqlConnection = (SqlConnection)_appContext.ExternalTransaction.Connection;
             }
             else
             {
                 Open();
             }
         }
-
-        private void InitWithExternalConnection()
-        {
-            _sqlConnection = (SqlConnection)_appContext.ExternalTransaction.Connection;
-
-            if (_sqlConnection.State != ConnectionState.Open)
-            {
-                _sqlConnection.Open();
-            }
-        }
-
     }
 }

@@ -4,6 +4,7 @@ using LokiBulkDataProcessor.IntegrationTests.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using FluentAssertions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -38,6 +39,20 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         {
             TestDbContext.AttachRange(entities);
             TestDbContext.SaveChanges();
+        }
+
+        protected async Task ShouldExistInTheDatabase<T>(IEnumerable<T> expectedDomainObjects) where T : class
+        {
+            var actualDomainObjects = await LoadAllEntities<T>();
+
+            expectedDomainObjects.Should().BeEquivalentTo(actualDomainObjects);
+        }
+
+        protected async Task TheDatabaseTableShouldBeEmpty<T>() where T : class
+        {
+            var numberOfRecords = await TestDbContext.Set<T>().CountAsync();
+
+            numberOfRecords.Should().Be(0);
         }
 
         private void CreateDatabase()
