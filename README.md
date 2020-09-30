@@ -55,8 +55,8 @@ https://github.com/stephen-rebner/loki-bulk-data-processor/wiki
 
 A 2 part tutorial has also been uploaded to YouTube:
 
-- Part 1: https://www.youtube.com/watch?v=LG6N_5AWMEk
-- Part 2: https://youtu.be/d-BxgBzNWZM
+- Part 1: https://youtu.be/vci6kQWcmhs
+- Part 2: https://youtu.be/2ABIrl_nwMk
 
 ### Code Examples
 
