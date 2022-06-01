@@ -103,7 +103,7 @@ namespace LokiBulkDataProcessor.UnitTests
             Func<Task> action = async () => await _bulkProcessor.SaveAsync(nullModel, TestDestinationTableName);
 
             action.Should()
-              .Throw<ArgumentException>()
+              .ThrowAsync<ArgumentException>()
               .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
         }
 
@@ -114,7 +114,7 @@ namespace LokiBulkDataProcessor.UnitTests
             Func<Task> action = async () => await _bulkProcessor.SaveAsync(emptyModel, TestDestinationTableName);
 
             action.Should()
-              .Throw<ArgumentException>()
+              .ThrowAsync<ArgumentException>()
               .WithMessage("The dataToProcess collection must not be null or empty. (Parameter 'dataToProcess')");
         }
 
@@ -126,7 +126,7 @@ namespace LokiBulkDataProcessor.UnitTests
             Func<Task> action = async () => await _bulkProcessor.SaveAsync(ModelObjects, destinationTableName);
 
             action.Should()
-              .Throw<ArgumentException>()
+              .ThrowAsync<ArgumentException>()
               .WithMessage("DestinationTableName must not be null or empty. (Parameter 'destinationTableName')");
         }
 
@@ -136,7 +136,7 @@ namespace LokiBulkDataProcessor.UnitTests
             Func<Task> action = async () => await _bulkProcessor.SaveAsync(null, TestDestinationTableName);
 
             action.Should()
-              .Throw<ArgumentException>()
+              .ThrowAsync<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
         }
 
@@ -145,11 +145,13 @@ namespace LokiBulkDataProcessor.UnitTests
         {
             using var dataTable = new DataTable();
             dataTable.Columns.Add(new DataColumn("Test Column"));
+            
+            var test = new List<short>();
 
             Func<Task> action = async () => await _bulkProcessor.SaveAsync(dataTable, TestDestinationTableName);
 
             action.Should()
-              .Throw<ArgumentException>()
+              .ThrowAsync<ArgumentException>()
               .WithMessage("The data table provided is either null or contains no data");
         }
 
