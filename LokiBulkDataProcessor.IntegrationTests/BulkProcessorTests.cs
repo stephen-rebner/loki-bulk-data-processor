@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
-using LokiBulkDataProcessor.IntegrationTests.Constants;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
 using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
@@ -235,7 +234,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
         private SqlConnection WhenUsingAnExternalSqlConnection()
         {
-            var sqlConnection = new SqlConnection(TestSettings.ConnectionString);
+            var sqlConnection = new SqlConnection(base.GetConnectionString());
             sqlConnection.Open();
 
             return sqlConnection;

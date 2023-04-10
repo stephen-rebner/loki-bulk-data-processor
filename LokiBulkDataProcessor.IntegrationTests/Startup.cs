@@ -1,5 +1,4 @@
 ﻿using Loki.BulkDataProcessor.DependancyInjection;
-using LokiBulkDataProcessor.IntegrationTests.Constants;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -8,10 +7,13 @@ namespace LokiBulkDataProcessor.IntegrationTests
 {
     public class Startup
     {
+        private string _connectionString;
         IConfigurationRoot Configuration { get; }
 
-        public Startup()
+        public Startup(string connectionString)
         {
+            _connectionString = connectionString;
+            
             var builder = new ConfigurationBuilder();
 
             Configuration = builder.Build();
@@ -20,7 +22,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddLokiBulkDataProcessor(
-                TestSettings.ConnectionString, 
+                _connectionString, 
                 Assembly.GetExecutingAssembly());
         }
     }

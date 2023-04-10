@@ -7,27 +7,78 @@ using NUnit.Framework;
 using FluentAssertions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+using TestContainers.Container.Abstractions.Hosting;
+//using Container.Database.MsSql.Integration.Tests.Fixtures;
+using TestContainers.Container.Database.Hosting;
+using TestContainers.Container.Database.MsSql;
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 {
     public abstract class BaseIntegrationTest
     {
+        private const string TestDbName = "IntegrationTestsDb";
+
+        private MsSqlContainer MsSqlContainer;
+        
         protected TestDbContext TestDbContext;
-        protected ServiceProvider ServiceProvider;
+        
         protected IBulkProcessor BulkProcessor;
 
-        [SetUp]
-        protected void TestSetup()
+        protected string GetConnectionString()
         {
+            return MsSqlContainer.GetConnectionString(TestDbName);
+        }
+        
+        [SetUp]
+        protected async Task TestSetup() 
+        {
+            MsSqlContainer = InitContainerTest();
+
+            await MsSqlContainer.StartAsync();
+
+            var serviceCollection = ConfigureServiceCollection();
+            
+            ConfigureStartUp(serviceCollection);
+            
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
+            await MsSqlContainer.StartAsync();
+
+            var dbContextOptionsBuilder = BuildDbContextOptionsBuilder(serviceProvider);
+
+            TestDbContext = new TestDbContext(dbContextOptionsBuilder.Options);
+
             CreateDatabase();
-            ResolveStartup();
-            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
+            
+            BulkProcessor = serviceProvider.GetService<IBulkProcessor>();
+        }
+
+        private DbContextOptionsBuilder<TestDbContext> BuildDbContextOptionsBuilder(ServiceProvider serviceProvider)
+        {
+            var dbContextOptionsBuilder = new DbContextOptionsBuilder<TestDbContext>();
+
+            dbContextOptionsBuilder.UseSqlServer(GetConnectionString())
+                .UseInternalServiceProvider(serviceProvider);
+
+            return dbContextOptionsBuilder;
         }
 
         [TearDown]
-        protected void TestCleanup()
+        protected async Task TestCleanup()
         {
-            TestDbContext.Dispose();
+            await TestDbContext.DisposeAsync();
+            await MsSqlContainer.StopAsync();
+        }
+
+        private MsSqlContainer InitContainerTest()
+        {
+            const string username = "sa";
+            const string password = "Pwd12345678!";
+            const string database = "IntegrationTestsDb";
+            MsSqlContainer = new ContainerBuilder<MsSqlContainer>()
+                .ConfigureDatabaseConfiguration(username, password, database)
+                .Build();
+
+            return MsSqlContainer;
         }
 
         protected async Task<IEnumerable<T>> LoadAllEntities<T>() where T : class
@@ -57,18 +108,27 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
         private void CreateDatabase()
         {
-            TestDbContext = new TestDbContext().CreateDbContext(null);
-
             TestDbContext.Database.EnsureDeleted();
             TestDbContext.Database.Migrate();
         }
 
-        private void ResolveStartup()
+        private IServiceCollection ConfigureServiceCollection()
         {
             IServiceCollection services = new ServiceCollection();
-            var startup = new Startup();
-            startup.ConfigureServices(services);
-            ServiceProvider = services.BuildServiceProvider();
+            
+            services.AddEntityFrameworkSqlServer();
+
+            return services;
+            
+            
+            
+        }
+
+        private void ConfigureStartUp(IServiceCollection serviceCollection)
+        {
+            var startup = new Startup(GetConnectionString());
+            
+            startup.ConfigureServices(serviceCollection);
         }
     }
 }
