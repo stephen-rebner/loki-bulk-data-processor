@@ -3,6 +3,7 @@ using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor
@@ -19,6 +20,16 @@ namespace Loki.BulkDataProcessor
             {
                 value.ThrowIfLessThanZero(nameof(Timeout));
                 _appContext.SetTimeout(value);
+            }
+        }
+
+        public SqlBulkCopyOptions SqlBulkCopyOptions
+        {
+            get => _appContext.SqlBulkCopyOptions;
+            set
+            {
+                value.ThrowIfNull(nameof(SqlBulkCopyOptions));
+                _appContext.SetSqlBulkCopyOptions(value);
             }
         }
 

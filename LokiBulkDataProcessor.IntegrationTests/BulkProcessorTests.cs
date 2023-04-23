@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System;
+using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
@@ -14,10 +15,16 @@ namespace LokiBulkDataProcessor.IntegrationTests
 {
     public class BulkProcessorTests : BaseIntegrationTest
     {
+        #region Private Constants
+
         private const string Post1 = "Post1";
         private const string Post2 = "Post2";
         private const string PostContent1 = "PostContent2";
         private const string PostContent2 = "PostContent2";
+
+        #endregion
+
+        #region DataTable Tests
 
         [Test]
         public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenTableHasNoForeignKey()
@@ -25,7 +32,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var model1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
-                .WithDateColumnValue(new System.DateTime(2020, 01, 26))
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
                 .WithBoolColumnValue(true)
                 .WithNullableBoolColumnValue(null)
                 .WithNullableDateColumnValue(null)
@@ -34,20 +41,20 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var model2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
-                .WithDateColumnValue(new System.DateTime(2020, 01, 27))
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
                 .WithBoolColumnValue(false)
                 .WithNullableBoolColumnValue(true)
-                .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
                 .Build();
 
             var model3 = TestObjectFactory.TestDbModelObject()
-                 .WithId(3)
-                 .WithStringColumnValue("String Value 3")
-                 .WithDateColumnValue(new System.DateTime(2020, 01, 28))
-                 .WithBoolColumnValue(true)
-                 .WithNullableBoolColumnValue(false)
-                 .WithNullableDateColumnValue(new System.DateTime(2020, 1, 10))
-                 .Build();
+                .WithId(3)
+                .WithStringColumnValue("String Value 3")
+                .WithDateColumnValue(new DateTime(2020, 01, 28))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(false)
+                .WithNullableDateColumnValue(new DateTime(2020, 1, 10))
+                .Build();
 
             var models = new List<TestDbModel> { model1, model2, model3 };
 
@@ -62,14 +69,14 @@ namespace LokiBulkDataProcessor.IntegrationTests
         public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenTableHasNoForeignKey()
         {
             using var datatable = TestObjectFactory.NewTestDataTable()
-                .WithRowData(1, "String Value 1", true, new System.DateTime(2020, 01, 26), null, null)
-                .WithRowData(2, "String Value 2", false, new System.DateTime(2020, 01, 27), true, new System.DateTime(2020, 01, 19))
+                .WithRowData(1, "String Value 1", true, new DateTime(2020, 01, 26), null, null)
+                .WithRowData(2, "String Value 2", false, new DateTime(2020, 01, 27), true, new DateTime(2020, 01, 19))
                 .Build();
 
             var exptectedModel1 = TestObjectFactory.TestDbModelObject()
                 .WithId(1)
                 .WithStringColumnValue("String Value 1")
-                .WithDateColumnValue(new System.DateTime(2020, 01, 26))
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
                 .WithBoolColumnValue(true)
                 .WithNullableBoolColumnValue(null)
                 .WithNullableDateColumnValue(null)
@@ -78,10 +85,10 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var expectedModel2 = TestObjectFactory.TestDbModelObject()
                 .WithId(2)
                 .WithStringColumnValue("String Value 2")
-                .WithDateColumnValue(new System.DateTime(2020, 01, 27))
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
                 .WithBoolColumnValue(false)
                 .WithNullableBoolColumnValue(true)
-                .WithNullableDateColumnValue(new System.DateTime(2020, 01, 19))
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
                 .Build();
 
             var expctedResults = new List<TestDbModel> { exptectedModel1, expectedModel2 };
@@ -92,6 +99,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             results.Should().BeEquivalentTo(expctedResults);
         }
+
+        #endregion
 
         [Test]
         public async Task SaveAsync_ShouldSaveModelsSuccessfully_WhenTableHasAForeignKey_AndUsesAMapper()

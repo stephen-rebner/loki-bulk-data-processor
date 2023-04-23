@@ -2,17 +2,20 @@
 using Loki.BulkDataProcessor.DefaultValues;
 using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 
 namespace Loki.BulkDataProcessor.Context
 {
-    sealed internal class AppContext : IAppContext
+    internal sealed class AppContext : IAppContext
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public string ConnectionString { get; private set; }
 
         public int BatchSize { get; private set; }
 
+        public SqlBulkCopyOptions SqlBulkCopyOptions { get; private set; }
+        
         public int Timeout { get; private set; }
 
         public IDbTransaction ExternalTransaction { get; private set; }
@@ -30,6 +33,7 @@ namespace Loki.BulkDataProcessor.Context
             DataTableMappingCollection = dataTableMappingCollection;
             BatchSize = DefaultConfigValues.BatchSize;
             Timeout = DefaultConfigValues.Timeout;
+            SqlBulkCopyOptions = SqlBulkCopyOptions.Default;
         }
 
         public void SetConnectionString(string connectionString)
@@ -40,6 +44,11 @@ namespace Loki.BulkDataProcessor.Context
         public void SetBatchSize(int batchSize)
         {
             BatchSize = batchSize;
+        }
+
+        public void SetSqlBulkCopyOptions(SqlBulkCopyOptions sqlBulkCopyOptions)
+        {
+            SqlBulkCopyOptions = sqlBulkCopyOptions;
         }
 
         public void SetTimeout(int timeout)

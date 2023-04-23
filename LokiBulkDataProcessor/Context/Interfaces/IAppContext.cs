@@ -1,17 +1,20 @@
 ﻿using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System.Data;
+using System.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.Context.Interfaces
 {
     public interface IAppContext
     {
-        public string ConnectionString { get; }
-
         public int BatchSize { get; }
+        
+        public string ConnectionString { get; }
+                        
+        SqlBulkCopyOptions SqlBulkCopyOptions { get; }
 
         public int Timeout { get; }
 
-        public IDbTransaction ExternalTransaction { get;  }
+        public IDbTransaction ExternalTransaction { get; }
 
         public bool IsUsingExternalTransaction { get; }
 
@@ -23,9 +26,10 @@ namespace Loki.BulkDataProcessor.Context.Interfaces
 
         void SetBatchSize(int batchSize);
 
+        void SetSqlBulkCopyOptions(SqlBulkCopyOptions sqlBulkCopyOptions);
+
         void SetTimeout(int timeout);
 
         void SetTransaction(IDbTransaction transaction);
-
     }
 }

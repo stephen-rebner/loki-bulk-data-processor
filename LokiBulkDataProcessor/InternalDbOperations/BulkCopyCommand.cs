@@ -19,10 +19,10 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             _appContext = appContext;
 
-            _sqlBulkCopy = new SqlBulkCopy(sqlConnection, SqlBulkCopyOptions.CheckConstraints, transaction)
+            _sqlBulkCopy = new SqlBulkCopy(sqlConnection, _appContext.SqlBulkCopyOptions, transaction)
             {
                 BatchSize = _appContext.BatchSize,
-                BulkCopyTimeout = _appContext.Timeout
+                BulkCopyTimeout = _appContext.Timeout,
             };
         }
 
