@@ -12,9 +12,10 @@
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki bulk data processor sql bulk copy stephen rebner</PackageTags>
-    <Version>4.0.0</Version>
+    <Version>4.0.1</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageReleaseNotes>Upgraded to .NET 6.</PackageReleaseNotes>
+    <PackageReleaseNotes>Upgraded System.Data.SqlClient to V4.8.6 due to a recent security patch in that package.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repository\**" />
@@ -30,6 +31,10 @@
     <None Include="..\LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 </Project>
