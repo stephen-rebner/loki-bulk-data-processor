@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>LokiBulkDataProcessor</AssemblyName>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -12,9 +12,9 @@
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki bulk data processor sql bulk copy stephen rebner</PackageTags>
-    <Version>4.0.1</Version>
+    <Version>5.0.1</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageReleaseNotes>Upgraded System.Data.SqlClient to V4.8.6 due to a recent security patch in that package.</PackageReleaseNotes>
+    <PackageReleaseNotes>Upgraded to Dotnet 8.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
@@ -24,13 +24,14 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt">
       <Pack>True</Pack>
-      <PackagePath></PackagePath>
+      <PackagePath>
+      </PackagePath>
     </None>
     <None Include="..\README.md">
       <Pack>True</Pack>

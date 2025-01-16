@@ -98,7 +98,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
         protected string GetConnectionString()
         {
-            return MsSqlContainer.GetConnectionString(TestDbName);
+            return $"{MsSqlContainer.GetConnectionString(TestDbName)};TrustServerCertificate=True";
         }
 
         private void CreateDatabase()
