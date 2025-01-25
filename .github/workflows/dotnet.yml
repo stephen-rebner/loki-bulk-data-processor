@@ -20,8 +20,6 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
-    - name: Pull Ryuk Docker image
-      run: docker pull quay.io/testcontainers/ryuk:0.4.0
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

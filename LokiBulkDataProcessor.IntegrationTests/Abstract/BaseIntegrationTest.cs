@@ -5,10 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using FluentAssertions;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
-using TestContainers.Container.Abstractions.Hosting;
-using TestContainers.Container.Database.Hosting;
-using TestContainers.Container.Database.MsSql;
+using Testcontainers.MsSql;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 {
@@ -63,8 +62,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
         private MsSqlContainer InitContainerTest()
         {
-            MsSqlContainer = new ContainerBuilder<MsSqlContainer>()
-                .ConfigureDatabaseConfiguration(username: "sa", password: "Pwd12345678!", databaseName: TestDbName)
+            MsSqlContainer = new MsSqlBuilder()
+                .WithPassword("Pwd12345678!")
                 .Build();
 
             return MsSqlContainer;
@@ -98,7 +97,13 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
         protected string GetConnectionString()
         {
-            return $"{MsSqlContainer.GetConnectionString(TestDbName)};TrustServerCertificate=True";
+            var connectionStringBuilder = new SqlConnectionStringBuilder(MsSqlContainer.GetConnectionString())
+            {
+                InitialCatalog = TestDbName,
+                TrustServerCertificate = true
+            };
+            
+            return connectionStringBuilder.ToString();
         }
 
         private void CreateDatabase()
