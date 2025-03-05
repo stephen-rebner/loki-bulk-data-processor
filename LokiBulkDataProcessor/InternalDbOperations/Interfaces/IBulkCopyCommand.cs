@@ -11,6 +11,8 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
         Task WriteToServerAsync<T>(IEnumerable<T> dataToCopy, string[] propertyNames, string tableName) where T : class;
 
         Task WriteToServerAsync(DataTable dataToCopy, string tableName);
+        
+        Task WriteToServerAsync(IDataReader dataReader, string tableName);
 
         void MapColumns(AbstractMapping mapping, string[] propertyNames);
     }

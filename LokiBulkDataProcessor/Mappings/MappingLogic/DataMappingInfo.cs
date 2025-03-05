@@ -5,11 +5,11 @@ using System.Linq;
 
 namespace Loki.BulkDataProcessor.Mappings.MappingLogic
 {
-    internal class DataTableMappingInfo : AbstractMappingInfo, IMapDataTableSource, IToDestination
+    internal class DataMappingInfo : AbstractMappingInfo, IMapDataTableSource, IToDestination
     {
         private readonly string _sourceTableName;
 
-        public DataTableMappingInfo(string sourceTableName)
+        public DataMappingInfo(string sourceTableName)
         {
             _sourceTableName = sourceTableName;
         }

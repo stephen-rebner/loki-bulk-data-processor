@@ -7,5 +7,7 @@ namespace Loki.BulkDataProcessor.Commands.Factory
         IBulkModelsCommand NewBulkCopyModelsCommand();
 
         IBulkDataTableCommand NewBulkCopyDataTableCommand();
+        
+        IBulkCopyFromDataReaderCommand NewBulkCopyDataReaderCommand();
     }
 }

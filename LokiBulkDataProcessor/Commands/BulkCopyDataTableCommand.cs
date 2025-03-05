@@ -27,7 +27,7 @@ namespace Loki.BulkDataProcessor.Commands
 
             try
             {
-                var mapping = _appContext.DataTableMappingCollection.GetMappingFor(dataToCopy.TableName);
+                var mapping = _appContext.DataMappingCollection.GetMappingFor(dataToCopy.TableName);
                 var columnNames = dataToCopy.Columns.Cast<DataColumn>()
                                     .Select(x => x.ColumnName)
                                     .ToArray();

@@ -9,6 +9,8 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using FastMember;
+using Loki.BulkDataProcessor.Utils.Reflection;
 
 namespace LokiBulkDataProcessor.IntegrationTests
 {
@@ -187,6 +189,31 @@ namespace LokiBulkDataProcessor.IntegrationTests
             await TheDatabaseTableShouldBeEmpty<Post>();
         }
 
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenNotUsingAMapping()
+        {
+            // arrange
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+            
+            // get an array of the column names from the post dtos
+            var columnNames = postDtos.First()
+                .GetType()
+                .GetPublicPropertyNames();
+            
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(postDtos, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+
         private Blog GivenThisBlog()
         {
             var blog = TestObjectFactory.NewBlog()
@@ -263,6 +290,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
         private async Task WhenSaveAsyncIsCalled(DataTable dataToCopy, string tableName)
         {
             await BulkProcessor.SaveAsync(dataToCopy, tableName);
+        }
+        
+        private async Task WhenSaveAsyncIsCalled(IDataReader dataReader, string tableName)
+        {
+            await BulkProcessor.SaveAsync(dataReader, tableName);
         }
 
         private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<PostDto> postDtos, Blog blog)

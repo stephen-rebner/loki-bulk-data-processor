@@ -17,5 +17,7 @@ namespace Loki.BulkDataProcessor
         Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class;
 
         Task SaveAsync(DataTable dataTable, string destinationTableName);
+        
+        Task SaveAsync(IDataReader dataReader, string destinationTableName);
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Linq;
 
 namespace Loki.BulkDataProcessor.Commands.Factory
 {
@@ -22,6 +21,11 @@ namespace Loki.BulkDataProcessor.Commands.Factory
         public IBulkDataTableCommand NewBulkCopyDataTableCommand()
         {
             return _serviceProvider.GetService<IBulkDataTableCommand>();
+        }
+
+        public IBulkCopyFromDataReaderCommand NewBulkCopyDataReaderCommand()
+        {
+            return _serviceProvider.GetService<IBulkCopyFromDataReaderCommand>();
         }
     }
 }

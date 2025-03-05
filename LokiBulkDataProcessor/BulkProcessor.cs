@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor.Commands.Factory;
+﻿using System;
+using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
@@ -11,6 +12,16 @@ namespace Loki.BulkDataProcessor
     {
         private readonly ICommandFactory _commandFactory;
         private readonly IAppContext _appContext;
+        
+        public string ConnectionString
+        {
+            get => _appContext.ConnectionString;
+            set
+            {
+                value.ThrowIfNullOrEmptyString(nameof(ConnectionString));
+                _appContext.SetConnectionString(value);
+            }
+        }
 
         public int Timeout
         {
@@ -42,13 +53,14 @@ namespace Loki.BulkDataProcessor
                 _appContext.SetTransaction(value);
             }
         }
-
+        
         public BulkProcessor(ICommandFactory commandFactory, IAppContext appContext)
         {
             _appContext = appContext;
             _commandFactory = commandFactory;
         }
 
+        [Obsolete("Please use the ConnectionString property instead.")]        
         public IBulkProcessor WithConnectionString(string connectionString)
         {
             connectionString.ThrowIfNullOrEmptyString(nameof(connectionString));
@@ -74,6 +86,15 @@ namespace Loki.BulkDataProcessor
             var command = _commandFactory.NewBulkCopyDataTableCommand();
 
             await command.Execute(dataTable, destinationTableName);
+        }
+
+        public Task SaveAsync(IDataReader dataReader, string destinationTableName)
+        {
+            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
+            
+            var command = _commandFactory.NewBulkCopyDataReaderCommand();
+            
+            return command.Execute(dataReader, destinationTableName);
         }
     }
 }

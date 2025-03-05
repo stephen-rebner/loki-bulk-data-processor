@@ -9,13 +9,13 @@ namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
     /// A class that holds a collection of Data Table mappings
     /// The mappings are added dynamically when instantiated
     /// </summary>
-    internal class DataTableMappings : AbstractMappings<DataTableMapping>, IDataTableMappingCollection
+    internal class DataMappings : AbstractMappings<DataMapping>, IDataMappingCollection
     {
         /// <summary>
         /// Adds all data table mappings contained in the assembly provided
         /// </summary>
         /// <param name="mappingAssmebly">The assembly in which the mappings are contained</param>
-        public DataTableMappings(Assembly mappingAssmebly)
+        public DataMappings(Assembly mappingAssmebly)
         {
             AddMappingsIfMappingAssemblyNotNull(mappingAssmebly);
         }
@@ -25,7 +25,7 @@ namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
         /// </summary>
         /// <param name="tableName">The name of the data table to match on</param>
         /// <returns>A data table mapping if there is a match, else returns null</returns>
-        public DataTableMapping GetMappingFor(string tableName)
+        public DataMapping GetMappingFor(string tableName)
         {
             return _mappings.FirstOrDefault(mapping => mapping.SourceTableName.Equals(tableName, StringComparison.Ordinal));
         }

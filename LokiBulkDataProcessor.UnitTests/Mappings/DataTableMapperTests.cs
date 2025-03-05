@@ -11,7 +11,7 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
         [Test]
         public void ShouldNotThrow_WhenValidatingValidModelMapping()
         {
-            Action action = () => new ValidDataTableMapping1();
+            Action action = () => new ValidDataMapping1();
 
             action.Should().NotThrow();
         }
@@ -19,37 +19,37 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings
         [Test]
         public void ShouldThrow_WhenMappingHasDuplicateDestinationColumn()
         {
-            Action action = () => new DataTableMappingWithDuplicateDestCol();
+            Action action = () => new DataMappingWithDuplicateDestCol();
 
             action.Should().ThrowExactly<MappingException>()
-                .WithMessage("The mapping for the DataTableMappingWithDuplicateDestCol data table contains duplicate destination columns.");
+                .WithMessage("The mapping for the DataMappingWithDuplicateDestCol data table contains duplicate destination columns.");
         }
 
         [Test]
         public void ShouldThrow_WhenMappingHasEmptyDestinationColumn()
         {
-            Action action = () => new DataTableMappingWithEmptyDestCol();
+            Action action = () => new DataMappingWithEmptyDestCol();
 
             action.Should().ThrowExactly<MappingException>()
-                .WithMessage($"The mapping for the DataTableMappingWithEmptyDestCol data table contains a null or empty destination column.");
+                .WithMessage($"The mapping for the DataMappingWithEmptyDestCol data table contains a null or empty destination column.");
         }
 
         [Test]
         public void ShouldThrow_WhenMappingHasNullDestinationColumn()
         {
-            Action action = () => new DataTableMappingWithNullDestCol();
+            Action action = () => new DataMappingWithNullDestCol();
 
             action.Should().ThrowExactly<MappingException>()
-                .WithMessage($"The mapping for the DataTableMappingWithNullDestCol data table contains a null or empty destination column.");
+                .WithMessage($"The mapping for the DataMappingWithNullDestCol data table contains a null or empty destination column.");
         }
 
         [Test]
         public void ShouldThrow_WhenMappingHasDuplicateSourceColumn()
         {
-            Action action = () => new DataTableMappingWithDuplicateSourceColumn();
+            Action action = () => new DataMappingWithDuplicateSourceColumn();
 
             action.Should().ThrowExactly<MappingException>()
-                .WithMessage($"The mapping for the DataTableMappingWithEmptyDestCol data table contains a duplicate source column: PublicString");
+                .WithMessage($"The mapping for the DataMappingWithEmptyDestCol data table contains a duplicate source column: PublicString");
         }
     }
 }
