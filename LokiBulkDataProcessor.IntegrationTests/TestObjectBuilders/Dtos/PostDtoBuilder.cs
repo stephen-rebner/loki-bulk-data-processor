@@ -30,7 +30,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         {
             return new PostDto
             {
-                TitleB = _title,
+                ATitle = _title,
                 ContentA = _content,
                 ABlogId = _blogId,
             };

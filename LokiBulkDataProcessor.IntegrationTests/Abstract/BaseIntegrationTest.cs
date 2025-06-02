@@ -7,6 +7,7 @@ using FluentAssertions;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using Loki.BulkDataProcessor.DependancyInjection;
 using Testcontainers.MsSql;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
@@ -20,6 +21,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         protected TestDbContext TestDbContext;
 
         protected IBulkProcessor BulkProcessor;
+        
+        protected ServiceProvider ServiceProvider;
 
         [SetUp]
         protected async Task TestSetup()
@@ -29,18 +32,29 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             await MsSqlContainer.StartAsync();
 
             var serviceCollection = ConfigureServiceCollection();
-
-            ConfigureStartUp(serviceCollection);
-
-            var serviceProvider = serviceCollection.BuildServiceProvider();
-
-            var dbContextOptionsBuilder = BuildDbContextOptionsBuilder(serviceProvider);
+            
+            var dbContextOptionsBuilder = BuildDbContextOptionsBuilder(ServiceProvider);
 
             TestDbContext = new TestDbContext(dbContextOptionsBuilder.Options);
 
             CreateDatabase();
+            
+            ConfigureStartUp(serviceCollection);
 
-            BulkProcessor = serviceProvider.GetService<IBulkProcessor>();
+            ServiceProvider = serviceCollection.BuildServiceProvider();
+
+            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
+        }
+        
+        protected void CreateLokiBulkDataProcessorWithNoMappings()
+        {
+            var serviceCollection = ConfigureServiceCollection();
+            
+            serviceCollection.AddLokiBulkDataProcessor(GetConnectionString(), null);
+            
+            ServiceProvider = serviceCollection.BuildServiceProvider();
+            
+            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
         }
 
         private DbContextOptionsBuilder<TestDbContext> BuildDbContextOptionsBuilder(ServiceProvider serviceProvider)

@@ -5,6 +5,7 @@ using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data.SqlClient;
 using System.Linq;
+using Loki.BulkDataProcessor.InternalDbOperations.Extensions;
 
 namespace Loki.BulkDataProcessor.Commands;
 
@@ -25,9 +26,13 @@ public class BulkCopyFromDataReaderCommand(IAppContext appContext, ILokiDbConnec
                 .Select(dataReader.GetName)
                 .ToArray();
             
-            bulkCopyCommand.MapColumns(mapping, columnNames); // there is no mapping for DataReader
+            bulkCopyCommand.MapColumns(mapping, columnNames);
             
             await bulkCopyCommand.WriteToServerAsync(dataReader, destinationTableName);
+            
+            transaction.CommitIfUsingInternalTransaction(appContext.IsUsingExternalTransaction);
+            transaction.DisposeIfUsingInternalTransaction(appContext.IsUsingExternalTransaction);
+            dbConnection.DisposeIfUsingInternalTransaction();
         }
         catch
         {

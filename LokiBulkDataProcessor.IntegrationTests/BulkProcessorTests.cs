@@ -10,7 +10,6 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using FastMember;
-using Loki.BulkDataProcessor.Utils.Reflection;
 
 namespace LokiBulkDataProcessor.IntegrationTests
 {
@@ -190,18 +189,20 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenNotUsingAMapping()
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingAMapping()
         {
             // arrange
             var blog = GivenThisBlog();
             
             var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
-            
-            // get an array of the column names from the post dtos
-            var columnNames = postDtos.First()
-                .GetType()
-                .GetPublicPropertyNames();
-            
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
             // create a data reader from the post dtos
             using var reader = ObjectReader.Create(postDtos, columnNames);
             
@@ -210,6 +211,35 @@ namespace LokiBulkDataProcessor.IntegrationTests
             
             // assert
             var expectedPosts = ThesePostsWithThisBlog(postDtos, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingNotAMapping()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            var blog = GivenThisBlog();
+            
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+            
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(posts, columnNames);
+            
+            // act
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
             
             await ShouldExistInTheDatabase(expectedPosts);
         }
@@ -224,7 +254,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             return blog;
         }
-
+        
         private PostDto[] AndGivenThesePostDtosAssociatedToBlogId(int blogId)
         {
             var post1 = TestObjectFactory.NewPostDto()
@@ -240,6 +270,23 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .Build();
 
             return new PostDto[] { post1, post2 };
+        }
+        
+        private PostDtoWithNoMapping[] AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(int blogId)
+        {
+            var post1 = new PostDtoWithNoMappingBuilder()
+                .WithTitle("Post1")
+                .WithContent("Post 1 content")
+                .WithBlogId(blogId)
+                .Build();
+
+            var post2 = new PostDtoWithNoMappingBuilder()
+                .WithTitle("Post2")
+                .WithContent("Post 2 content")
+                .WithBlogId(blogId)
+                .Build();
+
+            return [post1, post2];
         }
 
         private Post[] AndGivenThesePostsAssociatedToTheBlog(Blog blog)
@@ -307,6 +354,28 @@ namespace LokiBulkDataProcessor.IntegrationTests
             {
                 var newPost = TestObjectFactory.NewPost()
                 .BuildFromPostDto(postDto)
+                .WithBlog(blog)
+                .WithId(currentPostId)
+                .Build();
+
+                posts.Add(newPost);
+
+                currentPostId += 1;
+            }
+
+            return posts;
+        }
+
+        private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<PostDtoWithNoMapping> postDtos, Blog blog)
+        {
+            var posts = new List<Post>();
+
+            var currentPostId = TestDbContext.Posts.Min(post => post.Id);
+
+            foreach (var postDto in postDtos)
+            {
+                var newPost = TestObjectFactory.NewPost()
+                .BuildFromPostDtoWithNoMapping(postDto)
                 .WithBlog(blog)
                 .WithId(currentPostId)
                 .Build();

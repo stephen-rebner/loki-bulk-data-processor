@@ -2,7 +2,7 @@
 {
     public class PostDto
     {
-        public string TitleB { get; set; }
+        public string ATitle { get; set; }
 
         public string ContentA { get; set; }
 

@@ -83,7 +83,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             foreach (var mappingMetaData in mapping.MappingInfo.MappingMetaDataCollection)
             {
-                _sqlBulkCopy.ColumnMappings.Add(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn);
+                _sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn));
             }
         }
 
