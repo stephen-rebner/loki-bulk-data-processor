@@ -14,17 +14,17 @@ public class BulkCopyFromDataReaderCommand(IAppContext appContext, ILokiDbConnec
     public async Task Execute(IDataReader dataReader, string destinationTableName)
     {
         dbConnection.Init();
-        using var transaction = dbConnection.BeginTransactionIfUsingInternalTransaction();
+        var transaction = dbConnection.BeginTransactionIfUsingInternalTransaction();
         
         try
         {
-            using var bulkCopyCommand = dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
-            
             var mapping = appContext.DataMappingCollection.GetMappingFor(destinationTableName);
             
             var columnNames = Enumerable.Range(0, dataReader.FieldCount)
                 .Select(dataReader.GetName)
                 .ToArray();
+            
+            using var bulkCopyCommand = dbConnection.CreateNewBulkCopyCommand((SqlTransaction)transaction);
             
             bulkCopyCommand.MapColumns(mapping, columnNames);
             

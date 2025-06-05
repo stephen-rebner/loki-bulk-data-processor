@@ -88,13 +88,13 @@ namespace Loki.BulkDataProcessor
             await command.Execute(dataTable, destinationTableName);
         }
 
-        public Task SaveAsync(IDataReader dataReader, string destinationTableName)
+        public async Task SaveAsync(IDataReader dataReader, string destinationTableName)
         {
             destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
             
             var command = _commandFactory.NewBulkCopyDataReaderCommand();
             
-            return command.Execute(dataReader, destinationTableName);
+            await command.Execute(dataReader, destinationTableName);
         }
     }
 }

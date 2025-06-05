@@ -39,10 +39,17 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             }
         }
 
-        public Task WriteToServerAsync(IDataReader dataReader, string tableName)
+        public async Task WriteToServerAsync(IDataReader dataReader, string tableName)
         {
-            _sqlBulkCopy.DestinationTableName = tableName;
-            return _sqlBulkCopy.WriteToServerAsync(dataReader);
+            try
+            {
+                _sqlBulkCopy.DestinationTableName = tableName;
+                await _sqlBulkCopy.WriteToServerAsync(dataReader);
+            }
+            catch (Exception e)
+            {
+                ThrowInvalidOperationException(e.Message);
+            }
         }
 
         public async Task WriteToServerAsync<T>(IEnumerable<T> dataToCopy, string[] propertyNames, string tableName) where T : class

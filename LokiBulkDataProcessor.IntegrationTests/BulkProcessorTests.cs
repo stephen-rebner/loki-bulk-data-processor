@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System;
+using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
@@ -151,8 +152,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_ShouldSavePostsSuccessfully_WhenCommitingExternalTransaction()
         {
-            using var sqlConnection = WhenUsingAnExternalSqlConnection();
-            using var transaction = sqlConnection.BeginTransaction();
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
 
             var blog = GivenThisBlog();
 
@@ -172,7 +173,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_ShouldNotSavePosts_WhenRollingBackExternalTransaction()
         {
-            using var sqlConnection = WhenUsingAnExternalSqlConnection();
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
             using var transaction = sqlConnection.BeginTransaction();
 
             var blog = GivenThisBlog();
@@ -243,6 +244,41 @@ namespace LokiBulkDataProcessor.IntegrationTests
             
             await ShouldExistInTheDatabase(expectedPosts);
         }
+        
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingNotAMappingAndUsingATransaction()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+
+            // act
+            using var reader = ObjectReader.Create(posts, columnNames);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            await transaction.CommitAsync();
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
+
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
 
         private Blog GivenThisBlog()
         {
@@ -306,10 +342,10 @@ namespace LokiBulkDataProcessor.IntegrationTests
             return new Post[] { post1, post2 };
         }
 
-        private SqlConnection WhenUsingAnExternalSqlConnection()
+        private async Task<SqlConnection> WhenUsingAnExternalSqlConnection()
         {
             var sqlConnection = new SqlConnection(base.GetConnectionString());
-            sqlConnection.Open();
+            await sqlConnection.OpenAsync();
 
             return sqlConnection;
         }
