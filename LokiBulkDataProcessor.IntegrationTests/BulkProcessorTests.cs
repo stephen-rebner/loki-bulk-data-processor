@@ -246,6 +246,72 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
         
         [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingAMappingAndATransaction()
+        {
+            // arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            AndTheTransactionIsCommited(transaction);
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(postDtos, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldNotSavePosts_WhenTheTransactionIsRolledBack()
+        {
+            // arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            AndTheTransactionIsRolledBack(transaction);
+            
+            // assert
+            await TheDatabaseTableShouldBeEmpty<Post>();
+        }
+        
+        [Test]
         public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingNotAMappingAndUsingATransaction()
         {
             // arrange
@@ -278,6 +344,39 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var expectedPosts = ThesePostsWithThisBlog(posts, blog);
 
             await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_NotSavePosts_WhenTheTransactionIsRolledBack()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+
+            // act
+            using var reader = ObjectReader.Create(posts, columnNames);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            await transaction.RollbackAsync();
+            
+            // assert
+            await TheDatabaseTableShouldBeEmpty<Post>();
         }
 
         private Blog GivenThisBlog()
