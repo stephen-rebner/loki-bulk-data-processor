@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Loki.BulkDataProcessor
@@ -19,5 +20,7 @@ namespace Loki.BulkDataProcessor
         Task SaveAsync(DataTable dataTable, string destinationTableName);
         
         Task SaveAsync(IDataReader dataReader, string destinationTableName);
+
+        Task SaveAsync(Stream jsonStream);
     }
 }

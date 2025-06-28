@@ -4,7 +4,9 @@ using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Threading.Tasks;
+using Loki.BulkDataProcessor.DataReaders;
 
 namespace Loki.BulkDataProcessor
 {
@@ -94,6 +96,22 @@ namespace Loki.BulkDataProcessor
             
             var command = _commandFactory.NewBulkCopyDataReaderCommand();
             
+            await command.Execute(dataReader, destinationTableName);
+        }
+        
+        public async Task SaveAsync(Stream jsonStream)
+        {
+            jsonStream.ThrowIfNull(nameof(jsonStream));
+    
+            // Create a JsonDataReader from the stream
+            using var dataReader = new JsonDataReader(jsonStream);
+    
+            // If tableName isn't provided, get it from the JSON
+            string destinationTableName = dataReader.TableName;
+            destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
+    
+            // Use the existing command infrastructure
+            var command = _commandFactory.NewBulkCopyDataReaderCommand();
             await command.Execute(dataReader, destinationTableName);
         }
     }

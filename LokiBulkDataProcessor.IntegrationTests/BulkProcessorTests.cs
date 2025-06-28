@@ -8,6 +8,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FastMember;
@@ -377,6 +378,132 @@ namespace LokiBulkDataProcessor.IntegrationTests
             
             // assert
             await TheDatabaseTableShouldBeEmpty<Post>();
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldSaveJsonStreamSuccessfully_WhenJsonFollowsSchema()
+        {
+            // Arrange
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            var expectedModel1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+        
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
+                .Build();
+                
+            var expectedResults = new List<TestDbModel> { expectedModel1, expectedModel2 };
+            
+            // Act
+            await BulkProcessor.SaveAsync(jsonStream);
+            
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().BeEquivalentTo(expectedResults);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldSaveJsonStreamSuccessfully_WhenCommitingExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            // Act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(jsonStream);
+            AndTheTransactionIsCommited(transaction);
+            
+            // Assert
+            var expectedModel1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+        
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
+                .Build();
+                
+            var expectedResults = new List<TestDbModel> { expectedModel1, expectedModel2 };
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().BeEquivalentTo(expectedResults);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldNotSaveData_WhenRollingBackExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            // Act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(jsonStream);
+            AndTheTransactionIsRolledBack(transaction);
+            
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
+        }
+        
+        private string CreateTestDbModelJson()
+        {
+            return @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 1,
+                        ""StringColumn"": ""String Value 1"",
+                        ""DateColumn"": ""2020-01-26T00:00:00"",
+                        ""BoolColumn"": true,
+                        ""NullableBoolColumn"": null,
+                        ""NullableDateColumn"": null
+                    },
+                    {
+                        ""Id"": 2,
+                        ""StringColumn"": ""String Value 2"",
+                        ""DateColumn"": ""2020-01-27T00:00:00"",
+                        ""BoolColumn"": false,
+                        ""NullableBoolColumn"": true,
+                        ""NullableDateColumn"": ""2020-01-19T00:00:00""
+                    }
+                ]
+            }";
         }
 
         private Blog GivenThisBlog()
