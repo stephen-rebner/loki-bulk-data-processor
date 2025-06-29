@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Loki.BulkDataProcessor.DataReaders
 {
@@ -14,52 +16,71 @@ namespace Loki.BulkDataProcessor.DataReaders
         private JsonElement.ArrayEnumerator _dataEnumerator;
         private JsonElement _currentRow;
         private bool _isOpen = true;
-    
+        private readonly ILogger<JsonDataReader> _logger;
+
         public string TableName { get; }
         
-        public JsonDataReader(Stream jsonStream)
+        public JsonDataReader(Stream jsonStream, ILogger<JsonDataReader> logger = null)
         {
             ArgumentNullException.ThrowIfNull(jsonStream);
+            _logger = logger ?? NullLogger<JsonDataReader>.Instance;
+            
+            _logger.LogInformation("Initializing JsonDataReader from stream");
 
             try
             {
                 _jsonDocument = JsonDocument.Parse(jsonStream);
-                
-                // Validate the JSON schema
+
                 JsonSchemaValidator.ValidateJsonSchema(_jsonDocument);
-                
+                _logger.LogInformation("JSON schema validated successfully");
+
                 var root = _jsonDocument.RootElement;
-    
-                // Extract table name
+
                 TableName = root.GetProperty(JsonSchemaConstants.TableName).GetString();
-    
-                // Extract column names and types
+                _logger.LogInformation("Reading data for table {TableName}", TableName);
+
                 var columnsElement = root.GetProperty(JsonSchemaConstants.Columns);
                 foreach (var column in columnsElement.EnumerateArray())
                 {
                     var columnName = column.GetProperty(JsonSchemaConstants.ColumnName).GetString();
                     var columnType = column.GetProperty(JsonSchemaConstants.ColumnType).GetString();
-                    
+
                     _columnNames.Add(columnName);
-                    _columnTypes[columnName] = columnType;
+                    _columnTypes[columnName!] = columnType;
                 }
-    
-                // Get enumerator for data rows
+
                 _dataEnumerator = root.GetProperty(JsonSchemaConstants.Data).EnumerateArray();
             }
             catch (JsonException ex)
             {
+                _logger.LogError(ex, "Invalid JSON format encountered during JsonDataReader initialization");
                 throw new InvalidDataException("Invalid JSON format. Expected schema with 'tableName', 'columns' with name/type properties, and 'data'.", ex);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing JsonDataReader");
+                throw;
+            }
         }
-    
+   
         public bool Read()
         {
-            if (!_dataEnumerator.MoveNext()) return false;
-            
-            _currentRow = _dataEnumerator.Current;
-            
-            return true;
+            try
+            {
+                if (!_dataEnumerator.MoveNext())
+                {
+                    _logger.LogInformation("Reached end of data rows in JsonDataReader");
+                    return false;
+                }
+
+                _currentRow = _dataEnumerator.Current;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading next row in JsonDataReader");
+                throw;
+            }
         }
     
         public int FieldCount => _columnNames.Count;
@@ -144,12 +165,14 @@ namespace Loki.BulkDataProcessor.DataReaders
     
         public void Close()
         {
+            _logger.LogInformation("Closing JsonDataReader");
             _isOpen = false;
             _jsonDocument?.Dispose();
         }
     
         public void Dispose()
         {
+            _logger.LogInformation("Disposing JsonDataReader");
             Close();
         }
     
@@ -174,7 +197,6 @@ namespace Loki.BulkDataProcessor.DataReaders
         public long GetInt64(int i) => Convert.ToInt64(GetValue(i));
         public string GetString(int i) => Convert.ToString(GetValue(i));
     
-        // Remaining required methods with minimal implementations
         public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferOffset, int length) => 0;
         public long GetChars(int i, long fieldOffset, char[] buffer, int bufferOffset, int length) => 0;
         public IDataReader GetData(int i) => throw new NotImplementedException();
