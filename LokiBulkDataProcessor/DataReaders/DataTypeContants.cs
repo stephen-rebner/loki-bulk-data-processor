@@ -1,4 +1,4 @@
-﻿// Create a new file: LokiBulkDataProcessor/DataReaders/DataTypeConstants.cs
+﻿// File renamed to match the class name: LokiBulkDataProcessor/DataReaders/DataTypeConstants.cs
 namespace Loki.BulkDataProcessor.DataReaders
 {
     internal static class DataTypeConstants
