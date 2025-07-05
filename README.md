@@ -3,7 +3,7 @@ The Loki Bulk Data Processor is fast and simple Asp.Net Core library which proce
 
 The package can be downloaded on Nuget by running the following command:
 
-**Install-Package LokiBulkDataProcessor -Version 3.0.0**
+**Install-Package LokiBulkDataProcessor -Version 5.5.0**
 
 Or by searching for "**Loki Bulk Data Processor**" in the "**Manage Nuget Packages for Solution**" window.
 
