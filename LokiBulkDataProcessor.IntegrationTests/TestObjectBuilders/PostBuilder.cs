@@ -11,9 +11,20 @@ namespace LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders
         {
              _post = new Post
              {
-                Title = postDto.TitleB,
+                Title = postDto.ATitle,
                 Content = postDto.ContentA
              };
+            return this;
+        }
+        
+        public PostBuilder BuildFromPostDtoWithNoMapping(PostDtoWithNoMapping postDto)
+        {
+            _post = new Post
+            {
+                Title = postDto.Title,
+                Content = postDto.Content,
+                BlogId = postDto.BlogId
+            };
             return this;
         }
 

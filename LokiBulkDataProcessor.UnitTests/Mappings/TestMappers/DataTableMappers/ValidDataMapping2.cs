@@ -2,11 +2,11 @@
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class ValidDataTableMapping2 : DataTableMapping
+    public class ValidDataMapping2 : DataMapping
     {
         public override string SourceTableName => "TableB";
 
-        public ValidDataTableMapping2()
+        public ValidDataMapping2()
         {
             Map("BaseInt").ToDestinationColumn("base_int");
             Map("AnotherColumn").ToDestinationColumn("another_column");

@@ -17,8 +17,8 @@ namespace Loki.BulkDataProcessor.Context.Interfaces
 
         public IModelMappingCollection ModelMappingCollection { get; }
 
-        IDataTableMappingCollection DataTableMappingCollection { get; }
-
+        IDataMappingCollection DataMappingCollection { get; }
+        
         void SetConnectionString(string connectionString);
 
         void SetBatchSize(int batchSize);

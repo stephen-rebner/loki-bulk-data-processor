@@ -12,9 +12,12 @@
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>loki bulk data processor sql bulk copy stephen rebner</PackageTags>
-    <Version>5.0.1</Version>
+    <Version>5.5.0</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageReleaseNotes>Upgraded to Dotnet 8.</PackageReleaseNotes>
+    <PackageReleaseNotes>
+		1. Added new SaveAsync methods to support IDataReaders and JsonStreams. 
+		2. Added structured logging.
+	</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
@@ -25,6 +28,8 @@
   <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="Testcontainers.MsSql" Version="4.1.0" />
   </ItemGroup>

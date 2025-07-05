@@ -133,7 +133,7 @@ namespace LokiBulkDataProcessor.UnitTests
         [Test]
         public void SaveAsync_ShouldThrow_IfDataTableIsNull()
         {
-            Func<Task> action = async () => await _bulkProcessor.SaveAsync(null, TestDestinationTableName);
+            Func<Task> action = async () => await _bulkProcessor.SaveAsync(dataTable: null, TestDestinationTableName);
 
             action.Should()
               .ThrowAsync<ArgumentException>()

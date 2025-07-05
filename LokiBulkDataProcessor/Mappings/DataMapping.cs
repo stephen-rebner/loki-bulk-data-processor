@@ -3,23 +3,23 @@ using Loki.BulkDataProcessor.Mappings.MappingLogic;
 
 namespace Loki.BulkDataProcessor.Mappings
 {
-    public abstract class DataTableMapping : AbstractMapping, IMapDataTableSource
+    public abstract class DataMapping : AbstractMapping, IMapDataTableSource
     {
         public abstract string SourceTableName { get; }
 
-        public DataTableMapping()
+        public DataMapping()
         {
-            MappingInfo = new DataTableMappingInfo(SourceTableName);
+            MappingInfo = new DataMappingInfo(SourceTableName);
         }
 
         /// <summary>
-        /// Determines the data table column to map as the source
+        /// Determines the data column to map as the source
         /// </summary>
         /// <param name="sourceColumn"></param>
         /// <returns></returns>
         public IToDestination Map(string sourceColumn)
         {
-            var mappingInfo = (DataTableMappingInfo)MappingInfo;
+            var mappingInfo = (DataMappingInfo)MappingInfo;
 
             mappingInfo.Map(sourceColumn);
 

@@ -19,7 +19,9 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             _appContext = appContext;
 
-            _sqlBulkCopy = new SqlBulkCopy(sqlConnection, SqlBulkCopyOptions.CheckConstraints, transaction)
+            const SqlBulkCopyOptions sqlOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.KeepNulls;
+            
+            _sqlBulkCopy = new SqlBulkCopy(sqlConnection, sqlOptions, transaction)
             {
                 BatchSize = _appContext.BatchSize,
                 BulkCopyTimeout = _appContext.Timeout
@@ -34,6 +36,19 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
                 await _sqlBulkCopy.WriteToServerAsync(dataToCopy);
             }
             catch(Exception e)
+            {
+                ThrowInvalidOperationException(e.Message);
+            }
+        }
+
+        public async Task WriteToServerAsync(IDataReader dataReader, string tableName)
+        {
+            try
+            {
+                _sqlBulkCopy.DestinationTableName = tableName;
+                await _sqlBulkCopy.WriteToServerAsync(dataReader);
+            }
+            catch (Exception e)
             {
                 ThrowInvalidOperationException(e.Message);
             }
@@ -77,7 +92,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             foreach (var mappingMetaData in mapping.MappingInfo.MappingMetaDataCollection)
             {
-                _sqlBulkCopy.ColumnMappings.Add(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn);
+                _sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn));
             }
         }
 

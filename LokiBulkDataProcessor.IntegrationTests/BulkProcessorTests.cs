@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System;
+using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
@@ -7,8 +8,10 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using FastMember;
 
 namespace LokiBulkDataProcessor.IntegrationTests
 {
@@ -150,8 +153,8 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_ShouldSavePostsSuccessfully_WhenCommitingExternalTransaction()
         {
-            using var sqlConnection = WhenUsingAnExternalSqlConnection();
-            using var transaction = sqlConnection.BeginTransaction();
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
 
             var blog = GivenThisBlog();
 
@@ -171,7 +174,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task SaveAsync_ShouldNotSavePosts_WhenRollingBackExternalTransaction()
         {
-            using var sqlConnection = WhenUsingAnExternalSqlConnection();
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
             using var transaction = sqlConnection.BeginTransaction();
 
             var blog = GivenThisBlog();
@@ -187,6 +190,322 @@ namespace LokiBulkDataProcessor.IntegrationTests
             await TheDatabaseTableShouldBeEmpty<Post>();
         }
 
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingAMapping()
+        {
+            // arrange
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(postDtos, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingNotAMapping()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            var blog = GivenThisBlog();
+            
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+            
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(posts, columnNames);
+            
+            // act
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingAMappingAndATransaction()
+        {
+            // arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            AndTheTransactionIsCommited(transaction);
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(postDtos, blog);
+            
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldNotSavePosts_WhenTheTransactionIsRolledBack()
+        {
+            // arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+            
+            var postDtos = AndGivenThesePostDtosAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "ATitle",
+                "ContentA",
+                "ABlogId"
+            };
+
+            // create a data reader from the post dtos
+            using var reader = ObjectReader.Create(postDtos, columnNames);
+            
+            // act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            AndTheTransactionIsRolledBack(transaction);
+            
+            // assert
+            await TheDatabaseTableShouldBeEmpty<Post>();
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldBulkCopyFromDataReader_WhenUsingNotAMappingAndUsingATransaction()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+
+            // act
+            using var reader = ObjectReader.Create(posts, columnNames);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            await transaction.CommitAsync();
+            
+            // assert
+            var expectedPosts = ThesePostsWithThisBlog(posts, blog);
+
+            await ShouldExistInTheDatabase(expectedPosts);
+        }
+        
+        [Test]
+        public async Task SaveAsync_NotSavePosts_WhenTheTransactionIsRolledBack()
+        {
+            // arrange
+            CreateLokiBulkDataProcessorWithNoMappings();
+            
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var blog = GivenThisBlog();
+
+            var posts = AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(blog.Id);
+
+            var columnNames = new[]
+            {
+                "Title",
+                "Content",
+                "BlogId"
+            };
+
+            // act
+            using var reader = ObjectReader.Create(posts, columnNames);
+
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+
+            await WhenSaveAsyncIsCalled(reader, nameof(TestDbContext.Posts));
+            
+            await transaction.RollbackAsync();
+            
+            // assert
+            await TheDatabaseTableShouldBeEmpty<Post>();
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldSaveJsonStreamSuccessfully_WhenJsonFollowsSchema()
+        {
+            // Arrange
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            var expectedModel1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+        
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
+                .Build();
+                
+            var expectedResults = new List<TestDbModel> { expectedModel1, expectedModel2 };
+            
+            // Act
+            await BulkProcessor.SaveAsync(jsonStream);
+            
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().BeEquivalentTo(expectedResults);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldSaveJsonStreamSuccessfully_WhenCommitingExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            // Act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(jsonStream);
+            AndTheTransactionIsCommited(transaction);
+            
+            // Assert
+            var expectedModel1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("String Value 1")
+                .WithDateColumnValue(new DateTime(2020, 01, 26))
+                .WithBoolColumnValue(true)
+                .WithNullableBoolColumnValue(null)
+                .WithNullableDateColumnValue(null)
+                .Build();
+        
+            var expectedModel2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("String Value 2")
+                .WithDateColumnValue(new DateTime(2020, 01, 27))
+                .WithBoolColumnValue(false)
+                .WithNullableBoolColumnValue(true)
+                .WithNullableDateColumnValue(new DateTime(2020, 01, 19))
+                .Build();
+                
+            var expectedResults = new List<TestDbModel> { expectedModel1, expectedModel2 };
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().BeEquivalentTo(expectedResults);
+        }
+        
+        [Test]
+        public async Task SaveAsync_ShouldNotSaveData_WhenRollingBackExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var jsonContent = CreateTestDbModelJson();
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent));
+            
+            // Act
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(jsonStream);
+            AndTheTransactionIsRolledBack(transaction);
+            
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
+        }
+        
+        private string CreateTestDbModelJson()
+        {
+            return @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 1,
+                        ""StringColumn"": ""String Value 1"",
+                        ""DateColumn"": ""2020-01-26T00:00:00"",
+                        ""BoolColumn"": true,
+                        ""NullableBoolColumn"": null,
+                        ""NullableDateColumn"": null
+                    },
+                    {
+                        ""Id"": 2,
+                        ""StringColumn"": ""String Value 2"",
+                        ""DateColumn"": ""2020-01-27T00:00:00"",
+                        ""BoolColumn"": false,
+                        ""NullableBoolColumn"": true,
+                        ""NullableDateColumn"": ""2020-01-19T00:00:00""
+                    }
+                ]
+            }";
+        }
+
         private Blog GivenThisBlog()
         {
             var blog = TestObjectFactory.NewBlog()
@@ -197,7 +516,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             return blog;
         }
-
+        
         private PostDto[] AndGivenThesePostDtosAssociatedToBlogId(int blogId)
         {
             var post1 = TestObjectFactory.NewPostDto()
@@ -213,6 +532,23 @@ namespace LokiBulkDataProcessor.IntegrationTests
                 .Build();
 
             return new PostDto[] { post1, post2 };
+        }
+        
+        private PostDtoWithNoMapping[] AndGivenThesePostDtosWithNoMappingsAssociatedToBlogId(int blogId)
+        {
+            var post1 = new PostDtoWithNoMappingBuilder()
+                .WithTitle("Post1")
+                .WithContent("Post 1 content")
+                .WithBlogId(blogId)
+                .Build();
+
+            var post2 = new PostDtoWithNoMappingBuilder()
+                .WithTitle("Post2")
+                .WithContent("Post 2 content")
+                .WithBlogId(blogId)
+                .Build();
+
+            return [post1, post2];
         }
 
         private Post[] AndGivenThesePostsAssociatedToTheBlog(Blog blog)
@@ -232,10 +568,10 @@ namespace LokiBulkDataProcessor.IntegrationTests
             return new Post[] { post1, post2 };
         }
 
-        private SqlConnection WhenUsingAnExternalSqlConnection()
+        private async Task<SqlConnection> WhenUsingAnExternalSqlConnection()
         {
             var sqlConnection = new SqlConnection(base.GetConnectionString());
-            sqlConnection.Open();
+            await sqlConnection.OpenAsync();
 
             return sqlConnection;
         }
@@ -264,6 +600,11 @@ namespace LokiBulkDataProcessor.IntegrationTests
         {
             await BulkProcessor.SaveAsync(dataToCopy, tableName);
         }
+        
+        private async Task WhenSaveAsyncIsCalled(IDataReader dataReader, string tableName)
+        {
+            await BulkProcessor.SaveAsync(dataReader, tableName);
+        }
 
         private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<PostDto> postDtos, Blog blog)
         {
@@ -275,6 +616,28 @@ namespace LokiBulkDataProcessor.IntegrationTests
             {
                 var newPost = TestObjectFactory.NewPost()
                 .BuildFromPostDto(postDto)
+                .WithBlog(blog)
+                .WithId(currentPostId)
+                .Build();
+
+                posts.Add(newPost);
+
+                currentPostId += 1;
+            }
+
+            return posts;
+        }
+
+        private IEnumerable<Post> ThesePostsWithThisBlog(IEnumerable<PostDtoWithNoMapping> postDtos, Blog blog)
+        {
+            var posts = new List<Post>();
+
+            var currentPostId = TestDbContext.Posts.Min(post => post.Id);
+
+            foreach (var postDto in postDtos)
+            {
+                var newPost = TestObjectFactory.NewPost()
+                .BuildFromPostDtoWithNoMapping(postDto)
                 .WithBlog(blog)
                 .WithId(currentPostId)
                 .Build();

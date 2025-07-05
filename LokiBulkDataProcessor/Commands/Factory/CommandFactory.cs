@@ -1,27 +1,37 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
+using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Loki.BulkDataProcessor.Commands.Factory
 {
-    internal class CommandFactory : ICommandFactory
+    internal class CommandFactory(
+        IAppContext appContext,
+        ILokiDbConnection dbConnection,
+        ILoggerFactory loggerFactory) : ICommandFactory
     {
-        private readonly IServiceProvider _serviceProvider;
-
-        public CommandFactory(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
-
         public IBulkModelsCommand NewBulkCopyModelsCommand()
         {
-            return _serviceProvider.GetService<IBulkModelsCommand>();
+            return new BulkCopyModelsCommand(
+                appContext, 
+                dbConnection,
+                loggerFactory.CreateLogger<BulkCopyModelsCommand>());
         }
 
         public IBulkDataTableCommand NewBulkCopyDataTableCommand()
         {
-            return _serviceProvider.GetService<IBulkDataTableCommand>();
+            return new BulkCopyDataTableCommand(
+                appContext, 
+                dbConnection,
+                loggerFactory.CreateLogger<BulkCopyDataTableCommand>());
+        }
+
+        public IBulkCopyFromDataReaderCommand NewBulkCopyDataReaderCommand()
+        {
+            return new BulkCopyFromDataReaderCommand(
+                appContext, 
+                dbConnection,
+                loggerFactory.CreateLogger<BulkCopyFromDataReaderCommand>());
         }
     }
 }

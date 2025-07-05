@@ -21,13 +21,13 @@ namespace Loki.BulkDataProcessor.Context
 
         public IModelMappingCollection ModelMappingCollection { get; }
 
-        public IDataTableMappingCollection DataTableMappingCollection { get; }
+        public IDataMappingCollection DataMappingCollection { get; }
 
-        public AppContext(string connectionString, IModelMappingCollection mappingCollection, IDataTableMappingCollection dataTableMappingCollection)
+        public AppContext(string connectionString, IModelMappingCollection mappingCollection, IDataMappingCollection dataMappingCollection)
         {
             ConnectionString = connectionString;
             ModelMappingCollection = mappingCollection;
-            DataTableMappingCollection = dataTableMappingCollection;
+            DataMappingCollection = dataMappingCollection;
             BatchSize = DefaultConfigValues.BatchSize;
             Timeout = DefaultConfigValues.Timeout;
         }

@@ -7,7 +7,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Mappings
     {
         public PostDtoMapping()
         {
-            Map(dto => dto.TitleB).ToDestinationColumn("Title");
+            Map(dto => dto.ATitle).ToDestinationColumn("Title");
             Map(dto => dto.ContentA).ToDestinationColumn("Content");
             Map(dto => dto.ABlogId).ToDestinationColumn("BlogId");
         }

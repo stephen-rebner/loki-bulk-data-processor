@@ -2,17 +2,16 @@
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers
 {
-    public class DataTableMappingWithDuplicateSourceColumn : DataTableMapping
+    public class ValidDataMapping1 : DataMapping
     {
-        public override string SourceTableName => "DataTableMappingWithEmptyDestCol";
+        public override string SourceTableName => "ValidDataMapping1";
 
-        public DataTableMappingWithDuplicateSourceColumn()
+        public ValidDataMapping1()
         {
             Map("PublicInt").ToDestinationColumn("public_int");
             Map("PublicBool").ToDestinationColumn("public_bool");
             Map("BaseInt").ToDestinationColumn("base_int");
             Map("PublicString").ToDestinationColumn("public_string");
-            Map("PublicString").ToDestinationColumn("adsf");
         }
     }
 }
