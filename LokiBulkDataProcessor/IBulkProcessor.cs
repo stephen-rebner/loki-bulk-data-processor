@@ -12,6 +12,8 @@ namespace Loki.BulkDataProcessor
         int BatchSize { get; set;}
 
         IDbTransaction Transaction { get; set; }
+        
+        string ConnectionString { get; set; }
 
         IBulkProcessor WithConnectionString(string connectionString);
 

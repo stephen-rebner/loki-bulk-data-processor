@@ -25,7 +25,6 @@ namespace Loki.BulkDataProcessor
             set
             {
                 value.ThrowIfNullOrEmptyString(nameof(ConnectionString));
-                _logger.LogInformation("Setting ConnectionString from '{OldValue}' to '{NewValue}'", _appContext.ConnectionString, value);
                 _appContext.SetConnectionString(value);
             }
         }
@@ -153,7 +152,7 @@ namespace Loki.BulkDataProcessor
             try
             {
                 using var dataReader = new JsonDataReader(jsonStream);
-                string destinationTableName = dataReader.TableName;
+                var destinationTableName = dataReader.TableName;
             
                 _logger.LogInformation("Extracted table name {TableName} from JSON stream", destinationTableName);
                 destinationTableName.ThrowIfNullOrEmptyString(nameof(destinationTableName));
