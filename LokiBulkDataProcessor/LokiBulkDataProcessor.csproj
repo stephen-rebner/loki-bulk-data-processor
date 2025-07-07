@@ -58,8 +58,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>true</Pack>
-    </None>
+   <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
