@@ -7,18 +7,31 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Loki Bulk Data Processor</Title>
     <Authors>Stephen Rebner</Authors>
-    <Description>The Loki Bulk Data Processor is an Asp.Net Core library which enables the fast bulk processing of data. It uses the SQL Bulk Copy class under the hood, and can process data model collections or data tables. There is a tutorial available on the Loki Software YouTube channel: https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists</Description>
+    <Summary>
+      Ultra-fast bulk insert library for .NET. Supports models, DataTables, IDataReaders, JSON, logging, and mapping.
+    </Summary>
+    <Description>
+      The Loki Bulk Data Processor is a high-performance .NET library for fast, scalable bulk data ingestion using SQL Server's Bulk Copy engine. Built for ASP.NET Core, it supports saving from model collections, DataTables, IDataReaders, and JSON streams — making it ideal for ETL workflows and real-time processing. Includes built-in mapping support, structured logging (v5.5+), and flexible dependency injection configuration.
+      For tutorials and demos, visit the Loki Software YouTube channel: https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists
+    </Description>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists</PackageProjectUrl>
     <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
-    <PackageTags>loki bulk data processor sql bulk copy stephen rebner</PackageTags>
-    <Version>5.5.0</Version>
+    <PackageTags>
+      loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
+    </PackageTags>
+    <Version>6.0.0</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageReleaseNotes>
-		1. Added new SaveAsync methods to support IDataReaders and JsonStreams. 
-		2. Added structured logging.
-	</PackageReleaseNotes>
+    <PackageReleaseNotes><![CDATA[
+        1. Added new SaveAsync methods to support IDataReaders and JsonStreams.
+        2. Added structured logging.
+        
+        Breaking change: Renamed DataTableMapping class to DataMapping.
+        ]]>
+    </PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repository\**" />
@@ -42,6 +55,11 @@
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>true</Pack>
     </None>
   </ItemGroup>
 </Project>
