@@ -1,5 +1,5 @@
 > ⚠️ **Important Notice (v6.0.0)**  
-> This release includes **breaking changes**, specifically the rename of the `DataTableMapping` class to `DataMapping`.  
+> This release includes **breaking changes**; specifically the rename of the `DataTableMapping` class to `DataMapping`.  
 
 
 # ⚡ Loki Bulk Data Processor
