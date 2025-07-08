@@ -1,3 +1,7 @@
+> ⚠️ **Important Notice (v6.0.0)**  
+> This release includes **breaking changes**, specifically the rename of the `DataTableMapping` class to `DataMapping`.  
+
+
 # ⚡ Loki Bulk Data Processor
 
 The Loki Bulk Data Processor is a fast, efficient .NET library for bulk data inserts into SQL Server using `SqlBulkCopy`. Designed for ASP.NET Core, it supports:
