@@ -62,12 +62,12 @@ namespace Loki.BulkDataProcessor.DependancyInjection
                 new LokiDbConnection(provider.GetRequiredService<IAppContext>()));
 
             // Register command implementations
-            services.AddTransient<IBulkModelsCommand, BulkCopyModelsCommand>();
-            services.AddTransient<IBulkDataTableCommand, BulkCopyDataTableCommand>();
-            services.AddTransient<IBulkCopyFromDataReaderCommand, BulkCopyFromDataReaderCommand>();
+            services.AddScoped<IBulkModelsCommand, BulkCopyModelsCommand>();
+            services.AddScoped<IBulkDataTableCommand, BulkCopyDataTableCommand>();
+            services.AddScoped<IBulkCopyFromDataReaderCommand, BulkCopyFromDataReaderCommand>();
 
             // Register the command factory with logger support
-            services.AddSingleton<ICommandFactory, CommandFactory>(provider =>
+            services.AddScoped<ICommandFactory, CommandFactory>(provider =>
                 new CommandFactory(
                     provider.GetRequiredService<IAppContext>(),
                     provider.GetRequiredService<ILokiDbConnection>(),

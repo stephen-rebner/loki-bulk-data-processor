@@ -13,24 +13,21 @@ namespace Loki.BulkDataProcessor.Commands.Factory
         public IBulkModelsCommand NewBulkCopyModelsCommand()
         {
             return new BulkCopyModelsCommand(
-                appContext, 
-                dbConnection,
+                appContext,
                 loggerFactory.CreateLogger<BulkCopyModelsCommand>());
         }
 
         public IBulkDataTableCommand NewBulkCopyDataTableCommand()
         {
             return new BulkCopyDataTableCommand(
-                appContext, 
-                dbConnection,
+                appContext,
                 loggerFactory.CreateLogger<BulkCopyDataTableCommand>());
         }
 
         public IBulkCopyFromDataReaderCommand NewBulkCopyDataReaderCommand()
         {
             return new BulkCopyFromDataReaderCommand(
-                appContext, 
-                dbConnection,
+                appContext,
                 loggerFactory.CreateLogger<BulkCopyFromDataReaderCommand>());
         }
     }

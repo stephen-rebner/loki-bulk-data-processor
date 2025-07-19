@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor.Context.Interfaces;
+﻿using System;
+using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data;
 using System.Data.SqlClient;
@@ -104,7 +105,18 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
             SqlConnection.Open();
         }
 
-        public void Init()
+        public static ILokiDbConnection Create(IAppContext appContext)
+        {
+            ArgumentNullException.ThrowIfNull(appContext);
+            
+            var lokiDbConnection = new LokiDbConnection(appContext);
+            
+            lokiDbConnection.Init();
+            
+            return lokiDbConnection;
+        }
+
+        private void Init()
         {
             if(_appContext.IsUsingExternalTransaction)
             {
