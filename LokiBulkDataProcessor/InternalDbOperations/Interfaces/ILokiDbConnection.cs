@@ -12,7 +12,5 @@ namespace Loki.BulkDataProcessor.InternalDbOperations.Interfaces
         IDbCommand CreateCommand(string commandText, SqlTransaction transaction);
 
         void DisposeIfUsingInternalTransaction();
-
-        void Init();
     }
 }

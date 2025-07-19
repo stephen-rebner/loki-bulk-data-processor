@@ -8,10 +8,13 @@
     <Title>Loki Bulk Data Processor</Title>
     <Authors>Stephen Rebner</Authors>
     <Summary>
-      Ultra-fast bulk insert library for .NET. Supports models, DataTables, IDataReaders, JSON, logging, and mapping.
+      Ultra-fast bulk insert library for .NET with Web API-safe multi-execution support. Handles models, DataTables, IDataReaders, JSON, logging, and mapping.
     </Summary>
     <Description>
-      The Loki Bulk Data Processor is a high-performance .NET library for fast, scalable bulk data ingestion using SQL Server's Bulk Copy engine. Built for ASP.NET Core, it supports saving from model collections, DataTables, IDataReaders, and JSON streams — making it ideal for ETL workflows and real-time processing. Includes built-in mapping support, structured logging (v5.5+), and flexible dependency injection configuration.
+      Loki Bulk Data Processor is a high-performance .NET library for fast, scalable bulk data ingestion using SQL Server's Bulk Copy engine.
+      Now safe for repeated execution in ASP.NET Core Web APIs (v7.0+). Supports saving from model collections, DataTables, IDataReaders, and JSON streams.
+      Ideal for ETL workflows, demo environments, and real-time processing. Includes mapping, structured logging (v6+), and flexible dependency injection.
+
       For tutorials and demos, visit the Loki Software YouTube channel: https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists
     </Description>
     <PackageIcon>icon.png</PackageIcon>
@@ -21,15 +24,22 @@
     <PackageTags>
       loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
     </PackageTags>
-    <Version>6.0.0</Version>
+    <Version>7.0.0</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReleaseNotes><![CDATA[
-        1. Added new SaveAsync methods to support IDataReaders and JsonStreams.
-        2. Added structured logging.
-        
-        Breaking change: Renamed DataTableMapping class to DataMapping.
-        ]]>
-    </PackageReleaseNotes>
+  ⚠️ Critical Bug Fix: LokiBulkDataProcessor is now safe for consecutive executions in ASP.NET Core Web APIs. 
+  Previously, only the first execution succeeded unless the app was restarted. Thanks to new internal handling, this limitation is resolved.
+
+  🆕 Improvements:
+  - SaveAsync methods for IDataReaders and JsonStreams
+  - Structured logging for better observability
+
+  🔧 Breaking Change:
+  - Renamed DataTableMapping to DataMapping
+
+  This update represents a major reliability milestone. If you rely on Web API scenarios, upgrade as soon as possible.
+]]></PackageReleaseNotes>
+
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>

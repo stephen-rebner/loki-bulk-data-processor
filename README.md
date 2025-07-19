@@ -1,8 +1,10 @@
-> ⚠️ **Important Notice (v6.0.0)**  
-> This release includes **breaking changes**; specifically the rename of the `DataTableMapping` class to `DataMapping`.  
+> ⚠️ **Important Notice (v7.0.0)**  
+> This release includes a **critical bug fix** for Web API environments.  
+> Previous versions (≤ 6.x) failed after the first execution unless the app was restarted.  
+> Please upgrade to v7.0.0+ for reliable multi-execution support.
 
 
-# ⚡ Loki Bulk Data Processor
+# Loki Bulk Data Processor
 
 The Loki Bulk Data Processor is a fast, efficient .NET library for bulk data inserts into SQL Server using `SqlBulkCopy`. Designed for ASP.NET Core, it supports:
 
@@ -16,13 +18,13 @@ Perfect for high-throughput ETL pipelines and real-time ingestion scenarios.
 
 ---
 
-## 🚀 Install
+## Install
 
 ```bash
-dotnet add package LokiBulkDataProcessor
+  dotnet add package LokiBulkDataProcessor
 ```
 
-## ⚡ Performance
+## Performance
 
 Benchmark: 100,000 records inserted into an empty SQL Server table with 4 columns (1 primary key, 1 foreign key), on a 2.7GHz i7, 16 GB RAM, SSD.
 
@@ -35,7 +37,14 @@ Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 
 > ⚠️ Entity Framework was used with `AddAsync` and `SaveChangesAsync`. Loki used a single bulk insert call.
 
-## 📚 Documentation
+## Upgrade Guide
+
+| From Version | What Changed                                      | Action Required         |
+|--------------|--------------------------------------------------|--------------------------|
+| ≤ 6.0.0      | Web API execution failed after the first request | **Upgrade to v7.0.0+** ✅ |
+| 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
+
+## Documentation
 
 Everything you need to get started:
 
@@ -44,7 +53,7 @@ Everything you need to get started:
 - 📺 [YouTube Tutorial – Part 2](https://youtu.be/2ABIrl_nwMk) — Advanced Usage & Mapping
 - 🧪 [Example Projects on GitHub](https://github.com/stephen-rebner/loki-bulk-data-processor-examples)
 
-## 💖 Support
+## Support
 
 If this library saved you time or made your life easier, consider showing your support:
 
@@ -52,5 +61,5 @@ If this library saved you time or made your life easier, consider showing your s
 - ⭐ Star the [GitHub repo](https://github.com/stephen-rebner/loki-bulk-data-processor) to help others discover it
 - 🗣️ Share your experience or contribute feedback via [issues](https://github.com/stephen-rebner/loki-bulk-data-processor/issues)
 
-Every bit helps keep the project going 🚀
+Every bit helps keep the project going.
 

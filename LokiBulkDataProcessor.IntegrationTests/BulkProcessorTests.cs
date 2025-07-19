@@ -473,6 +473,335 @@ namespace LokiBulkDataProcessor.IntegrationTests
             await TheDatabaseTableShouldBeEmpty<TestDbModel>();
         }
         
+        [Test]
+        public async Task WebApiScenario_MultipleSaveOperations_WithinSingleScope()
+        {
+            var model1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("API Test 1")
+                .Build();
+    
+            var model2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("API Test 2")
+                .Build();
+    
+            // Act - Perform multiple operations in the same "request"
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model1 }, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model2 }, nameof(TestDbContext.TestDbModels));
+    
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Test 1");
+            results[1].StringColumn.Should().Be("API Test 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataTableSaves_WithinSingleScope()
+        {
+            // Arrange
+            using var dataTable1 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(1, "API DataTable 1", true, new DateTime(2020, 01, 26), null, null)
+                .Build();
+            
+            using var dataTable2 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(2, "API DataTable 2", false, new DateTime(2020, 01, 27), true, new DateTime(2020, 01, 19))
+                .Build();
+        
+            // Act - Perform multiple operations in the same "request"
+            await BulkProcessor.SaveAsync(dataTable1, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(dataTable2, nameof(TestDbContext.TestDbModels));
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API DataTable 1");
+            results[1].StringColumn.Should().Be("API DataTable 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataReaderSaves_WithinSingleScope()
+        {
+            // Arrange
+            var models1 = new[] 
+            {
+                new { Id = 1, StringColumn = "API Reader 1", DateColumn = new DateTime(2020, 01, 26), 
+                      BoolColumn = true, NullableBoolColumn = (bool?)null, NullableDateColumn = (DateTime?)null }
+            };
+            
+            var models2 = new[] 
+            {
+                new { Id = 2, StringColumn = "API Reader 2", DateColumn = new DateTime(2020, 01, 27), 
+                      BoolColumn = false, NullableBoolColumn = true, NullableDateColumn = new DateTime(2020, 01, 19) }
+            };
+        
+            var columnNames = new[] 
+            {
+                "Id", "StringColumn", "DateColumn", "BoolColumn", "NullableBoolColumn", "NullableDateColumn"
+            };
+        
+            // Act - Perform multiple operations in the same "request"
+            using (var reader1 = ObjectReader.Create(models1, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader1, nameof(TestDbContext.TestDbModels));
+            }
+            
+            using (var reader2 = ObjectReader.Create(models2, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader2, nameof(TestDbContext.TestDbModels));
+            }
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Reader 1");
+            results[1].StringColumn.Should().Be("API Reader 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleJsonStreamSaves_WithinSingleScope()
+        {
+            // Arrange
+            var jsonContent1 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 1,
+                        ""StringColumn"": ""API Stream 1"",
+                        ""DateColumn"": ""2020-01-26T00:00:00"",
+                        ""BoolColumn"": true,
+                        ""NullableBoolColumn"": null,
+                        ""NullableDateColumn"": null
+                    }
+                ]
+            }";
+        
+            var jsonContent2 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 2,
+                        ""StringColumn"": ""API Stream 2"",
+                        ""DateColumn"": ""2020-01-27T00:00:00"",
+                        ""BoolColumn"": false,
+                        ""NullableBoolColumn"": true,
+                        ""NullableDateColumn"": ""2020-01-19T00:00:00""
+                    }
+                ]
+            }";
+        
+            // Act - Perform multiple operations in the same "request"
+            using (var jsonStream1 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent1)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream1);
+            }
+            
+            using (var jsonStream2 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent2)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream2);
+            }
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Stream 1");
+            results[1].StringColumn.Should().Be("API Stream 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleSaveOperations_WithinSingleScope_WithExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+        
+            var model1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("API Transaction Test 1")
+                .Build();
+        
+            var model2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("API Transaction Test 2")
+                .Build();
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model1 }, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model2 }, nameof(TestDbContext.TestDbModels));
+            AndTheTransactionIsCommited(transaction);
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Transaction Test 1");
+            results[1].StringColumn.Should().Be("API Transaction Test 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataTableSaves_WithinSingleScope_WithExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            using var dataTable1 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(1, "API DataTable Tx 1", true, new DateTime(2020, 01, 26), null, null)
+                .Build();
+        
+            using var dataTable2 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(2, "API DataTable Tx 2", false, new DateTime(2020, 01, 27), true, new DateTime(2020, 01, 19))
+                .Build();
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(dataTable1, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(dataTable2, nameof(TestDbContext.TestDbModels));
+            AndTheTransactionIsCommited(transaction);
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API DataTable Tx 1");
+            results[1].StringColumn.Should().Be("API DataTable Tx 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataReaderSaves_WithinSingleScope_WithExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var models1 = new[]
+            {
+                new { Id = 1, StringColumn = "API Reader Tx 1", DateColumn = new DateTime(2020, 01, 26),
+                      BoolColumn = true, NullableBoolColumn = (bool?)null, NullableDateColumn = (DateTime?)null }
+            };
+        
+            var models2 = new[]
+            {
+                new { Id = 2, StringColumn = "API Reader Tx 2", DateColumn = new DateTime(2020, 01, 27),
+                      BoolColumn = false, NullableBoolColumn = true, NullableDateColumn = new DateTime(2020, 01, 19) }
+            };
+        
+            var columnNames = new[]
+            {
+                "Id", "StringColumn", "DateColumn", "BoolColumn", "NullableBoolColumn", "NullableDateColumn"
+            };
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            using (var reader1 = ObjectReader.Create(models1, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader1, nameof(TestDbContext.TestDbModels));
+            }
+        
+            using (var reader2 = ObjectReader.Create(models2, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader2, nameof(TestDbContext.TestDbModels));
+            }
+            
+            AndTheTransactionIsCommited(transaction);
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Reader Tx 1");
+            results[1].StringColumn.Should().Be("API Reader Tx 2");
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleJsonStreamSaves_WithinSingleScope_WithExternalTransaction()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+            
+            var jsonContent1 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 1,
+                        ""StringColumn"": ""API Stream Tx 1"",
+                        ""DateColumn"": ""2020-01-26T00:00:00"",
+                        ""BoolColumn"": true,
+                        ""NullableBoolColumn"": null,
+                        ""NullableDateColumn"": null
+                    }
+                ]
+            }";
+        
+            var jsonContent2 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 2,
+                        ""StringColumn"": ""API Stream Tx 2"",
+                        ""DateColumn"": ""2020-01-27T00:00:00"",
+                        ""BoolColumn"": false,
+                        ""NullableBoolColumn"": true,
+                        ""NullableDateColumn"": ""2020-01-19T00:00:00""
+                    }
+                ]
+            }";
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            
+            using (var jsonStream1 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent1)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream1);
+            }
+        
+            using (var jsonStream2 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent2)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream2);
+            }
+            
+            AndTheTransactionIsCommited(transaction);
+        
+            // Assert
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+            results.Should().HaveCount(2);
+            results[0].StringColumn.Should().Be("API Stream Tx 1");
+            results[1].StringColumn.Should().Be("API Stream Tx 2");
+        }
+        
         private string CreateTestDbModelJson()
         {
             return @"{
@@ -504,6 +833,171 @@ namespace LokiBulkDataProcessor.IntegrationTests
                     }
                 ]
             }";
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleSaveOperations_WithinSingleScope_WithExternalTransaction_WhenRolledBack()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+        
+            var model1 = TestObjectFactory.TestDbModelObject()
+                .WithId(1)
+                .WithStringColumnValue("API Transaction Rollback 1")
+                .Build();
+        
+            var model2 = TestObjectFactory.TestDbModelObject()
+                .WithId(2)
+                .WithStringColumnValue("API Transaction Rollback 2")
+                .Build();
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model1 }, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(new List<TestDbModel> { model2 }, nameof(TestDbContext.TestDbModels));
+            AndTheTransactionIsRolledBack(transaction);
+        
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataTableSaves_WithinSingleScope_WithExternalTransaction_WhenRolledBack()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+        
+            using var dataTable1 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(1, "API DataTable Rollback 1", true, new DateTime(2020, 01, 26), null, null)
+                .Build();
+        
+            using var dataTable2 = TestObjectFactory.NewTestDataTable()
+                .WithRowData(2, "API DataTable Rollback 2", false, new DateTime(2020, 01, 27), true, new DateTime(2020, 01, 19))
+                .Build();
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+            await BulkProcessor.SaveAsync(dataTable1, nameof(TestDbContext.TestDbModels));
+            await BulkProcessor.SaveAsync(dataTable2, nameof(TestDbContext.TestDbModels));
+            AndTheTransactionIsRolledBack(transaction);
+        
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleDataReaderSaves_WithinSingleScope_WithExternalTransaction_WhenRolledBack()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+        
+            var models1 = new[]
+            {
+                new { Id = 1, StringColumn = "API Reader Rollback 1", DateColumn = new DateTime(2020, 01, 26),
+                      BoolColumn = true, NullableBoolColumn = (bool?)null, NullableDateColumn = (DateTime?)null }
+            };
+        
+            var models2 = new[]
+            {
+                new { Id = 2, StringColumn = "API Reader Rollback 2", DateColumn = new DateTime(2020, 01, 27),
+                      BoolColumn = false, NullableBoolColumn = true, NullableDateColumn = new DateTime(2020, 01, 19) }
+            };
+        
+            var columnNames = new[]
+            {
+                "Id", "StringColumn", "DateColumn", "BoolColumn", "NullableBoolColumn", "NullableDateColumn"
+            };
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+        
+            using (var reader1 = ObjectReader.Create(models1, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader1, nameof(TestDbContext.TestDbModels));
+            }
+        
+            using (var reader2 = ObjectReader.Create(models2, columnNames))
+            {
+                await BulkProcessor.SaveAsync(reader2, nameof(TestDbContext.TestDbModels));
+            }
+        
+            AndTheTransactionIsRolledBack(transaction);
+        
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
+        }
+        
+        [Test]
+        public async Task WebApiScenario_MultipleJsonStreamSaves_WithinSingleScope_WithExternalTransaction_WhenRolledBack()
+        {
+            // Arrange
+            using var sqlConnection = await WhenUsingAnExternalSqlConnection();
+            using var transaction = await sqlConnection.BeginTransactionAsync();
+        
+            var jsonContent1 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 1,
+                        ""StringColumn"": ""API Stream Rollback 1"",
+                        ""DateColumn"": ""2020-01-26T00:00:00"",
+                        ""BoolColumn"": true,
+                        ""NullableBoolColumn"": null,
+                        ""NullableDateColumn"": null
+                    }
+                ]
+            }";
+        
+            var jsonContent2 = @"{
+                ""tableName"": ""TestDbModels"",
+                ""columns"": [
+                    { ""name"": ""Id"", ""type"": ""int"" },
+                    { ""name"": ""StringColumn"", ""type"": ""string"" },
+                    { ""name"": ""DateColumn"", ""type"": ""datetime"" },
+                    { ""name"": ""BoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableBoolColumn"", ""type"": ""bool"" },
+                    { ""name"": ""NullableDateColumn"", ""type"": ""datetime"" }
+                ],
+                ""data"": [
+                    {
+                        ""Id"": 2,
+                        ""StringColumn"": ""API Stream Rollback 2"",
+                        ""DateColumn"": ""2020-01-27T00:00:00"",
+                        ""BoolColumn"": false,
+                        ""NullableBoolColumn"": true,
+                        ""NullableDateColumn"": ""2020-01-19T00:00:00""
+                    }
+                ]
+            }";
+        
+            // Act - Set up external transaction and perform multiple operations
+            WhenAnExternalTransactionIsPassedToTheBulkProcessor(transaction);
+        
+            using (var jsonStream1 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent1)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream1);
+            }
+        
+            using (var jsonStream2 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonContent2)))
+            {
+                await BulkProcessor.SaveAsync(jsonStream2);
+            }
+        
+            AndTheTransactionIsRolledBack(transaction);
+        
+            // Assert
+            await TheDatabaseTableShouldBeEmpty<TestDbModel>();
         }
 
         private Blog GivenThisBlog()
