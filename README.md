@@ -1,9 +1,3 @@
-> ⚠️ **Important Notice (v7.0.0)**  
-> This release includes a **critical bug fix** for Web API environments.  
-> Previous versions (≤ 6.x) failed after the first execution unless the app was restarted.  
-> Please upgrade to v7.0.0+ for reliable multi-execution support.
-
-
 # Loki Bulk Data Processor
 
 The Loki Bulk Data Processor is a fast, efficient .NET library for bulk data inserts into SQL Server using `SqlBulkCopy`. Designed for ASP.NET Core, it supports:
