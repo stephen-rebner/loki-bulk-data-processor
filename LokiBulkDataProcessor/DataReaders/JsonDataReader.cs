@@ -16,40 +16,42 @@ namespace Loki.BulkDataProcessor.DataReaders
         private JsonElement.ArrayEnumerator _dataEnumerator;
         private JsonElement _currentRow;
         private bool _isOpen = true;
-        private readonly ILogger<JsonDataReader> _logger;
-
-        public string TableName { get; }
+        private readonly ILogger<BulkProcessor> _logger;
+    
+        public string TableName { get; private set; }
         
-        public JsonDataReader(Stream jsonStream, ILogger<JsonDataReader> logger = null)
+        private JsonDataReader(JsonDocument jsonDocument, ILogger<BulkProcessor> logger)
         {
-            ArgumentNullException.ThrowIfNull(jsonStream);
-            _logger = logger ?? NullLogger<JsonDataReader>.Instance;
+            _logger = logger ?? NullLogger<BulkProcessor>.Instance;
+            _jsonDocument = jsonDocument;
+        }
+
+        /// <summary>
+        /// Creates a JsonDataReader from a JsonDocument. The caller is responsible for disposing the JsonDocument.
+        /// </summary>
+        public static JsonDataReader Create(JsonDocument jsonDocument, ILogger<BulkProcessor> logger = null)
+        {
+            ArgumentNullException.ThrowIfNull(jsonDocument);
             
-            _logger.LogInformation("Initializing JsonDataReader from stream");
+            var reader = new JsonDataReader(jsonDocument, logger);
+            reader.Initialize();
+            return reader;
+        }
+
+        private void Initialize()
+        {
+            _logger.LogInformation("Initializing JsonDataReader");
 
             try
             {
-                _jsonDocument = JsonDocument.Parse(jsonStream);
-
-                JsonSchemaValidator.ValidateJsonSchema(_jsonDocument);
-                _logger.LogInformation("JSON schema validated successfully");
-
+                ValidateSchema();
                 var root = _jsonDocument.RootElement;
-
-                TableName = root.GetProperty(JsonSchemaConstants.TableName).GetString();
-                _logger.LogInformation("Reading data for table {TableName}", TableName);
-
-                var columnsElement = root.GetProperty(JsonSchemaConstants.Columns);
-                foreach (var column in columnsElement.EnumerateArray())
-                {
-                    var columnName = column.GetProperty(JsonSchemaConstants.ColumnName).GetString();
-                    var columnType = column.GetProperty(JsonSchemaConstants.ColumnType).GetString();
-
-                    _columnNames.Add(columnName);
-                    _columnTypes[columnName!] = columnType;
-                }
-
-                _dataEnumerator = root.GetProperty(JsonSchemaConstants.Data).EnumerateArray();
+                
+                ExtractTableName(root);
+                ExtractColumnMetadata(root);
+                InitializeDataEnumerator(root);
+                
+                _logger.LogInformation("JsonDataReader initialized successfully for table {TableName}", TableName);
             }
             catch (JsonException ex)
             {
@@ -61,6 +63,38 @@ namespace Loki.BulkDataProcessor.DataReaders
                 _logger.LogError(ex, "Error initializing JsonDataReader");
                 throw;
             }
+        }
+
+        private void ValidateSchema()
+        {
+            JsonSchemaValidator.ValidateJsonSchema(_jsonDocument);
+            _logger.LogInformation("JSON schema validated successfully");
+        }
+
+        private void ExtractTableName(JsonElement root)
+        {
+            TableName = root.GetProperty(JsonSchemaConstants.TableName).GetString();
+            _logger.LogInformation("Reading data for table {TableName}", TableName);
+        }
+
+        private void ExtractColumnMetadata(JsonElement root)
+        {
+            var columnsElement = root.GetProperty(JsonSchemaConstants.Columns);
+            foreach (var column in columnsElement.EnumerateArray())
+            {
+                var columnName = column.GetProperty(JsonSchemaConstants.ColumnName).GetString();
+                var columnType = column.GetProperty(JsonSchemaConstants.ColumnType).GetString();
+
+                _columnNames.Add(columnName);
+                _columnTypes[columnName!] = columnType;
+            }
+            
+            _logger.LogDebug("Extracted {ColumnCount} columns from schema", _columnNames.Count);
+        }
+
+        private void InitializeDataEnumerator(JsonElement root)
+        {
+            _dataEnumerator = root.GetProperty(JsonSchemaConstants.Data).EnumerateArray();
         }
    
         public bool Read()
@@ -167,7 +201,6 @@ namespace Loki.BulkDataProcessor.DataReaders
         {
             _logger.LogInformation("Closing JsonDataReader");
             _isOpen = false;
-            _jsonDocument?.Dispose();
         }
     
         public void Dispose()

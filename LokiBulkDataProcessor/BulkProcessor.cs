@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Loki.BulkDataProcessor.DataReaders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 namespace Loki.BulkDataProcessor
 {
@@ -151,7 +152,8 @@ namespace Loki.BulkDataProcessor
         
             try
             {
-                using var dataReader = new JsonDataReader(jsonStream);
+                using var jsonDocument = await JsonDocument.ParseAsync(jsonStream);
+                using var dataReader = JsonDataReader.Create(jsonDocument, _logger);
                 var destinationTableName = dataReader.TableName;
             
                 _logger.LogInformation("Extracted table name {TableName} from JSON stream", destinationTableName);

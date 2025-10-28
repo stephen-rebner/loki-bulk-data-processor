@@ -24,22 +24,11 @@
     <PackageTags>
       loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
     </PackageTags>
-    <Version>7.0.0</Version>
+    <Version>7.0.1</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReleaseNotes><![CDATA[
-  ⚠️ Critical Bug Fix: LokiBulkDataProcessor is now safe for consecutive executions in ASP.NET Core Web APIs. 
-  Previously, only the first execution succeeded unless the app was restarted. Thanks to new internal handling, this limitation is resolved.
-
-  🆕 Improvements:
-  - SaveAsync methods for IDataReaders and JsonStreams
-  - Structured logging for better observability
-
-  🔧 Breaking Change:
-  - Renamed DataTableMapping to DataMapping
-
-  This update represents a major reliability milestone. If you rely on Web API scenarios, upgrade as soon as possible.
+        Fixed a compatibility issue with Azure Functions where synchronous stream parsing caused a System.InvalidOperationException. Replaced JsonDocument.Parse with JsonDocument.ParseAsync in BulkProcessor.SaveAsync to comply with async I/O requirements. Refactored JsonDataReader to accept a pre-parsed JsonDocument, improving separation of concerns and stream lifecycle control. These changes enhance hosting compatibility and align with ASP.NET Core best practices.
 ]]></PackageReleaseNotes>
-
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
