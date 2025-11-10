@@ -9,6 +9,7 @@ using System.Data.SqlClient;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.DependancyInjection;
 using Testcontainers.MsSql;
+using LokiBulkDataProcessor.Core.Interfaces;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 {

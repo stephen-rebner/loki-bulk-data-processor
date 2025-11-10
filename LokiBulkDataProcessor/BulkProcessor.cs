@@ -1,6 +1,6 @@
 ﻿using System;
 using Loki.BulkDataProcessor.Commands.Factory;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Validation;
 using System.Collections.Generic;
 using System.Data;
@@ -11,6 +11,7 @@ using Loki.BulkDataProcessor.DataReaders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
+using LokiBulkDataProcessor.Core.Interfaces;
 
 namespace Loki.BulkDataProcessor
 {

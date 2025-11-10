@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.Commands.Factory;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
@@ -11,6 +11,7 @@ using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using LokiBulkDataProcessor.Core.Interfaces;
 
 namespace LokiBulkDataProcessor.IntegrationTests
 {

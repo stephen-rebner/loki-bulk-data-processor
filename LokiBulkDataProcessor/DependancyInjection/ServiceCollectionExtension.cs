@@ -1,7 +1,8 @@
 ﻿using Loki.BulkDataProcessor.Commands;
 using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Loki.BulkDataProcessor.Mappings.InternalMapperStorage;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Reflection;
-using AppContext = Loki.BulkDataProcessor.Context.AppContext;
+using LokiBulkDataProcessor.Core.Interfaces;
 
 namespace Loki.BulkDataProcessor.DependancyInjection
 {
@@ -55,8 +56,8 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             }
 
             // Register dependencies
-            services.AddSingleton<IAppContext, AppContext>(_ =>
-                new AppContext(connectionString, new ModelMappings(mappingAssembly), new DataMappings(mappingAssembly)));
+            services.AddSingleton<IAppContext, Core.Context.AppContext>(_ =>
+                new Core.Context.AppContext(connectionString, new ModelMappings(mappingAssembly), new DataMappings(mappingAssembly)));
 
             services.AddTransient<ILokiDbConnection, LokiDbConnection>(provider =>
                 new LokiDbConnection(provider.GetRequiredService<IAppContext>()));

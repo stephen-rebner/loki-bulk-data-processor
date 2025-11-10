@@ -1,4 +1,4 @@
-﻿using Loki.BulkDataProcessor.Mappings;
+﻿using Loki.BulkDataProcessor.Core.Mappings;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Mappings
 {

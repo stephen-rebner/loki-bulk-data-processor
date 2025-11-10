@@ -1,0 +1,12 @@
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\bin\Release\net8.0\LokiBulkDataProcessor.Core.deps.json
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\bin\Release\net8.0\LokiBulkDataProcessor.Core.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\bin\Release\net8.0\LokiBulkDataProcessor.Core.pdb
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.AssemblyInfoInputs.cache
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.AssemblyInfo.cs
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.csproj.CoreCompileInputs.cache
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.sourcelink.json
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\refint\LokiBulkDataProcessor.Core.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\LokiBulkDataProcessor.Core.pdb
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.Core\obj\Release\net8.0\ref\LokiBulkDataProcessor.Core.dll

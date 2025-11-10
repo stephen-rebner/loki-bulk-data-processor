@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor.Utils.Reflection;
+﻿using Loki.BulkDataProcessor.Core.Mappings;
+using Loki.BulkDataProcessor.Utils.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Reflection;

@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using Loki.BulkDataProcessor.Exceptions;
+using Loki.BulkDataProcessor.Core.Exceptions;
 using LokiBulkDataProcessor.UnitTests.Mappings.TestMappers;
 using NUnit.Framework;
 using System;

@@ -1,7 +1,7 @@
 ﻿using FastMember;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Mappings;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
-using Loki.BulkDataProcessor.Mappings;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -90,9 +90,12 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         private void AddMappings(AbstractMapping mapping)
         {
-            foreach (var mappingMetaData in mapping.MappingInfo.MappingMetaDataCollection)
+            if (mapping.MappingInfo != null)
             {
-                _sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(mappingMetaData.SourceColumn, mappingMetaData.DestinationColumn));
+                foreach (var mappingMetaData in mapping.MappingInfo.MappingMetaDataCollection)
+                {
+                    _sqlBulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(mappingMetaData.SourceColumn!, mappingMetaData.DestinationColumn!));
+                }
             }
         }
 

@@ -1,5 +1,5 @@
 ﻿using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using Microsoft.Extensions.Logging;
 

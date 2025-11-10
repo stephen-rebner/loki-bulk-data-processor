@@ -1,0 +1,12 @@
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\bin\Release\net8.0\LokiBulkDataProcessor.ComosDb.deps.json
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\bin\Release\net8.0\LokiBulkDataProcessor.ComosDb.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\bin\Release\net8.0\LokiBulkDataProcessor.ComosDb.pdb
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.AssemblyInfoInputs.cache
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.AssemblyInfo.cs
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.csproj.CoreCompileInputs.cache
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.sourcelink.json
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\refint\LokiBulkDataProcessor.ComosDb.dll
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\LokiBulkDataProcessor.ComosDb.pdb
+C:\Projects\loki-bulk-data-processor\LokiBulkDataProcessor.ComosDb\obj\Release\net8.0\ref\LokiBulkDataProcessor.ComosDb.dll

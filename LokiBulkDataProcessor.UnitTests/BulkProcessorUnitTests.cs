@@ -2,7 +2,8 @@
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.Commands.Factory;
 using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
+using LokiBulkDataProcessor.Core.Interfaces;
 using LokiBulkDataProcessor.UnitTests.TestModels;
 using Moq;
 using NUnit.Framework;

@@ -1,4 +1,5 @@
-﻿using Loki.BulkDataProcessor.Mappings.Interfaces;
+﻿using Loki.BulkDataProcessor.Core.Mappings;
+using Loki.BulkDataProcessor.Core.Mappings.Interfaces;
 using System;
 using System.Linq;
 using System.Reflection;

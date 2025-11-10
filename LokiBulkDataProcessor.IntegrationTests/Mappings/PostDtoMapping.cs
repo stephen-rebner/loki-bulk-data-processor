@@ -1,4 +1,4 @@
-﻿using Loki.BulkDataProcessor.Mappings;
+﻿using Loki.BulkDataProcessor.Core.Mappings;
 using LokiBulkDataProcessor.IntegrationTests.TestModels.Dtos;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Mappings
@@ -12,5 +12,4 @@ namespace LokiBulkDataProcessor.IntegrationTests.Mappings
             Map(dto => dto.ABlogId).ToDestinationColumn("BlogId");
         }
     }
-}
- 
+} 

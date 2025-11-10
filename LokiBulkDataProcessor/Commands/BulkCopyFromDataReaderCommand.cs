@@ -2,7 +2,7 @@
 using System.Data;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using System.Data.SqlClient;
 using System.Linq;
 using Loki.BulkDataProcessor.InternalDbOperations;

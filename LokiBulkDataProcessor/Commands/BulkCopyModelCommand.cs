@@ -1,6 +1,6 @@
 ﻿using System;
 using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.Utils.Reflection;
 using Loki.BulkDataProcessor.InternalDbOperations.Extensions;
 using System.Collections.Generic;

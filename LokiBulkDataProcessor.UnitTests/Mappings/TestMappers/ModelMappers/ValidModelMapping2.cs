@@ -1,4 +1,4 @@
-﻿using Loki.BulkDataProcessor.Mappings;
+using Loki.BulkDataProcessor.Core.Mappings;
 using LokiBulkDataProcessor.UnitTests.TestModels;
 
 namespace LokiBulkDataProcessor.UnitTests.Mappings.TestMappers

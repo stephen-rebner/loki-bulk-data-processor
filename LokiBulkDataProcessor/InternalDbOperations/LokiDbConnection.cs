@@ -1,5 +1,5 @@
 ﻿using System;
-using Loki.BulkDataProcessor.Context.Interfaces;
+using Loki.BulkDataProcessor.Core.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data;
 using System.Data.SqlClient;
