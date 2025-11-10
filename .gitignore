@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
@@ -16,3 +16,15 @@
 /LokiBulkDataProcessor.UnitTests/bin
 .idea
 LokiBulkDataProcessor.sln.DotSettings.user
+
+# LokiBulkDataProcessor.Core
+/LokiBulkDataProcessor.Core/bin/
+/LokiBulkDataProcessor.Core/obj/
+
+# LokiBulkDataProcessor.Core.UnitTests
+/LokiBulkDataProcessor.Core.UnitTests/bin/
+/LokiBulkDataProcessor.Core.UnitTests/obj/
+
+# LokiBulkDataProcessor.ComosDb
+/LokiBulkDataProcessor.ComosDb/bin/
+/LokiBulkDataProcessor.ComosDb/obj/
