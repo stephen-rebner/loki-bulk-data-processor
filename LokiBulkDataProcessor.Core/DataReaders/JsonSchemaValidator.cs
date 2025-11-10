@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace Loki.BulkDataProcessor.DataReaders
+namespace Loki.BulkDataProcessor.Core.DataReaders
 {
     internal static class JsonSchemaValidator
     {

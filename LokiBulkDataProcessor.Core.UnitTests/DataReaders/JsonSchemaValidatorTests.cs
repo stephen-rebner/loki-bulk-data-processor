@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using FluentAssertions;
-using Loki.BulkDataProcessor.DataReaders;
+using Loki.BulkDataProcessor.Core.DataReaders;
 using NUnit.Framework;
 
-namespace LokiBulkDataProcessor.UnitTests.DataReaders
+namespace LokiBulkDataProcessor.Core.UnitTests.DataReaders
 {
     [TestFixture]
     public class JsonSchemaValidatorTests

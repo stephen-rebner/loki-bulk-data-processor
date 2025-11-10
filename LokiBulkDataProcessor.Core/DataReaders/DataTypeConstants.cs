@@ -1,4 +1,4 @@
-﻿namespace Loki.BulkDataProcessor.DataReaders
+namespace Loki.BulkDataProcessor.Core.DataReaders
 {
     internal static class DataTypeConstants
     {
