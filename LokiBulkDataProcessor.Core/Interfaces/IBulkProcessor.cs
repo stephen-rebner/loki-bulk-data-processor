@@ -2,23 +2,18 @@
 
 namespace LokiBulkDataProcessor.Core.Interfaces
 {
+    /// <summary>
+    /// Base interface for all bulk data processors
+    /// </summary>
     public interface IBulkProcessor
     {
         int Timeout { get; set;}
 
         int BatchSize { get; set;}
-
-        IDbTransaction Transaction { get; set; }
         
         string ConnectionString { get; set; }
 
-        IBulkProcessor WithConnectionString(string connectionString);
-
-        Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationTableName) where T : class;
-
-        Task SaveAsync(DataTable dataTable, string destinationTableName);
-        
-        Task SaveAsync(IDataReader dataReader, string destinationTableName);
+        Task SaveAsync<T>(IEnumerable<T> dataToProcess, string destinationName) where T : class;
 
         Task SaveAsync(Stream jsonStream);
     }

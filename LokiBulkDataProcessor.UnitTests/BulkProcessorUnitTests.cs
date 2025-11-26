@@ -20,7 +20,7 @@ namespace LokiBulkDataProcessor.UnitTests
         private const string TestDestinationTableName = "A dummy table name";
         private readonly IEnumerable<ValidModelObject> ModelObjects = new List<ValidModelObject> { new ValidModelObject() };
 
-        private IBulkProcessor _bulkProcessor;
+        private ITransactionalBulkProcessor _bulkProcessor;
         private Mock<ICommandFactory> _commandFactory;
         private Mock<IBulkModelsCommand> _bulkCopyModelCommand;
         private Mock<IBulkDataTableCommand> _bulkCopyDataTableCommand;

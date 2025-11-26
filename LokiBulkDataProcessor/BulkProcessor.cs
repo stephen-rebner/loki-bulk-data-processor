@@ -15,7 +15,7 @@ using LokiBulkDataProcessor.Core.Interfaces;
 
 namespace Loki.BulkDataProcessor
 {
-    public class BulkProcessor : IBulkProcessor
+    public class BulkProcessor : ITransactionalBulkProcessor
     {
         private readonly ICommandFactory _commandFactory;
         private readonly IAppContext _appContext;

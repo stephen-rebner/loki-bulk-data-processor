@@ -21,7 +21,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
         protected TestDbContext TestDbContext;
 
-        protected IBulkProcessor BulkProcessor;
+        protected ITransactionalBulkProcessor BulkProcessor;
         
         protected ServiceProvider ServiceProvider;
 
@@ -44,7 +44,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 
             ServiceProvider = serviceCollection.BuildServiceProvider();
 
-            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
+            BulkProcessor = ServiceProvider.GetService<ITransactionalBulkProcessor>();
         }
         
         protected void CreateLokiBulkDataProcessorWithNoMappings()
@@ -55,7 +55,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             
             ServiceProvider = serviceCollection.BuildServiceProvider();
             
-            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
+            BulkProcessor = ServiceProvider.GetService<ITransactionalBulkProcessor>();
         }
 
         private DbContextOptionsBuilder<TestDbContext> BuildDbContextOptionsBuilder(ServiceProvider serviceProvider)
