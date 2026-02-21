@@ -12,6 +12,8 @@ Perfect for high-throughput ETL pipelines and real-time ingestion scenarios.
 
 ---
 
+This project has been upgraded to target `.NET 10`.
+
 ## Install
 
 ```bash
@@ -37,6 +39,7 @@ Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 |--------------|--------------------------------------------------|--------------------------|
 | ≤ 6.0.0      | Web API execution failed after the first request | **Upgrade to v7.0.0+** ✅ |
 | 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
+| 7.0.1        | Project upgraded to .NET 10                       | **No action required unless you target an earlier runtime** ✅ |
 
 ## Documentation
 
