@@ -33,7 +33,7 @@ LokiBulkDataProcessor/                     The NuGet package (RootNamespace: Lok
 ├── DataReaders/                           JsonDataReader (IDataReader over a JsonDocument) + JsonSchemaValidator
 ├── DependancyInjection/                   AddLokiBulkDataProcessor(...) IServiceCollection extension (sic — folder
 │                                          name is misspelled; renaming it is a breaking namespace change)
-├── Exceptions/                            MappingException
+├── Exceptions/                            MappingException (internal)
 ├── Logging/                               LokiLoggingOptions (opt-in console logging)
 ├── Utils/                                 ReflectionUtils, ArgumentValidatorExtensions (ThrowIf* guards)
 └── Properties/AssemblyInfo.cs             InternalsVisibleTo the two test projects
@@ -73,8 +73,8 @@ error string; `DbConstants.TempTableName` uses SQL Server `#temp` syntax.
 ## Public API surface (do not break casually)
 
 `IBulkProcessor` / `BulkProcessor`, `ModelMapping<T>`, `DataMapping`, the `Mappings.Interfaces`
-fluent interfaces, `ServiceCollectionExtension.AddLokiBulkDataProcessor`, `LokiLoggingOptions`,
-`MappingException`, and anything else `public` in `LokiBulkDataProcessor/`. Additive changes are a
+fluent interfaces, `ServiceCollectionExtension.AddLokiBulkDataProcessor`, `LokiLoggingOptions`, and anything else
+`public` in `LokiBulkDataProcessor/`. (`MappingException` is `internal` — callers can't catch it by type.) Additive changes are a
 minor version; removals/renames/signature changes are a major version and need a README upgrade-guide
 row. `[Obsolete]` before removal (see `WithConnectionString`).
 
