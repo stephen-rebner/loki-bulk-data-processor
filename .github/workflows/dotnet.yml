@@ -1,28 +1,41 @@
-# This workflow will build a .NET project
+# Builds and tests Loki Bulk Data Processor.
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
 name: .NET
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "release/**" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "release/**" ]
 
 jobs:
-  build:
-
+  unit:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Unit tests
+      run: dotnet test LokiBulkDataProcessor.UnitTests -c Release --verbosity normal
+    - name: Library has no test-only packages in its dependency graph (#17)
+      run: |
+        dotnet list LokiBulkDataProcessor package --include-transitive > packages.txt
+        cat packages.txt
+        if grep -i testcontainers packages.txt; then
+          echo "::error::Testcontainers must not be a dependency of the LokiBulkDataProcessor package"
+          exit 1
+        fi
+
+  sqlserver-integration:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: SQL Server integration tests
+      run: dotnet test LokiBulkDataProcessor.IntegrationTests -c Release --verbosity normal

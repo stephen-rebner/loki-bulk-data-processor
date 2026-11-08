@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\build\Package.props" />
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>LokiBulkDataProcessor</AssemblyName>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Title>Loki Bulk Data Processor</Title>
-    <Authors>Stephen Rebner</Authors>
     <Summary>
       Ultra-fast bulk insert library for .NET with Web API-safe multi-execution support. Handles models, DataTables, IDataReaders, JSON, logging, and mapping.
     </Summary>
@@ -17,20 +14,12 @@
 
       For tutorials and demos, visit the Loki Software YouTube channel: https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists
     </Description>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageProjectUrl>https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/stephen-rebner/loki-bulk-data-processor</RepositoryUrl>
-    <RepositoryType>Git</RepositoryType>
     <PackageTags>
       loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
     </PackageTags>
-    <Version>8.0.0</Version>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReleaseNotes><![CDATA[
-        Project upgraded to .NET 10. This release updates the target framework to `net10.0` and includes compatibility and dependency updates required for the .NET 10 runtime.
+        9.0.0 (in progress): Testcontainers.MsSql is no longer a dependency of the library package, so it and its Docker client tree no longer flow to consumers (#17). See the README "Upgrade Guide".
 ]]></PackageReleaseNotes>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Repository\**" />
@@ -43,20 +32,5 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
-    <PackageReference Include="Testcontainers.MsSql" Version="4.1.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath>
-      </PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-   <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
