@@ -3,7 +3,7 @@ using Loki.BulkDataProcessor.Commands.Interfaces;
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Extensions;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.InternalDbOperations;
