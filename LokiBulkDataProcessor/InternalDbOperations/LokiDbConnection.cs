@@ -130,8 +130,7 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
 
         private static SqlTransaction AdoptExternalTransaction(IDbTransaction transaction) =>
             transaction as SqlTransaction ?? throw new ArgumentException(
-                "A SQL Server bulk processor requires a Microsoft.Data.SqlClient.SqlTransaction but received " +
-                $"{transaction.GetType().FullName}. System.Data.SqlClient is not supported from 9.0.",
-                nameof(transaction));
+                $"A SQL Server bulk processor requires a Microsoft.Data.SqlClient.SqlTransaction but received {transaction.GetType().FullName}. System.Data.SqlClient is not supported from 9.0.",
+                nameof(IBulkProcessor.Transaction));
     }
 }
