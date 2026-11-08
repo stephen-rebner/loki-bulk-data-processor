@@ -2,6 +2,10 @@
 
 **Task:** $ARGUMENTS
 
+> **9.0.0 release:** if `docs/plans/9.0.0-progress.md` exists and the task is part of the 9.0.0 release, read it
+> (and the matching section of `docs/plans/9.0.0-multi-provider.md`) before starting, branch from and target
+> `release/9.0` instead of `master`, and update the progress file in the same PR.
+
 Run the four stages below in strict sequence. Complete each before starting the next. Do not skip stages.
 
 Use this for higher-risk changes where code and security review should run automatically — new database providers, transaction/connection handling, public API additions, new NuGet dependencies. For lower-risk work `/build` or `/dev` costs less.

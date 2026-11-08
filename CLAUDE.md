@@ -10,6 +10,15 @@ This is a **library, not a service**: there is no `Program.cs`, no HTTP surface,
 of its own. Every public type is part of a published contract that other people's code compiles
 against — treat public API changes as semver decisions.
 
+## 9.0.0 release in progress
+
+A multi-provider 9.0.0 release (Core package, SQL Server provider, Oracle provider) is being built in
+nine steps, each a separate PR into the `release/9.0` branch. **Before doing any 9.0.0 work, read
+[`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
+decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
+(the spec). The PR that completes a step must also update the progress file. The layout below describes the
+**8.x code on `master`** and changes as the steps land.
+
 ## Repository layout
 
 ```
