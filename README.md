@@ -40,7 +40,6 @@ Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 | ≤ 6.0.0      | Web API execution failed after the first request | **Upgrade to v7.0.0+** ✅ |
 | 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
 | 7.0.1        | Project upgraded to .NET 10                       | **No action required unless you target an earlier runtime** ✅ |
-| 8.x → 9.0.0  | `Testcontainers.MsSql` (and its Docker client dependencies) is no longer a transitive dependency of the package (#17) | **Reference it directly if your code used it** ⚠️ |
 
 ## Documentation
 
