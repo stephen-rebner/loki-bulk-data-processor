@@ -10,6 +10,15 @@ This is a **library, not a service**: there is no `Program.cs`, no HTTP surface,
 of its own. Every public type is part of a published contract that other people's code compiles
 against — treat public API changes as semver decisions.
 
+## 9.0.0 release in progress
+
+A multi-provider 9.0.0 release (Core package, SQL Server provider, Oracle provider) is being built in
+nine steps, each a separate PR into the `release/9.0` branch. **Before doing any 9.0.0 work, read
+[`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
+decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
+(the spec). The PR that completes a step must also update the progress file. The layout below describes the
+**8.x code on `master`** and changes as the steps land.
+
 ## Repository layout
 
 ```
@@ -39,7 +48,7 @@ LokiBulkDataProcessor/                     The NuGet package (RootNamespace: Lok
 └── Properties/AssemblyInfo.cs             InternalsVisibleTo the two test projects
 LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no database
 LokiBulkDataProcessor.IntegrationTests/    NUnit + Testcontainers.MsSql + EF Core (test schema via EF migrations)
-.github/workflows/dotnet.yml               restore → build → test on push/PR to master
+.github/workflows/dotnet.yml               unit + sqlserver-integration jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
 ```
 
@@ -124,7 +133,10 @@ build the schema with EF Core migrations from `IntegrationTests/Migrations` agai
 
 ## CI/CD
 
-`.github/workflows/dotnet.yml` runs `dotnet restore`, `dotnet build --no-restore`,
-`dotnet test --no-build` on every push and PR to **`master`** (the default branch — not `main`).
-The NuGet package version lives in `LokiBulkDataProcessor.csproj` (`<Version>`, release notes in
-`<PackageReleaseNotes>`); bump both alongside the README upgrade guide when shipping.
+`.github/workflows/dotnet.yml` runs on every push and PR to **`master`** (the default branch — not
+`main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
+is in the library's transitive graph, #17) and `sqlserver-integration` (Testcontainers SQL Server).
+Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
+`Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
+`build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`
+and `<PackageReleaseNotes>` in the library csproj alongside the README upgrade guide when shipping.

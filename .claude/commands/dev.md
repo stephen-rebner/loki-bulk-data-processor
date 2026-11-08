@@ -2,6 +2,10 @@
 
 **Task:** $ARGUMENTS
 
+> **9.0.0 release:** if `docs/plans/9.0.0-progress.md` exists and the task is part of the 9.0.0 release, read it
+> (and the matching section of `docs/plans/9.0.0-multi-provider.md`) before starting, branch from and target
+> `release/9.0` instead of `master`, and update the progress file in the same PR.
+
 Take a single feature or bug fix from description to open PR in one autonomous pass. No planning rounds, no confirmation gates. There is no complexity ceiling.
 
 Use `/plan` for iterative back-and-forth before code. Use `/build` for a plan to approve before implementation.
