@@ -20,6 +20,7 @@ decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md
 **8.x code on `master`** and changes as the steps land. On `release/9.0` (step 3+), `IBulkProcessor`, `Mappings/`,
 `DataReaders/`, `Utils/`, `Logging/`, `Exceptions/` and `Constants/DefaultConfigValues.cs` live in
 `LokiBulkDataProcessor.Core/` (same namespaces); `LokiBulkDataProcessor/Properties/TypeForwards.cs` forwards the public ones.
+`Properties/AssemblyInfo.cs` is gone there: `InternalsVisibleTo` is set with `<InternalsVisibleTo>` items in each csproj.
 
 ## Repository layout
 

@@ -4,8 +4,12 @@
     <AssemblyName>LokiBulkDataProcessor.Core</AssemblyName>
     <PackageId>LokiBulkDataProcessor.Core</PackageId>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
-    <Description>Provider-neutral core of Loki Bulk Data Processor: mappings, JSON reader, pipeline and provider SPI. Install a provider package (LokiBulkDataProcessor for SQL Server, LokiBulkDataProcessor.Oracle).</Description>
+    <Title>Loki Bulk Data Processor Core</Title>
+    <Description>Provider-neutral core of Loki Bulk Data Processor: the mapping API (ModelMapping, DataMapping), IBulkProcessor, the JSON reader and logging options. Do not install it on its own; install a provider package such as LokiBulkDataProcessor (SQL Server), which depends on it.</Description>
     <PackageTags>loki bulk-copy bulk-insert etl datareader datatable json mapping</PackageTags>
+    <PackageReleaseNotes><![CDATA[
+        9.0.0 (in progress): new package. Holds the provider-neutral types that used to live in LokiBulkDataProcessor (mapping API, IBulkProcessor, JSON reader, LokiLoggingOptions) with unchanged namespaces; LokiBulkDataProcessor forwards them here. Models with get-only properties no longer throw NullReferenceException; those properties are skipped and not saved (#19). See the README "Upgrade Guide".
+]]></PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
@@ -15,6 +19,5 @@
          MappingInfo, DefaultConfigValues). Step 4 replaces this with the public provider SPI. -->
     <InternalsVisibleTo Include="LokiBulkDataProcessor" />
     <InternalsVisibleTo Include="LokiBulkDataProcessor.UnitTests" />
-    <InternalsVisibleTo Include="LokiBulkDataProcessor.IntegrationTests" />
   </ItemGroup>
 </Project>

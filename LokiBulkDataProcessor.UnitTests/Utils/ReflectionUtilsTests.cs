@@ -40,25 +40,33 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
-        public void GetPublicPropertyNames_ShouldSkipGetOnlyProperties()
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenItHasNoSetter()
         {
-            var actual = typeof(ModelWithGetOnlyProperties).GetPublicPropertyNames();
+            string[] actual = typeof(ModelWithGetOnlyProperties).GetPublicPropertyNames();
 
             actual.Should().BeEquivalentTo(nameof(ModelWithGetOnlyProperties.Id));
         }
 
         [Test]
-        public void GetPublicPropertyNames_ShouldSkipSetOnlyProperties()
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenItHasNoGetter()
         {
-            var actual = typeof(ModelWithSetOnlyProperty).GetPublicPropertyNames();
+            string[] actual = typeof(ModelWithSetOnlyProperty).GetPublicPropertyNames();
 
             actual.Should().BeEquivalentTo(nameof(ModelWithSetOnlyProperty.Id));
         }
 
         [Test]
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenAnAccessorIsNotPublic()
+        {
+            string[] actual = typeof(ModelWithNonPublicAccessors).GetPublicPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithNonPublicAccessors.Id));
+        }
+
+        [Test]
         public void GetPublicPropertyNames_ShouldThrow_WhenAllPropertiesAreGetOnly()
         {
-            Action action = () => typeof(ModelWithOnlyGetOnlyProperties).GetPublicPropertyNames();
+            Action action = () => typeof(ModelWithOnlyGetOnlyProperty).GetPublicPropertyNames();
 
             action.Should()
               .Throw<ArgumentException>()
@@ -103,9 +111,17 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
             public string Secret { set => _secret = value; }
         }
 
-        private class ModelWithOnlyGetOnlyProperties
+        private class ModelWithOnlyGetOnlyProperty
         {
             public int Id => 1;
+        }
+
+        private class ModelWithNonPublicAccessors
+        {
+            public int Id { get; set; }
+            public string PrivateSetter { get; private set; }
+            public string PrivateGetter { private get; set; }
+            public string InternalSetter { get; internal set; }
         }
     }
 }
