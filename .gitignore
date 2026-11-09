@@ -16,3 +16,5 @@
 /LokiBulkDataProcessor.UnitTests/bin
 .idea
 LokiBulkDataProcessor.sln.DotSettings.user
+/LokiBulkDataProcessor.Core/bin
+/LokiBulkDataProcessor.Core/obj

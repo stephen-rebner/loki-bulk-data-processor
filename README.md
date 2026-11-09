@@ -41,6 +41,9 @@ Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 | 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
 | 7.0.1        | Project upgraded to .NET 10                       | **No action required unless you target an earlier runtime** ✅ |
 | 8.x          | 9.0.0: driver is now `Microsoft.Data.SqlClient` 6.1.8 (was the deprecated `System.Data.SqlClient`), so EF Core transactions (`GetDbTransaction()`) are accepted. `Microsoft.Data.SqlClient` defaults to `Encrypt=true`. A `System.Data.SqlClient` transaction now throws `ArgumentException` | **Change `using System.Data.SqlClient` to `using Microsoft.Data.SqlClient` wherever you create connections/transactions for Loki. For dev servers with self-signed certificates add `TrustServerCertificate=true` to the connection string; do not turn encryption off** ⚠️ |
+| 8.x          | 9.0.0: the mapping API (`ModelMapping<T>`, `DataMapping`, …), `IBulkProcessor` and `LokiLoggingOptions` moved to the new `LokiBulkDataProcessor.Core` package with **unchanged namespaces**. `LokiBulkDataProcessor` depends on it, so it comes in transitively, and type forwarders let assemblies built against 8.x (e.g. a separate mappings library) keep binding | **No action required for source code** ✅ |
+| 8.x          | 9.0.0: the empty public class `Loki.BulkDataProcessor.Properties.AssemblyInfo` is removed, and the assembly version is now generated (`9.0.0.0`, was a hard-coded `1.0.0.02`) | **Remove any reference to `AssemblyInfo`; update binding redirects that pinned `1.0.0.02`** ⚠️ |
+| 8.x          | 9.0.0: models with get-only or set-only properties no longer throw `NullReferenceException`; those properties are skipped when copying models (#19) | **No action required** ✅ |
 
 ## Documentation
 

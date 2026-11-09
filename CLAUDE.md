@@ -17,7 +17,9 @@ nine steps, each a separate PR into the `release/9.0` branch. **Before doing any
 [`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
 decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
 (the spec). The PR that completes a step must also update the progress file. The layout below describes the
-**8.x code on `master`** and changes as the steps land.
+**8.x code on `master`** and changes as the steps land. On `release/9.0` (step 3+), `IBulkProcessor`, `Mappings/`,
+`DataReaders/`, `Utils/`, `Logging/`, `Exceptions/` and `Constants/DefaultConfigValues.cs` live in
+`LokiBulkDataProcessor.Core/` (same namespaces); `LokiBulkDataProcessor/Properties/TypeForwards.cs` forwards the public ones.
 
 ## Repository layout
 

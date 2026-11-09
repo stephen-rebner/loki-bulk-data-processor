@@ -16,20 +16,20 @@ namespace Loki.BulkDataProcessor.DataReaders
         private JsonElement.ArrayEnumerator _dataEnumerator;
         private JsonElement _currentRow;
         private bool _isOpen = true;
-        private readonly ILogger<BulkProcessor> _logger;
+        private readonly ILogger _logger;
     
         public string TableName { get; private set; }
         
-        private JsonDataReader(JsonDocument jsonDocument, ILogger<BulkProcessor> logger)
+        private JsonDataReader(JsonDocument jsonDocument, ILogger logger)
         {
-            _logger = logger ?? NullLogger<BulkProcessor>.Instance;
+            _logger = logger ?? NullLogger.Instance;
             _jsonDocument = jsonDocument;
         }
 
         /// <summary>
         /// Creates a JsonDataReader from a JsonDocument. The caller is responsible for disposing the JsonDocument.
         /// </summary>
-        public static JsonDataReader Create(JsonDocument jsonDocument, ILogger<BulkProcessor> logger = null)
+        public static JsonDataReader Create(JsonDocument jsonDocument, ILogger logger = null)
         {
             ArgumentNullException.ThrowIfNull(jsonDocument);
             

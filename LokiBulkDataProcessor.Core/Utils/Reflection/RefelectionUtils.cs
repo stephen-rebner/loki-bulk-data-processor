@@ -11,8 +11,9 @@ namespace Loki.BulkDataProcessor.Utils.Reflection
         internal static string[] GetPublicPropertyNames(this Type type)
         {
             var publicProperties = type.GetProperties()
-                .Where(propInfo => propInfo.GetGetMethod(true).IsPublic)
-                .Where(propInfo => propInfo.GetSetMethod(true).IsPublic)
+                // Get-only and set-only properties have no accessor of the other kind: skip them (#19).
+                .Where(propInfo => propInfo.GetGetMethod(true)?.IsPublic == true)
+                .Where(propInfo => propInfo.GetSetMethod(true)?.IsPublic == true)
                 .Select(propInfo => propInfo.Name)
                 .ToArray();
 
