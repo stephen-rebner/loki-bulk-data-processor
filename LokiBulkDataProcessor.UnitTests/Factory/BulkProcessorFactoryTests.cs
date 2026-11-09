@@ -37,16 +37,25 @@ public class BulkProcessorFactoryTests
     }
 
     [Test]
-    public void Create_ShouldThrowArgumentExceptionListingTheRegisteredNames_WhenTheProviderIsUnknown()
+    public void Create_ShouldThrowArgumentExceptionWithoutListingTheRegisteredNames_WhenTheProviderIsUnknown()
     {
         BulkProcessorFactory factory = FactoryFor("SqlServer", "Oracle");
 
         Action action = () => factory.Create("PostgreSql", ConnectionString);
 
         action.Should().Throw<ArgumentException>()
-            .WithMessage("No bulk copy provider named 'PostgreSql' is registered. Registered: SqlServer, Oracle.*")
+            .WithMessage("No bulk copy provider named 'PostgreSql' is registered. Use IBulkProcessorFactory.ProviderNames to list the registered providers.*")
             .Which.ParamName.Should().Be("providerName");
-        action.Should().Throw<ArgumentException>().Which.Message.Should().NotContain("secret");
+        action.Should().Throw<ArgumentException>().Which.Message.Should()
+            .NotContain("secret").And.NotContain("SqlServer").And.NotContain("Oracle");
+    }
+
+    [Test]
+    public void Create_ShouldSanitiseTheUnknownProviderName_WhenItContainsControlCharacters()
+    {
+        Action action = () => FactoryFor("SqlServer").Create("Bad\r\nName", ConnectionString);
+
+        action.Should().Throw<ArgumentException>().WithMessage("No bulk copy provider named 'Bad??Name' is registered.*");
     }
 
     [TestCase(null)]

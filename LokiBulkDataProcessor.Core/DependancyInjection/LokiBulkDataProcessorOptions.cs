@@ -19,6 +19,37 @@ public sealed class LokiBulkDataProcessorOptions
     /// <summary>Use the host's <see cref="ILoggerFactory"/> from DI. Off by default (logging is opt-in).</summary>
     public bool UseHostLoggerFactory { get; set; }
 
+    /// <summary>
+    /// When true, every JSON save (<c>IBulkProcessor.SaveAsync(Stream, ...)</c>) must find a registered <c>DataMapping</c>
+    /// for its mapping key; otherwise it throws <see cref="InvalidOperationException"/> before any connection is opened.
+    /// This stops a payload from writing arbitrary same-named columns when no mapping was intended. Default false.
+    /// </summary>
+    public bool RequireDataMappingForJson { get; set; }
+
+    /// <summary>
+    /// The largest JSON payload, in bytes, that <c>IBulkProcessor.SaveAsync(Stream, ...)</c> reads. A larger payload throws
+    /// <see cref="System.IO.InvalidDataException"/> as soon as the limit is passed, before the whole payload is buffered
+    /// (a seekable stream whose remaining length is over the limit is rejected before reading). Default <c>null</c>:
+    /// no limit, so existing large imports keep working. Set it when payloads come from untrusted callers, because a
+    /// JSON payload is buffered in memory in full before it is written.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is zero or negative.</exception>
+    public long? MaxJsonPayloadBytes
+    {
+        get => _maxJsonPayloadBytes;
+        set
+        {
+            if (value is <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(MaxJsonPayloadBytes), value, "MaxJsonPayloadBytes must be greater than 0, or null for no limit.");
+            }
+
+            _maxJsonPayloadBytes = value;
+        }
+    }
+
+    private long? _maxJsonPayloadBytes;
+
     /// <summary>Adds every concrete <c>ModelMapping&lt;T&gt;</c> and <c>DataMapping</c> in <paramref name="assembly"/>.
     /// Two mappings for the same model type or SourceTableName fail at registration.</summary>
     public LokiBulkDataProcessorOptions AddMappingsFrom(Assembly assembly)

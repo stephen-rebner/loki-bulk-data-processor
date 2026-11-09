@@ -225,11 +225,24 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldThrow_IfJsonStreamIsNull()
+        public void SaveAsync_ShouldThrowSynchronously_IfJsonStreamIsNull()
         {
-            Func<Task> action = () => _bulkProcessor.SaveAsync((Stream)null);
+            Action legacy = () => _bulkProcessor.SaveAsync((Stream)null);
+            Action withDestination = () => _bulkProcessor.SaveAsync((Stream)null, TestDestinationTableName);
 
-            await action.Should().ThrowAsync<ArgumentNullException>().WithParameterName("jsonStream");
+            legacy.Should().Throw<ArgumentNullException>().WithParameterName("jsonStream");
+            withDestination.Should().Throw<ArgumentNullException>().WithParameterName("jsonStream");
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public void SaveAsync_ShouldThrowSynchronously_IfTheJsonDestinationTableNameIsNotSet(string destinationTableName)
+        {
+            Action action = () => _bulkProcessor.SaveAsync(JsonStream("TableB"), destinationTableName);
+
+            action.Should().Throw<ArgumentException>().WithParameterName("destinationTableName");
+            _provider.Mock.Verify(p => p.CreateConnection(It.IsAny<string>()), Times.Never);
         }
 
         [Test]
@@ -388,9 +401,9 @@ namespace LokiBulkDataProcessor.UnitTests
 
             Func<Task> action = () => _bulkProcessor.SaveAsync(ModelObjects, TestDestinationTableName);
 
-            var thrown = await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("translated");
-            _loggerFactory.Entries.Should().Contain(entry =>
-                entry.Level == LogLevel.Error && entry.Exception == thrown.Which && entry.Message.Contains("failed"));
+            await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("translated");
+            _loggerFactory.Entries.Should().ContainSingle(entry => entry.Level == LogLevel.Error).Which.Message.Should().Be(
+                $"Bulk copy to {TestDestinationTableName} via FakeDb failed with System.InvalidOperationException (inner System.InvalidOperationException)");
         }
 
         private IBulkProcessor CreateProcessor(MappingRegistry mappings) =>

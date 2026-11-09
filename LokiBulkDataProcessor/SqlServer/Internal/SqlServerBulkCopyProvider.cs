@@ -28,5 +28,5 @@ internal sealed class SqlServerBulkCopyProvider(string name) : IBulkCopyProvider
     }
 
     public Exception TranslateException(Exception exception, BulkWriteTarget target) =>
-        SqlServerExceptionTranslator.Translate(exception);
+        SqlServerExceptionTranslator.Translate(exception, target);
 }

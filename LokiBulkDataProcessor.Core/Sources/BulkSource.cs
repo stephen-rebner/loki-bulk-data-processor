@@ -9,6 +9,7 @@ using Loki.BulkDataProcessor.Mappings.InternalMapperStorage;
 using Loki.BulkDataProcessor.Mappings.Resolution;
 using Loki.BulkDataProcessor.Providers;
 using Loki.BulkDataProcessor.Utils.Reflection;
+using Loki.BulkDataProcessor.Utils.Validation;
 using Microsoft.Extensions.Logging;
 
 namespace Loki.BulkDataProcessor.Sources;
@@ -52,8 +53,24 @@ internal sealed class BulkSource : IDisposable
     public static BulkSource FromDataReader(IDataReader reader, string destinationTableName, string sourceName, MappingRegistry mappings) =>
         new(reader, ResolveReaderColumns(reader, destinationTableName, sourceName, mappings), ownsReader: false);   // caller owns it
 
-    public static BulkSource FromJson(JsonDataReader reader, MappingRegistry mappings) =>
-        new(reader, ResolveReaderColumns(reader, reader.TableName, sourceName: null, mappings), ownsReader: true);
+    /// <summary>
+    /// Takes ownership of <paramref name="reader"/>: it is disposed with the source, or here when building the source fails.
+    /// The mapping key is <paramref name="destinationTableName"/> (#16: no explicit source name, so the destination is the key).
+    /// </summary>
+    /// <exception cref="InvalidOperationException"><paramref name="requireMapping"/> is true and no DataMapping matches.</exception>
+    public static BulkSource FromJson(JsonDataReader reader, string destinationTableName, MappingRegistry mappings, bool requireMapping)
+    {
+        try
+        {
+            DataMapping mapping = FindJsonMapping(destinationTableName, mappings, requireMapping);
+            return new BulkSource(reader, ColumnMapResolver.Resolve(mapping, ColumnNamesOf(reader)), ownsReader: true);
+        }
+        catch
+        {
+            reader.Dispose();
+            throw;
+        }
+    }
 
     public void Dispose()
     {
@@ -66,8 +83,22 @@ internal sealed class BulkSource : IDisposable
     private static IReadOnlyList<ColumnMap> ResolveReaderColumns(IDataReader reader, string destinationTableName, string sourceName, MappingRegistry mappings)
     {
         DataMapping mapping = mappings.Data.GetMappingFor(MappingKey.For(sourceName, destinationTableName));
-        string[] columns = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
-        return ColumnMapResolver.Resolve(mapping, columns);
+        return ColumnMapResolver.Resolve(mapping, ColumnNamesOf(reader));
+    }
+
+    private static string[] ColumnNamesOf(IDataReader reader) =>
+        Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
+
+    private static DataMapping FindJsonMapping(string destinationTableName, MappingRegistry mappings, bool requireMapping)
+    {
+        DataMapping mapping = mappings.Data.GetMappingFor(MappingKey.For(sourceName: null, destinationTableName));
+        if (mapping is null && requireMapping)
+        {
+            throw new InvalidOperationException(
+                $"No DataMapping is registered for the JSON destination '{MessageText.Sanitize(destinationTableName)}', and RequireDataMappingForJson is enabled.");
+        }
+
+        return mapping;
     }
 
     private static void LogSkippedProperties(Type modelType, ILogger logger)

@@ -1,5 +1,10 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.DependancyInjection;
@@ -199,6 +204,63 @@ public class RegistrationTests
 
         services.Single(descriptor => descriptor.ServiceType == typeof(IBulkCopyProvider)).Lifetime.Should().Be(ServiceLifetime.Singleton);
         services.Single(descriptor => descriptor.ServiceType == typeof(IBulkProcessorFactory)).Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
+    [Test]
+    public void AddLokiBulkDataProcessor_ShouldRegisterTheJsonPolicy_FromTheOptions()
+    {
+        JsonPolicyFor(_ => { }).Should().Be(JsonPayloadPolicy.Default);
+        JsonPolicyFor(o => { o.RequireDataMappingForJson = true; o.MaxJsonPayloadBytes = 1024; })
+            .Should().Be(new JsonPayloadPolicy(RequireDataMapping: true, MaxPayloadBytes: 1024));
+    }
+
+    [TestCase(0L)]
+    [TestCase(-1L)]
+    public void MaxJsonPayloadBytes_ShouldThrow_IfValueSetIsNotPositive(long value)
+    {
+        Action action = () => new LokiBulkDataProcessorOptions().MaxJsonPayloadBytes = value;
+
+        action.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("MaxJsonPayloadBytes");
+    }
+
+    [Test]
+    public async Task FactoryProcessors_ShouldEnforceRequireDataMappingForJson_WhenEnabledInTheOptions()
+    {
+        var fake = new FakeProvider("Fake");
+        var services = new ServiceCollection();
+        services.AddLokiBulkDataProcessor(o => o.RequireDataMappingForJson = true).Services.AddSingleton(fake.Object);
+        using ServiceProvider provider = services.BuildServiceProvider();
+        IBulkProcessor processor = provider.GetRequiredService<IBulkProcessorFactory>().Create("Fake", ConnectionString);
+
+        Func<Task> action = () => processor.SaveAsync(new MemoryStream(Encoding.UTF8.GetBytes(
+            "{\"tableName\":\"T\",\"columns\":[{\"name\":\"A\",\"type\":\"int\"}],\"data\":[{\"A\":1}]}")));
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("*RequireDataMappingForJson*");
+        fake.Connection.OpenCount.Should().Be(0);
+    }
+
+    [Test]
+    public void LegacyAddLokiBulkDataProcessor_ShouldHideTheConnectionStringInTheScopedFactoryDelegate()
+    {
+        var services = new ServiceCollection();
+        services.AddLokiBulkDataProcessor(ConnectionString);
+
+        object holder = services.Single(descriptor => descriptor.ServiceType == typeof(IBulkProcessor)).ImplementationFactory.Target;
+        FieldInfo[] fields = holder.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            .Where(field => Equals(field.GetValue(holder), ConnectionString)).ToArray();
+
+        fields.Should().NotBeEmpty();
+        fields.Should().OnlyContain(field => field.GetCustomAttribute<DebuggerBrowsableAttribute>().State == DebuggerBrowsableState.Never);
+        holder.ToString().Should().NotContain("fake");
+        holder.GetType().GetCustomAttribute<DebuggerDisplayAttribute>().Value.Should().NotContain("{");
+    }
+
+    private static JsonPayloadPolicy JsonPolicyFor(Action<LokiBulkDataProcessorOptions> configure)
+    {
+        var services = new ServiceCollection();
+        services.AddLokiBulkDataProcessor(configure).AddSqlServer();
+        using ServiceProvider provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<JsonPayloadPolicy>();
     }
 
     private static ILoggerFactory LoggerFactoryUsedBy(ILoggerFactory hostFactory, bool useHost)

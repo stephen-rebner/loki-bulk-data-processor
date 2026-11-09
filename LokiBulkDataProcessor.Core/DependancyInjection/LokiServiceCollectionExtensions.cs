@@ -26,6 +26,7 @@ public static class LokiServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(new MappingRegistry(options.MappingAssemblies));
+        services.AddSingleton(new JsonPayloadPolicy(options.RequireDataMappingForJson, options.MaxJsonPayloadBytes));
         RegisterLogging(services, options);
         services.AddSingleton<IBulkProcessorFactory, BulkProcessorFactory>();
         return new LokiBulkDataProcessorBuilder(services);

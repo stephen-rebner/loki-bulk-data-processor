@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using Loki.BulkDataProcessor.Logging;
 using Loki.BulkDataProcessor.SqlServer;
@@ -15,6 +16,14 @@ namespace Loki.BulkDataProcessor.DependancyInjection
         /// <paramref name="connectionString"/>. Each DI scope gets its own processor and settings.
         /// Also registers <see cref="IBulkProcessorFactory"/>.
         /// </summary>
+        /// <remarks>
+        /// The scoped <see cref="IBulkProcessor"/> is not thread-safe and its settings (BatchSize, Timeout, Transaction)
+        /// belong to that instance. If a singleton or other long-lived service captures it, every request shares those
+        /// settings. Long-lived owners should inject <see cref="IBulkProcessorFactory"/> and call
+        /// <see cref="IBulkProcessorFactory.Create"/> per unit of work instead. The JSON options
+        /// (<c>RequireDataMappingForJson</c>, <c>MaxJsonPayloadBytes</c>) are only available through the
+        /// <c>AddLokiBulkDataProcessor(Action&lt;LokiBulkDataProcessorOptions&gt;)</c> builder overload.
+        /// </remarks>
         /// <param name="services">The service collection.</param>
         /// <param name="connectionString">SQL Server connection string used by every scoped processor.</param>
         /// <param name="mappingAssembly">Assembly containing ModelMapping/DataMapping classes, or null for none.</param>
@@ -32,8 +41,7 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             services.AddLokiBulkDataProcessor(options => Configure(options, mappingAssembly, loggerFactory, configureLogging))
                 .AddSqlServer();
 
-            services.AddScoped<IBulkProcessor>(sp =>
-                sp.GetRequiredService<IBulkProcessorFactory>().Create(SqlServerProvider.Name, connectionString));
+            services.AddScoped<IBulkProcessor>(new LegacyProcessorSource(connectionString).Create);
 
             return services;
         }
@@ -52,6 +60,22 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             {
                 options.UseConsoleLogging(configureLogging);
             }
+        }
+
+        /// <summary>
+        /// Holds the connection string for the scoped factory delegate. A lambda would capture it in a compiler-generated
+        /// closure that the debugger shows; this type hides it from debugger views and <see cref="ToString"/>.
+        /// </summary>
+        [DebuggerDisplay("SQL Server processor source")]
+        private sealed class LegacyProcessorSource(string connectionString)
+        {
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly string _connectionString = connectionString;
+
+            public IBulkProcessor Create(IServiceProvider services) =>
+                services.GetRequiredService<IBulkProcessorFactory>().Create(SqlServerProvider.Name, _connectionString);
+
+            public override string ToString() => "SQL Server processor source";
         }
     }
 }

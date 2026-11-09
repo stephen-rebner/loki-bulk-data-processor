@@ -26,8 +26,8 @@ contract test project and the Oracle test project are added in steps 5-8.
 LokiBulkDataProcessor.sln
 LokiBulkDataProcessor.Core/                Package LokiBulkDataProcessor.Core (RootNamespace Loki.BulkDataProcessor).
 │                                          No database driver. IVT only to UnitTests.
-├── IBulkProcessor.cs                      Public: per-instance settings + SaveAsync x5 (models, DataTable, reader,
-│                                          reader+sourceName, JSON), all with an optional CancellationToken
+├── IBulkProcessor.cs                      Public: per-instance settings + SaveAsync x6 (models, DataTable, reader,
+│                                          reader+sourceName, JSON, JSON+destination), all with an optional CancellationToken
 ├── IBulkProcessorFactory.cs               Public singleton: Create(providerName, connectionString), HasProvider, ProviderNames
 ├── Providers/                             Public provider SPI (namespace Loki.BulkDataProcessor.Providers):
 │                                          IBulkCopyProvider, IBulkWriter, ColumnMap, BulkWriteTarget, BulkWriteOptions,

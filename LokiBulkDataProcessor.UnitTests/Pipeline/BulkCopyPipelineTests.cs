@@ -201,8 +201,22 @@ public class BulkCopyPipelineTests
             .Returns(new InvalidOperationException("translated without inner"));
 
         var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("translated without inner");
+            .WithMessage("Bulk copy to 'Dest' failed. See InnerException for details.");
 
+        thrown.Which.InnerException.Should().BeSameAs(driverError);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ShouldNotEchoTheTranslatedOrDriverText_WhenTheProviderTranslationDropsTheOriginal()
+    {
+        var driverError = new InvalidOperationException("The given value 'secret-row-value' cannot be converted.");
+        _provider.WriteException = driverError;
+        _provider.Mock.Setup(p => p.TranslateException(It.IsAny<Exception>(), It.IsAny<BulkWriteTarget>()))
+            .Returns<Exception, BulkWriteTarget>((exception, _) => new InvalidOperationException(exception.Message));
+
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>();
+
+        thrown.Which.Message.Should().NotContain("secret-row-value");
         thrown.Which.InnerException.Should().BeSameAs(driverError);
     }
 

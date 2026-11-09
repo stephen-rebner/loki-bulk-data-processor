@@ -79,7 +79,7 @@ public class BulkProcessorIssueFixTests : BaseIntegrationTest
 
         var thrown = await action.Should().ThrowAsync<InvalidOperationException>();
         thrown.Which.InnerException.Should().BeOfType<SqlException>().Which.Number.Should().Be(547, "a FOREIGN KEY violation");
-        thrown.Which.Message.Should().Be(thrown.Which.InnerException.Message);
+        thrown.Which.Message.Should().Be("Bulk copy to 'Posts' failed (SQL Server error 547). See InnerException for details.");
     }
 
     [Test]

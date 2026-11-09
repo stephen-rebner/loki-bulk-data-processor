@@ -59,13 +59,13 @@ internal sealed class BulkCopyPipeline(IBulkCopyProvider provider, ILoggerFactor
             return;
         }
 
-        if (!HasInner(translated, exception))
-        {
-            translated = new InvalidOperationException(translated.Message, exception);
-        }
-
-        throw translated;
+        throw HasInner(translated, exception) ? translated : WrapWithFixedMessage(exception, target);
     }
+
+    /// <summary>The translation lost the original, so it is replaced by a fixed, data-free message that keeps the
+    /// original as InnerException. The translation's own message is not reused: it may echo driver text or row data.</summary>
+    private static InvalidOperationException WrapWithFixedMessage(Exception original, BulkWriteTarget target) =>
+        new(BulkCopyErrorMessages.BulkCopyFailed(target.TableName), original);
 
     private static bool HasInner(Exception translated, Exception original)
     {

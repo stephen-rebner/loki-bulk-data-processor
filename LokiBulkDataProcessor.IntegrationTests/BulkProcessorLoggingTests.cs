@@ -78,8 +78,26 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
             _loggerFactory.Entries.Should().Contain(entry =>
                 entry.LogLevel == LogLevel.Error &&
-                entry.Message.Contains("Bulk copy to NonExistentTable via SqlServer failed") &&
-                entry.Exception is InvalidOperationException);
+                entry.Message.Contains("Bulk copy to NonExistentTable via SqlServer failed with System.InvalidOperationException") &&
+                entry.Exception == null);
+        }
+
+        [Test]
+        public async Task BulkProcessor_ShouldKeepTheRowValueOutOfTheMessageAndLogs_WhenSqlServerRejectsTheValue()
+        {
+            const string rowValue = "secret-row-value";
+            using var table = new System.Data.DataTable();
+            table.Columns.Add("DateColumn", typeof(string));
+            table.Rows.Add(rowValue);
+
+            Func<Task> action = () => _bulkProcessorWithTestLogger.SaveAsync(table, nameof(TestDbContext.TestDbModels));
+
+            var thrown = await action.Should().ThrowAsync<InvalidOperationException>();
+            thrown.Which.Message.Should().NotContain(rowValue);
+            thrown.Which.InnerException.Should().NotBeNull();
+            thrown.Which.ToString().Should().Contain(rowValue, "the driver's error, with the value, is kept on InnerException (#15)");
+            _loggerFactory.Entries.Should().NotContain(entry =>
+                entry.Message.Contains(rowValue) || (entry.Exception != null && entry.Exception.ToString().Contains(rowValue)));
         }
 
         [Test]
