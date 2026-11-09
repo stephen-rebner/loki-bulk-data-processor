@@ -1,22 +1,25 @@
-﻿using Loki.BulkDataProcessor.Commands;
-using Loki.BulkDataProcessor.Commands.Factory;
-using Loki.BulkDataProcessor.Commands.Interfaces;
-using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.InternalDbOperations;
-using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
-using Loki.BulkDataProcessor.Mappings.InternalMapperStorage;
-using Loki.BulkDataProcessor.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Reflection;
-using AppContext = Loki.BulkDataProcessor.Context.AppContext;
+using Loki.BulkDataProcessor.Logging;
+using Loki.BulkDataProcessor.SqlServer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Loki.BulkDataProcessor.DependancyInjection
 {
+    /// <summary>The single-database SQL Server registration kept from 8.x.</summary>
     public static class ServiceCollectionExtension
     {
+        /// <summary>
+        /// Registers Loki with the SQL Server provider and a scoped <see cref="IBulkProcessor"/> for
+        /// <paramref name="connectionString"/>. Each DI scope gets its own processor and settings.
+        /// Also registers <see cref="IBulkProcessorFactory"/>.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="connectionString">SQL Server connection string used by every scoped processor.</param>
+        /// <param name="mappingAssembly">Assembly containing ModelMapping/DataMapping classes, or null for none.</param>
+        /// <param name="loggerFactory">Logger factory used by Loki only. It is not registered for the rest of the app.</param>
+        /// <param name="configureLogging">Loki-private console logging, used when <paramref name="loggerFactory"/> is null.</param>
         public static IServiceCollection AddLokiBulkDataProcessor(
             this IServiceCollection services,
             string connectionString,
@@ -24,63 +27,31 @@ namespace Loki.BulkDataProcessor.DependancyInjection
             ILoggerFactory loggerFactory = null,
             Action<LokiLoggingOptions> configureLogging = null)
         {
-            // Setup logging only if explicitly requested
-            if (loggerFactory == null)
-            {
-                // Only configure logging if explicitly requested
-                if (configureLogging != null)
-                {
-                    var loggingOptions = new LokiLoggingOptions();
-                    configureLogging.Invoke(loggingOptions);
+            ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
-                    services.AddLogging(builder =>
-                    {
-                        if (loggingOptions.EnableConsoleLogging)
-                        {
-                            builder.AddConsole();
-                        }
-                        builder.SetMinimumLevel(loggingOptions.MinimumLogLevel);
-                    });
-                }
-                else
-                {
-                    // Register NullLoggerFactory when no logger is configured
-                    services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-                }
-            }
-            else
-            {
-                // Use the provided logger factory
-                services.AddSingleton(loggerFactory);
-            }
+            services.AddLokiBulkDataProcessor(options => Configure(options, mappingAssembly, loggerFactory, configureLogging))
+                .AddSqlServer();
 
-            // Register dependencies
-            services.AddSingleton<IAppContext, AppContext>(_ =>
-                new AppContext(connectionString, new ModelMappings(mappingAssembly), new DataMappings(mappingAssembly)));
-
-            services.AddTransient<ILokiDbConnection, LokiDbConnection>(provider =>
-                new LokiDbConnection(provider.GetRequiredService<IAppContext>()));
-
-            // Register command implementations
-            services.AddScoped<IBulkModelsCommand, BulkCopyModelsCommand>();
-            services.AddScoped<IBulkDataTableCommand, BulkCopyDataTableCommand>();
-            services.AddScoped<IBulkCopyFromDataReaderCommand, BulkCopyFromDataReaderCommand>();
-
-            // Register the command factory with logger support
-            services.AddScoped<ICommandFactory, CommandFactory>(provider =>
-                new CommandFactory(
-                    provider.GetRequiredService<IAppContext>(),
-                    provider.GetRequiredService<ILokiDbConnection>(),
-                    provider.GetRequiredService<ILoggerFactory>()));
-
-            // Register BulkProcessor with logger support
-            services.AddScoped<IBulkProcessor, BulkProcessor>((provider) =>
-                new BulkProcessor(
-                    provider.GetRequiredService<ICommandFactory>(),
-                    provider.GetRequiredService<IAppContext>(),
-                    provider.GetRequiredService<ILoggerFactory>().CreateLogger<BulkProcessor>()));
+            services.AddScoped<IBulkProcessor>(sp =>
+                sp.GetRequiredService<IBulkProcessorFactory>().Create(SqlServerProvider.Name, connectionString));
 
             return services;
+        }
+
+        private static void Configure(LokiBulkDataProcessorOptions options, Assembly mappingAssembly,
+            ILoggerFactory loggerFactory, Action<LokiLoggingOptions> configureLogging)
+        {
+            if (mappingAssembly is not null)
+            {
+                options.AddMappingsFrom(mappingAssembly);
+            }
+
+            options.LoggerFactory = loggerFactory;
+
+            if (configureLogging is not null)
+            {
+                options.UseConsoleLogging(configureLogging);
+            }
         }
     }
 }

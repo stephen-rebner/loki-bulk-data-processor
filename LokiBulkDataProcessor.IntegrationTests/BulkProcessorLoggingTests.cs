@@ -1,10 +1,12 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor;
-using Loki.BulkDataProcessor.Context.Interfaces;
-using Loki.BulkDataProcessor.Commands.Factory;
+using Loki.BulkDataProcessor.DependancyInjection;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
@@ -16,26 +18,29 @@ namespace LokiBulkDataProcessor.IntegrationTests
 {
     public class BulkProcessorLoggingTests : BaseIntegrationTest
     {
-        private TestLogger<BulkProcessor> _testLogger;
+        private TestLoggerFactory _loggerFactory;
+        private ServiceProvider _loggingServiceProvider;
         private IBulkProcessor _bulkProcessorWithTestLogger;
 
         [SetUp]
-        public async Task TestSetup()
+        public void CreateProcessorWithTestLogger()
         {
-            await base.TestSetup();
-            
-            // Create a test logger and reconfigure the BulkProcessor to use it
-            _testLogger = new TestLogger<BulkProcessor>();
-            var commandFactory = ServiceProvider.GetService<ICommandFactory>();
-            var appContext = ServiceProvider.GetService<IAppContext>();
-            _bulkProcessorWithTestLogger = new BulkProcessor(commandFactory, appContext, _testLogger);
-            _bulkProcessorWithTestLogger.ConnectionString = GetConnectionString();
+            _loggerFactory = new TestLoggerFactory();
+            var services = new ServiceCollection();
+            services.AddLokiBulkDataProcessor(GetConnectionString(), Assembly.GetExecutingAssembly(), _loggerFactory);
+            _loggingServiceProvider = services.BuildServiceProvider();
+            _bulkProcessorWithTestLogger = _loggingServiceProvider.CreateScope().ServiceProvider.GetRequiredService<IBulkProcessor>();
+        }
+
+        [TearDown]
+        public async Task DisposeLoggingServiceProvider()
+        {
+            await _loggingServiceProvider.DisposeAsync();
         }
 
         [Test]
         public async Task BulkProcessor_ShouldLogInformation_WhenSavingData()
         {
-            // Arrange
             var models = new List<TestDbModel>
             {
                 TestObjectFactory.TestDbModelObject()
@@ -45,82 +50,76 @@ namespace LokiBulkDataProcessor.IntegrationTests
                     .WithBoolColumnValue(true)
                     .Build()
             };
-            
-            // Act
+
             await _bulkProcessorWithTestLogger.SaveAsync(models, nameof(TestDbContext.TestDbModels));
-            
-            // Assert
-            _testLogger.LogEntries.Should().Contain(entry => 
-                entry.LogLevel == LogLevel.Information && 
-                entry.Message.Contains("Starting bulk copy of 1 models to table TestDbModels"));
-            
-            _testLogger.LogEntries.Should().Contain(entry => 
-                entry.LogLevel == LogLevel.Information && 
-                entry.Message.Contains("Successfully copied 1 models to table TestDbModels"));
+
+            _loggerFactory.Contains(LogLevel.Information, "Starting bulk copy to TestDbModels via SqlServer").Should().BeTrue();
+            _loggerFactory.Contains(LogLevel.Information, "Completed bulk copy to TestDbModels via SqlServer").Should().BeTrue();
         }
-        
+
         [Test]
         public void BulkProcessor_ShouldLogPropertyChanges_WhenPropertiesAreModified()
         {
-            // Act
             _bulkProcessorWithTestLogger.BatchSize = 1000;
             _bulkProcessorWithTestLogger.Timeout = 120;
-            
-            // Assert
-            _testLogger.LogEntries.Should().Contain(entry => 
-                entry.LogLevel == LogLevel.Information && 
-                entry.Message.Contains("Setting BatchSize"));
-            
-            _testLogger.LogEntries.Should().Contain(entry => 
-                entry.LogLevel == LogLevel.Information && 
-                entry.Message.Contains("Setting Timeout"));
+
+            _loggerFactory.Contains(LogLevel.Information, "Setting BatchSize").Should().BeTrue();
+            _loggerFactory.Contains(LogLevel.Information, "Setting Timeout").Should().BeTrue();
         }
-        
+
         [Test]
         public void BulkProcessor_ShouldLogError_WhenExceptionOccurs()
         {
-            // Arrange - create invalid scenario by using non-existent table
             var models = new List<TestDbModel> { new() { Id = 1 } };
             const string nonExistentTable = "NonExistentTable";
-            
-            // Act & Assert
-            Assert.ThrowsAsync<InvalidOperationException>(async () => 
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await _bulkProcessorWithTestLogger.SaveAsync(models, nonExistentTable));
-            
-            _testLogger.LogEntries.Should().Contain(entry => 
-                entry.LogLevel == LogLevel.Error && 
-                entry.Message.Contains($"Error during bulk copy"));
-           
+
+            _loggerFactory.Entries.Should().Contain(entry =>
+                entry.LogLevel == LogLevel.Error &&
+                entry.Message.Contains("Bulk copy to NonExistentTable via SqlServer failed") &&
+                entry.Exception is InvalidOperationException);
+        }
+
+        [Test]
+        public async Task BulkProcessor_ShouldNeverLogTheConnectionString()
+        {
+            var models = new List<TestDbModel> { new() { Id = 1, StringColumn = "x" } };
+            await _bulkProcessorWithTestLogger.SaveAsync(models, nameof(TestDbContext.TestDbModels));
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await _bulkProcessorWithTestLogger.SaveAsync(models, "NonExistentTable"));
+
+            _loggerFactory.Entries.Should().NotContain(entry =>
+                entry.Message.Contains(TestPassword) || (entry.Exception != null && entry.Exception.ToString().Contains(TestPassword)));
         }
     }
-    
-    // Simple test logger implementation that captures log entries
-    public class TestLogger<T> : ILogger<T>
+
+    /// <summary>Captures every entry written through the loggers it creates.</summary>
+    public sealed class TestLoggerFactory : ILoggerFactory
     {
-        public List<LogEntry> LogEntries { get; } = [];
-        
-        public IDisposable BeginScope<TState>(TState state) => default;
-        
-        public bool IsEnabled(LogLevel logLevel) => true;
-        
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        private readonly ConcurrentQueue<LogEntry> _entries = new();
+
+        public IReadOnlyList<LogEntry> Entries => _entries.ToArray();
+
+        public ILogger CreateLogger(string categoryName) => new TestLogger(_entries);
+
+        public void AddProvider(ILoggerProvider provider) { }
+
+        public void Dispose() { }
+
+        public bool Contains(LogLevel level, string fragment) =>
+            Entries.Any(entry => entry.LogLevel == level && entry.Message.Contains(fragment, StringComparison.Ordinal));
+
+        public sealed record LogEntry(LogLevel LogLevel, string Message, Exception Exception);
+
+        private sealed class TestLogger(ConcurrentQueue<LogEntry> entries) : ILogger
         {
-            var message = formatter(state, exception);
-            LogEntries.Add(new LogEntry
-            {
-                LogLevel = logLevel,
-                EventId = eventId,
-                Message = message,
-                Exception = exception
-            });
-        }
-        
-        public class LogEntry
-        {
-            public LogLevel LogLevel { get; set; }
-            public EventId EventId { get; set; }
-            public string Message { get; set; }
-            public Exception Exception { get; set; }
+            public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) =>
+                entries.Enqueue(new LogEntry(logLevel, formatter(state, exception), exception));
         }
     }
 }

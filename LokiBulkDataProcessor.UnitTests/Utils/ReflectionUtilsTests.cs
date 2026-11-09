@@ -74,6 +74,28 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
+        public void GetPublicPropertyNames_ShouldSkipStaticPropertiesAndIndexers()
+        {
+            string[] actual = typeof(ModelWithStaticPropertyAndIndexer).GetPublicPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithStaticPropertyAndIndexer.Id));
+        }
+
+        [Test]
+        public void GetSkippedPropertyNames_ShouldListInstancePropertiesWithoutAPublicGetterAndSetter()
+        {
+            string[] actual = typeof(ModelWithGetOnlyProperties).GetSkippedPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithGetOnlyProperties.Reference), nameof(ModelWithGetOnlyProperties.Created));
+        }
+
+        [Test]
+        public void GetSkippedPropertyNames_ShouldNotListStaticPropertiesOrIndexers()
+        {
+            typeof(ModelWithStaticPropertyAndIndexer).GetSkippedPropertyNames().Should().BeEmpty();
+        }
+
+        [Test]
         public void FindTypesDerivedFrom_ShouldReturnModelObject_DerivedFromAbstactModel()
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
@@ -114,6 +136,13 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         private class ModelWithOnlyGetOnlyProperty
         {
             public int Id => 1;
+        }
+
+        private class ModelWithStaticPropertyAndIndexer
+        {
+            public int Id { get; set; }
+            public static int Shared { get; set; }
+            public int this[int index] { get => index; set { } }
         }
 
         private class ModelWithNonPublicAccessors
