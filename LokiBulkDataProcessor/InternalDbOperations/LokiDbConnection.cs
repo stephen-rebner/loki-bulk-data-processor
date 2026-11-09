@@ -2,7 +2,7 @@
 using Loki.BulkDataProcessor.Context.Interfaces;
 using Loki.BulkDataProcessor.InternalDbOperations.Interfaces;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 namespace Loki.BulkDataProcessor.InternalDbOperations
 {
@@ -120,12 +120,17 @@ namespace Loki.BulkDataProcessor.InternalDbOperations
         {
             if(_appContext.IsUsingExternalTransaction)
             {
-                _sqlConnection = (SqlConnection)_appContext.ExternalTransaction.Connection;
+                _sqlConnection = AdoptExternalTransaction(_appContext.ExternalTransaction).Connection;
             }
             else
             {
                 Open();
             }
         }
+
+        private static SqlTransaction AdoptExternalTransaction(IDbTransaction transaction) =>
+            transaction as SqlTransaction ?? throw new ArgumentException(
+                $"A SQL Server bulk processor requires a Microsoft.Data.SqlClient.SqlTransaction but received {transaction.GetType().FullName}. System.Data.SqlClient is not supported from 9.0.",
+                nameof(IBulkProcessor.Transaction));
     }
 }

@@ -18,7 +18,7 @@
       loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
     </PackageTags>
     <PackageReleaseNotes><![CDATA[
-        9.0.0 (in progress): Testcontainers.MsSql is no longer a dependency of the library package, so it and its Docker client tree no longer flow to consumers (#17). See the README "Upgrade Guide".
+        9.0.0 (in progress): Testcontainers.MsSql is no longer a dependency of the library package, so it and its Docker client tree no longer flow to consumers (#17). The driver is now Microsoft.Data.SqlClient 6.1.8 instead of the deprecated System.Data.SqlClient, so EF Core transactions can be passed to IBulkProcessor.Transaction; Encrypt=true is the new default and System.Data.SqlClient transactions are rejected with an ArgumentException (#14). Microsoft.Data.SqlClient brings its own dependencies (Azure.Identity, Microsoft.Identity.Client, SNI runtime) for Entra ID authentication. See the README "Upgrade Guide".
 ]]></PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
@@ -31,6 +31,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
   </ItemGroup>
 </Project>

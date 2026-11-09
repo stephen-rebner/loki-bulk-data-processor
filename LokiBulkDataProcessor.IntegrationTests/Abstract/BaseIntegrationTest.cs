@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using FluentAssertions;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.DependancyInjection;
 using Testcontainers.MsSql;

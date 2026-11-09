@@ -40,6 +40,7 @@ Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 | ≤ 6.0.0      | Web API execution failed after the first request | **Upgrade to v7.0.0+** ✅ |
 | 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
 | 7.0.1        | Project upgraded to .NET 10                       | **No action required unless you target an earlier runtime** ✅ |
+| 8.x          | 9.0.0: driver is now `Microsoft.Data.SqlClient` 6.1.8 (was the deprecated `System.Data.SqlClient`), so EF Core transactions (`GetDbTransaction()`) are accepted. `Microsoft.Data.SqlClient` defaults to `Encrypt=true`. A `System.Data.SqlClient` transaction now throws `ArgumentException` | **Change `using System.Data.SqlClient` to `using Microsoft.Data.SqlClient` wherever you create connections/transactions for Loki. For dev servers with self-signed certificates add `TrustServerCertificate=true` to the connection string; do not turn encryption off** ⚠️ |
 
 ## Documentation
 
