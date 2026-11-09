@@ -62,6 +62,22 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
+        public async Task SaveAsync_ShouldSaveModelsAndIgnoreGetOnlyProperties_WhenModelHasAGetOnlyProperty()
+        {
+            var models = new List<TestDbModelWithGetOnlyProperty>
+            {
+                new() { Id = 1, StringColumn = "String Value 1", BoolColumn = true, DateColumn = new DateTime(2020, 01, 26) },
+                new() { Id = 2, StringColumn = "String Value 2", BoolColumn = false, DateColumn = new DateTime(2020, 01, 27), NullableBoolColumn = true }
+            };
+
+            await BulkProcessor.SaveAsync(models, nameof(TestDbContext.TestDbModels));
+
+            var results = TestDbContext.TestDbModels.OrderBy(x => x.Id).ToList();
+
+            results.Should().BeEquivalentTo(models, options => options.ExcludingMissingMembers());
+        }
+
+        [Test]
         public async Task SaveAsync_ShouldSaveDataTableSuccessfully_WhenTableHasNoForeignKey()
         {
             using var datatable = TestObjectFactory.NewTestDataTable()

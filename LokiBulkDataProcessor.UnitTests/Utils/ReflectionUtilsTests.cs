@@ -40,6 +40,40 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenItHasNoSetter()
+        {
+            string[] actual = typeof(ModelWithGetOnlyProperties).GetPublicPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithGetOnlyProperties.Id));
+        }
+
+        [Test]
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenItHasNoGetter()
+        {
+            string[] actual = typeof(ModelWithSetOnlyProperty).GetPublicPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithSetOnlyProperty.Id));
+        }
+
+        [Test]
+        public void GetPublicPropertyNames_ShouldSkipProperty_WhenAnAccessorIsNotPublic()
+        {
+            string[] actual = typeof(ModelWithNonPublicAccessors).GetPublicPropertyNames();
+
+            actual.Should().BeEquivalentTo(nameof(ModelWithNonPublicAccessors.Id));
+        }
+
+        [Test]
+        public void GetPublicPropertyNames_ShouldThrow_WhenAllPropertiesAreGetOnly()
+        {
+            Action action = () => typeof(ModelWithOnlyGetOnlyProperty).GetPublicPropertyNames();
+
+            action.Should()
+              .Throw<ArgumentException>()
+              .WithMessage("The data model you passed contains no public properties (Parameter 'publicProperties')");
+        }
+
+        [Test]
         public void FindTypesDerivedFrom_ShouldReturnModelObject_DerivedFromAbstactModel()
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
@@ -61,6 +95,33 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
             var result = executingAssembly.FindTypesDerivedFrom(typeof(ValidModelObject));
 
             result.Should().BeEmpty();
+        }
+
+        private class ModelWithGetOnlyProperties
+        {
+            public int Id { get; set; }
+            public string Reference => $"ORD-{Id}";
+            public string Created { get; } = "now";
+        }
+
+        private class ModelWithSetOnlyProperty
+        {
+            private string _secret;
+            public int Id { get; set; }
+            public string Secret { set => _secret = value; }
+        }
+
+        private class ModelWithOnlyGetOnlyProperty
+        {
+            public int Id => 1;
+        }
+
+        private class ModelWithNonPublicAccessors
+        {
+            public int Id { get; set; }
+            public string PrivateSetter { get; private set; }
+            public string PrivateGetter { private get; set; }
+            public string InternalSetter { get; internal set; }
         }
     }
 }

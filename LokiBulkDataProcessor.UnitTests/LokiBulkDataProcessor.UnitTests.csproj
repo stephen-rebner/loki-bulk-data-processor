@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LokiBulkDataProcessor.Core\LokiBulkDataProcessor.Core.csproj" />
     <ProjectReference Include="..\LokiBulkDataProcessor\LokiBulkDataProcessor.csproj" />
   </ItemGroup>
 </Project>

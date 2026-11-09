@@ -2,8 +2,8 @@
   <Import Project="..\build\Package.props" />
   <PropertyGroup>
     <AssemblyName>LokiBulkDataProcessor</AssemblyName>
+    <PackageId>LokiBulkDataProcessor</PackageId>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Summary>
       Ultra-fast bulk insert library for .NET with Web API-safe multi-execution support. Handles models, DataTables, IDataReaders, JSON, logging, and mapping.
     </Summary>
@@ -18,7 +18,7 @@
       loki bulk data processor sql sqlserver bulk-copy data-import datareader datatable json-stream structured-logging etl aspnetcore dependency-injection high-performance csharp stephen-rebner
     </PackageTags>
     <PackageReleaseNotes><![CDATA[
-        9.0.0 (in progress): Testcontainers.MsSql is no longer a dependency of the library package, so it and its Docker client tree no longer flow to consumers (#17). The driver is now Microsoft.Data.SqlClient 6.1.8 instead of the deprecated System.Data.SqlClient, so EF Core transactions can be passed to IBulkProcessor.Transaction; Encrypt=true is the new default and System.Data.SqlClient transactions are rejected with an ArgumentException (#14). Microsoft.Data.SqlClient brings its own dependencies (Azure.Identity, Microsoft.Identity.Client, SNI runtime) for Entra ID authentication. See the README "Upgrade Guide".
+        9.0.0 (in progress): Testcontainers.MsSql is no longer a dependency of the library package, so it and its Docker client tree no longer flow to consumers (#17). The driver is now Microsoft.Data.SqlClient 6.1.8 instead of the deprecated System.Data.SqlClient, so EF Core transactions can be passed to IBulkProcessor.Transaction; Encrypt=true is the new default and System.Data.SqlClient transactions are rejected with an ArgumentException (#14). Microsoft.Data.SqlClient brings its own dependencies (Azure.Identity, Microsoft.Identity.Client, SNI runtime) for Entra ID authentication. The mapping API, IBulkProcessor and LokiLoggingOptions moved to the new LokiBulkDataProcessor.Core package (same namespaces, type forwarders kept); the empty public AssemblyInfo class is removed and the assembly version is now 9.0.0.0. Models with get-only properties no longer throw NullReferenceException; those properties are skipped and not saved (#19). See the README "Upgrade Guide".
 ]]></PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
@@ -27,10 +27,28 @@
     <None Remove="Repository\**" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LokiBulkDataProcessor.Core\LokiBulkDataProcessor.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="FastMember" Version="1.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.8" />
+  </ItemGroup>
+  <!-- Pin the packed dependency on LokiBulkDataProcessor.Core to exactly this version ([9.0.0]). A ProjectReference
+       otherwise packs as an open-ended ">= 9.0.0". The exact pin is needed while this assembly uses Core internals
+       through InternalsVisibleTo (no compatibility contract). Step 4 relaxes it to [9.0.0, 10.0.0) once only the
+       public provider SPI is used. -->
+  <Target Name="PinCoreDependencyVersion" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Condition="'%(Filename)' == 'LokiBulkDataProcessor.Core'">
+        <ProjectVersion>[$(Version)]</ProjectVersion>
+      </_ProjectReferencesWithVersions>
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <InternalsVisibleTo Include="LokiBulkDataProcessor.UnitTests" />
+    <InternalsVisibleTo Include="LokiBulkDataProcessor.IntegrationTests" />
   </ItemGroup>
 </Project>
