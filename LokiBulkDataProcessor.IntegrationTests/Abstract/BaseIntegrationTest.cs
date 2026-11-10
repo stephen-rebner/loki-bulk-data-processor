@@ -16,6 +16,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
     {
         private const string TestDbName = "IntegrationTestsDb";
 
+        protected const string TestPassword = "Pwd12345678!";
+
         private MsSqlContainer MsSqlContainer;
 
         protected TestDbContext TestDbContext;
@@ -77,7 +79,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
         private MsSqlContainer InitContainerTest()
         {
             MsSqlContainer = new MsSqlBuilder()
-                .WithPassword("Pwd12345678!")
+                .WithPassword(TestPassword)
                 .Build();
 
             return MsSqlContainer;
@@ -107,6 +109,15 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             var numberOfRecords = await TestDbContext.Set<T>().CountAsync();
 
             numberOfRecords.Should().Be(0);
+        }
+
+        protected IBulkProcessorFactory BulkProcessorFactory => ServiceProvider.GetRequiredService<IBulkProcessorFactory>();
+
+        protected async Task<SqlConnection> OpenExternalConnectionAsync()
+        {
+            var sqlConnection = new SqlConnection(GetConnectionString());
+            await sqlConnection.OpenAsync();
+            return sqlConnection;
         }
 
         protected string GetConnectionString()
