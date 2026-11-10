@@ -70,7 +70,7 @@ public class BulkProcessorSecurityTests
     }
 
     [Test]
-    public void BulkProcessor_ShouldHideEveryFieldHoldingTheConnectionStringFromTheDebugger()
+    public void BulkProcessor_ShouldHideEveryConnectionStringFieldFromTheDebugger_WhenCreatedWithAConnectionString()
     {
         BulkProcessor processor = CreateProcessor();
 
@@ -83,13 +83,13 @@ public class BulkProcessorSecurityTests
     }
 
     [Test]
-    public void BulkProcessor_ShouldHaveADebuggerDisplayShowingOnlyTheProviderName()
+    public void BulkProcessor_ShouldShowOnlyTheProviderName_WhenViewedInTheDebugger()
     {
         typeof(BulkProcessor).GetCustomAttribute<DebuggerDisplayAttribute>().Value.Should().Be("ProviderName = {ProviderName}");
     }
 
     [Test]
-    public void BulkProcessor_ToString_ShouldNotContainTheConnectionString()
+    public void ToString_ShouldNotContainTheConnectionString_WhenTheProcessorHoldsOne()
     {
         CreateProcessor().ToString().Should().Be("BulkProcessor (FakeDb)").And.NotContain("secret").And.NotContain("Server");
     }

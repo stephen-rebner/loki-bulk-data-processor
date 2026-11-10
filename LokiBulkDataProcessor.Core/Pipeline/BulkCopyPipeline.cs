@@ -53,13 +53,31 @@ internal sealed class BulkCopyPipeline(IBulkCopyProvider provider, ILoggerFactor
     /// Returns (so the caller rethrows the original) when the provider returned null or the same exception.</summary>
     private void ThrowTranslated(Exception exception, BulkWriteTarget target)
     {
-        Exception translated = provider.TranslateException(exception, target);
+        Exception translated = TranslateOrWrap(exception, target);
         if (translated is null || ReferenceEquals(translated, exception))
         {
             return;
         }
 
         throw HasInner(translated, exception) ? translated : WrapWithFixedMessage(exception, target);
+    }
+
+    /// <summary>
+    /// Asks the provider to translate the error. If the translator itself throws, its failure is logged (type only) and the
+    /// original is wrapped with the fixed, data-free message instead, so the driver error is never lost (#15).
+    /// </summary>
+    private Exception TranslateOrWrap(Exception original, BulkWriteTarget target)
+    {
+        try
+        {
+            return provider.TranslateException(original, target);
+        }
+        catch (Exception translatorException)
+        {
+            _logger.LogError("Translating the bulk copy error failed with {ExceptionType}; the original is rethrown as InnerException",
+                translatorException.GetType().FullName);
+            return WrapWithFixedMessage(original, target);
+        }
     }
 
     /// <summary>The translation lost the original, so it is replaced by a fixed, data-free message that keeps the

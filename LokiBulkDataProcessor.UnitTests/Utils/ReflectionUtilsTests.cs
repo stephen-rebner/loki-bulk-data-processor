@@ -74,7 +74,7 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
-        public void GetPublicPropertyNames_ShouldSkipStaticPropertiesAndIndexers()
+        public void GetPublicPropertyNames_ShouldSkipStaticPropertiesAndIndexers_WhenTheTypeHasThem()
         {
             string[] actual = typeof(ModelWithStaticPropertyAndIndexer).GetPublicPropertyNames();
 
@@ -82,7 +82,7 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
-        public void GetSkippedPropertyNames_ShouldListInstancePropertiesWithoutAPublicGetterAndSetter()
+        public void GetSkippedPropertyNames_ShouldListInstanceProperties_WhenTheyLackAPublicGetterOrSetter()
         {
             string[] actual = typeof(ModelWithGetOnlyProperties).GetSkippedPropertyNames();
 
@@ -90,7 +90,7 @@ namespace LokiBulkDataProcessor.UnitTests.Utils
         }
 
         [Test]
-        public void GetSkippedPropertyNames_ShouldNotListStaticPropertiesOrIndexers()
+        public void GetSkippedPropertyNames_ShouldNotListStaticPropertiesOrIndexers_WhenTheTypeHasThem()
         {
             typeof(ModelWithStaticPropertyAndIndexer).GetSkippedPropertyNames().Should().BeEmpty();
         }

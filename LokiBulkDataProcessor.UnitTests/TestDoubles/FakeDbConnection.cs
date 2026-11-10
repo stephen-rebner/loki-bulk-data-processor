@@ -15,6 +15,9 @@ internal sealed class FakeDbConnection : DbConnection
 
     public Exception BeginTransactionException { get; set; }
 
+    /// <summary>Thrown by Dispose (after it is counted) when set.</summary>
+    public Exception DisposeException { get; set; }
+
     /// <summary>When set, OpenAsync waits for it, so a test can act while a call is in flight.</summary>
     public Task OpenGate { get; set; }
 
@@ -85,5 +88,9 @@ internal sealed class FakeDbConnection : DbConnection
         }
 
         base.Dispose(disposing);
+        if (disposing && DisposeException is not null)
+        {
+            throw DisposeException;
+        }
     }
 }

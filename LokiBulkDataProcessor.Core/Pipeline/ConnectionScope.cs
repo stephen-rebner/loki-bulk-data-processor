@@ -61,7 +61,11 @@ internal sealed class ConnectionScope : IAsyncDisposable
         }
     }
 
-    /// <summary>Disposes Loki's own transaction and connection; does nothing for a caller-owned transaction.</summary>
+    /// <summary>
+    /// Disposes Loki's own transaction and then its connection; does nothing for a caller-owned transaction. Never throws:
+    /// it runs under <c>await using</c> while a write or commit error may be in flight, and that error must surface. On the
+    /// success path the commit has already happened, so a dispose failure is logged and the call still succeeds.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         if (!OwnsTransaction)
@@ -69,13 +73,21 @@ internal sealed class ConnectionScope : IAsyncDisposable
             return;
         }
 
+        await DisposeAndLogFailureAsync(Transaction, "transaction").ConfigureAwait(false);
+        await DisposeAndLogFailureAsync(Connection, "connection").ConfigureAwait(false);
+    }
+
+    /// <summary>Logs the exception TYPE only, never the exception object: driver messages can echo row values (CWE-532).</summary>
+    private async ValueTask DisposeAndLogFailureAsync(IAsyncDisposable resource, string resourceName)
+    {
         try
         {
-            await Transaction.DisposeAsync().ConfigureAwait(false);
+            await resource.DisposeAsync().ConfigureAwait(false);
         }
-        finally
+        catch (Exception disposeException)
         {
-            await Connection.DisposeAsync().ConfigureAwait(false);
+            _logger.LogError("Disposing the internal {Resource} failed with {ExceptionType}; the error was not rethrown",
+                resourceName, disposeException.GetType().FullName);
         }
     }
 

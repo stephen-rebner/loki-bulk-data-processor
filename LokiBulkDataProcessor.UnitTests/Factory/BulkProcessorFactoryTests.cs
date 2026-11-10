@@ -24,7 +24,7 @@ public class BulkProcessorFactoryTests
     }
 
     [Test]
-    public void Create_ShouldReturnANewInstanceWithItsOwnSettings_OnEveryCall()
+    public void Create_ShouldReturnANewInstanceWithItsOwnSettings_WhenCalledRepeatedly()
     {
         BulkProcessorFactory factory = FactoryFor("SqlServer");
 
@@ -87,7 +87,7 @@ public class BulkProcessorFactoryTests
     }
 
     [Test]
-    public void HasProvider_ShouldMatchIgnoringCase_AndBeFalseForUnknownOrNullNames()
+    public void HasProvider_ShouldMatchIgnoringCaseAndReturnFalse_WhenTheNameIsUnknownOrNull()
     {
         BulkProcessorFactory factory = FactoryFor("SqlServer");
 
@@ -97,7 +97,7 @@ public class BulkProcessorFactoryTests
     }
 
     [Test]
-    public void ProviderNames_ShouldListEveryRegisteredProvider()
+    public void ProviderNames_ShouldListEveryRegisteredProvider_WhenSeveralAreRegistered()
     {
         FactoryFor("SqlServer", "Oracle").ProviderNames.Should().BeEquivalentTo("SqlServer", "Oracle");
     }

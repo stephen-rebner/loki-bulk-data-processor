@@ -38,7 +38,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public void ProviderName_ShouldBeTheProvidersName()
+        public void ProviderName_ShouldReturnTheProvidersName_WhenTheProcessorIsCreated()
         {
             _bulkProcessor.ProviderName.Should().Be("FakeDb");
         }
@@ -119,7 +119,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public void Settings_ShouldBeIndependent_BetweenTwoProcessors()
+        public void Settings_ShouldNotAffectAnotherProcessor_WhenChangedOnOne()
         {
             IBulkProcessor other = CreateProcessor(MappingRegistry.Empty);
             GivenTheProcessorUsesAnExternalTransaction();
@@ -331,7 +331,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldUseTheJsonTableNameAsDestinationAndMappingKey()
+        public async Task SaveAsync_ShouldUseTheJsonTableNameAsDestinationAndMappingKey_WhenNoDestinationIsGiven()
         {
             await _bulkProcessor.SaveAsync(JsonStream("TableB"));
 
@@ -341,7 +341,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldDisposeTheReadersItCreates()
+        public async Task SaveAsync_ShouldDisposeTheReadersItCreates_WhenTheWriteSucceeds()
         {
             await _bulkProcessor.SaveAsync(ModelObjects, TestDestinationTableName);
             await _bulkProcessor.SaveAsync(GivenADataTableWithRows("ColA"), TestDestinationTableName);
@@ -362,7 +362,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldNotDisposeTheCallersReader()
+        public async Task SaveAsync_ShouldNotDisposeTheReader_WhenTheCallerSuppliedIt()
         {
             var reader = new Mock<IDataReader>();
             reader.SetupGet(r => r.FieldCount).Returns(1);
@@ -375,7 +375,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldPassTheCancellationTokenToTheWriter()
+        public async Task SaveAsync_ShouldPassTheCancellationTokenToTheWriter_WhenOneIsGiven()
         {
             using var cancellation = new CancellationTokenSource();
 
@@ -385,7 +385,7 @@ namespace LokiBulkDataProcessor.UnitTests
         }
 
         [Test]
-        public async Task SaveAsync_ShouldLogStartAndCompletionWithoutTheConnectionString()
+        public async Task SaveAsync_ShouldLogStartAndCompletionWithoutTheConnectionString_WhenTheWriteSucceeds()
         {
             await _bulkProcessor.SaveAsync(ModelObjects, TestDestinationTableName);
 

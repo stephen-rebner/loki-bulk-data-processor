@@ -13,6 +13,9 @@ internal sealed class FakeDbTransaction(DbConnection connection) : DbTransaction
 
     public Exception RollbackException { get; set; }
 
+    /// <summary>Thrown by Dispose (after it is counted) when set.</summary>
+    public Exception DisposeException { get; set; }
+
     public int CommitCount { get; private set; }
 
     public int RollbackCount { get; private set; }
@@ -52,5 +55,9 @@ internal sealed class FakeDbTransaction(DbConnection connection) : DbTransaction
         }
 
         base.Dispose(disposing);
+        if (disposing && DisposeException is not null)
+        {
+            throw DisposeException;
+        }
     }
 }

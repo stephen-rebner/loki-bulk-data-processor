@@ -101,7 +101,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         }
 
         [Test]
-        public async Task BulkProcessor_ShouldNeverLogTheConnectionString()
+        public async Task BulkProcessor_ShouldNeverLogTheConnectionString_WhenSavesSucceedOrFail()
         {
             var models = new List<TestDbModel> { new() { Id = 1, StringColumn = "x" } };
             await _bulkProcessorWithTestLogger.SaveAsync(models, nameof(TestDbContext.TestDbModels));

@@ -13,7 +13,7 @@ namespace LokiBulkDataProcessor.UnitTests.Mappings;
 public class MappingRegistryTests
 {
     [Test]
-    public void Registry_ShouldFindModelAndDataMappingsByKey()
+    public void Registry_ShouldFindModelAndDataMappingsByKey_WhenTheyAreRegistered()
     {
         MappingRegistry registry = TestMappingRegistry.Valid();
 

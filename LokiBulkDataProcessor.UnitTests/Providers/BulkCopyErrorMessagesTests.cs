@@ -7,7 +7,7 @@ namespace LokiBulkDataProcessor.UnitTests.Providers;
 public class BulkCopyErrorMessagesTests
 {
     [Test]
-    public void BulkCopyFailed_ShouldBuildTheFixedMessage_WithAndWithoutAnErrorCode()
+    public void BulkCopyFailed_ShouldBuildTheFixedMessage_WhenAnErrorCodeIsOrIsNotGiven()
     {
         BulkCopyErrorMessages.BulkCopyFailed("dbo.Posts")
             .Should().Be("Bulk copy to 'dbo.Posts' failed. See InnerException for details.");

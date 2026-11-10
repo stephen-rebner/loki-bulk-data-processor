@@ -90,6 +90,86 @@ public class BulkCopyPipelineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ShouldThrowTheTranslatedWriteErrorAndDisposeTheConnection_WhenTransactionDisposeThrows()
+    {
+        _provider.Connection.NextTransaction = new FakeDbTransaction(_provider.Connection)
+        {
+            DisposeException = new InvalidOperationException("dispose failure with secret-row-value"),
+        };
+        var writeError = new InvalidOperationException("driver failure");
+        _provider.WriteException = writeError;
+
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>().WithMessage("translated");
+
+        thrown.Which.InnerException.Should().BeSameAs(writeError);
+        _provider.Connection.LastTransaction.DisposeCount.Should().Be(1);
+        _provider.Connection.DisposeCount.Should().Be(1);
+        TheDisposeFailureShouldBeLoggedByTypeOnly("transaction");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ShouldThrowTheTranslatedWriteError_WhenConnectionDisposeThrows()
+    {
+        _provider.Connection.DisposeException = new InvalidOperationException("dispose failure with secret-row-value");
+        var writeError = new InvalidOperationException("driver failure");
+        _provider.WriteException = writeError;
+
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>().WithMessage("translated");
+
+        thrown.Which.InnerException.Should().BeSameAs(writeError);
+        _provider.Connection.LastTransaction.DisposeCount.Should().Be(1);
+        _provider.Connection.DisposeCount.Should().Be(1);
+        TheDisposeFailureShouldBeLoggedByTypeOnly("connection");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ShouldRethrowTheCommitError_WhenTransactionAndConnectionDisposeThrow()
+    {
+        var commitError = new InvalidOperationException("commit failure");
+        _provider.Connection.NextTransaction = new FakeDbTransaction(_provider.Connection)
+        {
+            CommitException = commitError,
+            DisposeException = new InvalidOperationException("transaction dispose failure"),
+        };
+        _provider.Connection.DisposeException = new InvalidOperationException("connection dispose failure");
+
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>();
+
+        thrown.Which.Should().BeSameAs(commitError);
+        _provider.Connection.DisposeCount.Should().Be(1);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ShouldSucceedAndLogTheErrorType_WhenDisposeThrowsAfterCommit()
+    {
+        _provider.Connection.NextTransaction = new FakeDbTransaction(_provider.Connection)
+        {
+            DisposeException = new InvalidOperationException("dispose failure with secret-row-value"),
+        };
+
+        await ExecuteOwnAsync();
+
+        _provider.Connection.LastTransaction.CommitCount.Should().Be(1);
+        _provider.Connection.DisposeCount.Should().Be(1);
+        TheDisposeFailureShouldBeLoggedByTypeOnly("transaction");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ShouldNeverDisposeTheCallersTransaction_WhenWriteFailsAndItWouldThrowOnDispose()
+    {
+        var (external, connection) = GivenAnExternalTransaction();
+        external.DisposeException = new InvalidOperationException("caller transaction dispose failure");
+        connection.DisposeException = new InvalidOperationException("caller connection dispose failure");
+        var writeError = new InvalidOperationException("driver failure");
+        _provider.WriteException = writeError;
+
+        var thrown = await ((Func<Task>)(() => ExecuteExternalAsync(external))).Should().ThrowAsync<InvalidOperationException>();
+
+        thrown.Which.InnerException.Should().BeSameAs(writeError);
+        TheCallersTransactionShouldBeUntouched(external, connection);
+    }
+
+    [Test]
     public async Task ExecuteAsync_ShouldNotCommitRollBackOrDisposeTheCallersTransaction_WhenWriteSucceeds()
     {
         var (external, connection) = GivenAnExternalTransaction();
@@ -220,6 +300,24 @@ public class BulkCopyPipelineTests
         thrown.Which.InnerException.Should().BeSameAs(driverError);
     }
 
+    [Test]
+    public async Task ExecuteAsync_ShouldWrapTheOriginalWithTheFixedMessage_WhenTheTranslatorThrows()
+    {
+        var driverError = new InvalidOperationException("The given value 'secret-row-value' cannot be converted.");
+        _provider.WriteException = driverError;
+        _provider.Mock.Setup(p => p.TranslateException(It.IsAny<Exception>(), It.IsAny<BulkWriteTarget>()))
+            .Throws(new FormatException("translator failure with secret-row-value"));
+
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage(BulkCopyErrorMessages.BulkCopyFailed("Dest"));
+
+        thrown.Which.InnerException.Should().BeSameAs(driverError);
+        _provider.Connection.LastTransaction.RollbackCount.Should().Be(1);
+        _loggerFactory.Entries.Should().Contain(entry => entry.Level == LogLevel.Error
+            && entry.Message.Contains(typeof(FormatException).FullName) && entry.Exception == null);
+        _loggerFactory.Entries.Should().NotContain(entry => entry.Message.Contains("secret-row-value"));
+    }
+
     [TestCase(true)]
     [TestCase(false)]
     public async Task ExecuteAsync_ShouldRethrowTheOriginal_WhenTheProviderReturnsNullOrTheSameException(bool returnNull)
@@ -273,7 +371,7 @@ public class BulkCopyPipelineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ShouldPassTheCallSettingsAndOpenTransactionToTheWriter()
+    public async Task ExecuteAsync_ShouldPassTheCallSettingsAndOpenTransactionToTheWriter_WhenLokiOwnsTheTransaction()
     {
         await _pipeline.ExecuteAsync(_reader, Target, new BulkCallSettings(ConnectionString, 250, 77, null), CancellationToken.None);
 
@@ -286,7 +384,7 @@ public class BulkCopyPipelineTests
     }
 
     [Test]
-    public void BulkCallSettings_ToString_ShouldNotContainTheConnectionString()
+    public void ToString_ShouldNotContainTheConnectionString_WhenBulkCallSettingsHoldOne()
     {
         new BulkCallSettings(ConnectionString, 1, 2, null).ToString().Should().NotContain("secret").And.NotContain("Server");
     }
@@ -306,6 +404,13 @@ public class BulkCopyPipelineTests
         var transaction = new FakeDbTransaction(connection);
         _provider.AcceptExternal(transaction);
         return (transaction, connection);
+    }
+
+    private void TheDisposeFailureShouldBeLoggedByTypeOnly(string resourceName)
+    {
+        _loggerFactory.Entries.Should().Contain(entry => entry.Level == LogLevel.Error && entry.Exception == null
+            && entry.Message.Contains($"Disposing the internal {resourceName} failed with {typeof(InvalidOperationException).FullName}"));
+        _loggerFactory.Entries.Should().NotContain(entry => entry.Message.Contains("secret-row-value"));
     }
 
     private static void TheCallersTransactionShouldBeUntouched(FakeDbTransaction transaction, FakeDbConnection connection)

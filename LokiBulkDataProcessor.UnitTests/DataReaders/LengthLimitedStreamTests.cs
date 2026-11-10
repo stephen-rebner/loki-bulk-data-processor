@@ -35,7 +35,7 @@ public class LengthLimitedStreamTests
     }
 
     [Test]
-    public void Dispose_ShouldNotDisposeTheCallersStream()
+    public void Dispose_ShouldLeaveTheCallersStreamOpen_WhenTheLimitedStreamIsDisposed()
     {
         var inner = new MemoryStream(new byte[4]);
 
@@ -45,7 +45,7 @@ public class LengthLimitedStreamTests
     }
 
     [Test]
-    public void ThrowIfKnownToExceed_ShouldThrowOnlyWhenTheRemainingSeekableLengthIsOverTheLimit()
+    public void ThrowIfKnownToExceed_ShouldThrowOnly_WhenTheRemainingSeekableLengthIsOverTheLimit()
     {
         var stream = new MemoryStream(new byte[30]) { Position = 10 };
 

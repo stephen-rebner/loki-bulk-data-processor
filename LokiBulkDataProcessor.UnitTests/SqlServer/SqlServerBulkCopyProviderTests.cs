@@ -21,14 +21,14 @@ public class SqlServerBulkCopyProviderTests
     private readonly SqlServerBulkCopyProvider _provider = new(SqlServerProvider.Name);
 
     [Test]
-    public void Name_ShouldBeTheRegisteredName()
+    public void Name_ShouldReturnTheRegisteredName_WhenConstructedWithAName()
     {
         _provider.Name.Should().Be("SqlServer");
         new SqlServerBulkCopyProvider("Custom").Name.Should().Be("Custom");
     }
 
     [Test]
-    public void CreateConnection_ShouldReturnAnUnopenedSqlConnection()
+    public void CreateConnection_ShouldReturnAnUnopenedSqlConnection_WhenGivenAConnectionString()
     {
         using var connection = _provider.CreateConnection(ConnectionString);
 
@@ -51,7 +51,7 @@ public class SqlServerBulkCopyProviderTests
     }
 
     [Test]
-    public void Transaction_ShouldThrowArgumentExceptionWhenSet_WhenTheTransactionIsNotAMicrosoftDataSqlClientTransaction()
+    public void Transaction_ShouldThrowArgumentException_WhenSetToANonMicrosoftDataSqlClientTransaction()
     {
         IBulkProcessor processor = new BulkProcessor(_provider, ConnectionString, MappingRegistry.Empty, NullLoggerFactory.Instance);
 
@@ -70,7 +70,7 @@ public class SqlServerBulkCopyProviderTests
     }
 
     [Test]
-    public void CreateWriter_ShouldConfigureSqlBulkCopyFromTheContextAndTarget()
+    public void CreateWriter_ShouldConfigureSqlBulkCopyFromTheContextAndTarget_WhenTheTargetIsConfigured()
     {
         using var connection = new SqlConnection(ConnectionString);
         var context = new BulkWriteContext(connection, null, new BulkWriteOptions(123, 45), NullLoggerFactory.Instance);
@@ -89,7 +89,7 @@ public class SqlServerBulkCopyProviderTests
     }
 
     [Test]
-    public void TranslateException_ShouldReturnANewExceptionWrappingTheOriginal()
+    public void TranslateException_ShouldReturnANewExceptionWrappingTheOriginal_WhenTheWriteFails()
     {
         var original = new InvalidOperationException("boom");
 

@@ -39,7 +39,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddSqlServer_ShouldRegisterEachNamedConfiguration()
+    public void AddSqlServer_ShouldRegisterEachNamedConfiguration_WhenCalledWithDifferentNames()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor().AddSqlServer().AddSqlServer("SqlServer.Reporting");
@@ -50,7 +50,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddSqlServer_ShouldFailWhenTheFactoryIsResolved_WhenTheSameNameIsRegisteredTwice()
+    public void AddSqlServer_ShouldFailOnFactoryResolution_WhenTheSameNameIsRegisteredTwice()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor().AddSqlServer().AddSqlServer();
@@ -73,7 +73,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void LegacyAddLokiBulkDataProcessor_ShouldResolveAScopedSqlServerProcessor_WithIndependentSettingsPerScope()
+    public void LegacyAddLokiBulkDataProcessor_ShouldResolveScopedProcessorsWithIndependentSettings_WhenResolvedFromTwoScopes()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor(ConnectionString);
@@ -94,7 +94,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void LegacyAddLokiBulkDataProcessor_ShouldAlsoRegisterTheFactory()
+    public void LegacyAddLokiBulkDataProcessor_ShouldAlsoRegisterTheFactory_WhenCalled()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor(ConnectionString, mappingAssembly: null);
@@ -127,7 +127,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddLokiBulkDataProcessor_ShouldNotRegisterAnAppWideLoggerFactory_ForAnyLoggingOption()
+    public void AddLokiBulkDataProcessor_ShouldNotRegisterAnAppWideLoggerFactory_WhenAnyLoggingOptionIsUsed()
     {
         var withFactory = new ServiceCollection();
         withFactory.AddLokiBulkDataProcessor(ConnectionString, null, new RecordingLoggerFactory());
@@ -144,7 +144,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void LegacyAddLokiBulkDataProcessor_ShouldLogThroughTheGivenLoggerFactory()
+    public void LegacyAddLokiBulkDataProcessor_ShouldLogThroughTheGivenLoggerFactory_WhenOneIsGiven()
     {
         var loggerFactory = new RecordingLoggerFactory();
         var services = new ServiceCollection();
@@ -157,7 +157,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddLokiBulkDataProcessor_ShouldUseTheHostLoggerFactory_OnlyWhenOptedIn()
+    public void AddLokiBulkDataProcessor_ShouldUseTheHostLoggerFactoryOnly_WhenOptedIn()
     {
         var hostFactory = new RecordingLoggerFactory();
 
@@ -166,7 +166,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void Select_ShouldPreferTheExplicitFactory_ThenConsole_ThenTheHost_ThenNone()
+    public void Select_ShouldPreferExplicitThenConsoleThenHostThenNone_WhenSeveralLoggerSourcesAreAvailable()
     {
         var explicitFactory = new RecordingLoggerFactory();
         var hostFactory = new RecordingLoggerFactory();
@@ -184,7 +184,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void LokiLogging_ShouldDisposeOnlyALoggerFactoryItOwns()
+    public void Dispose_ShouldDisposeTheLoggerFactoryOnly_IfLokiLoggingOwnsIt()
     {
         var owned = new RecordingLoggerFactory();
         var borrowed = new RecordingLoggerFactory();
@@ -197,7 +197,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddLokiBulkDataProcessor_ShouldRegisterTheProviderSpiAsASingleton()
+    public void AddLokiBulkDataProcessor_ShouldRegisterTheProviderSpiAsASingleton_WhenAProviderIsAdded()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor().AddSqlServer();
@@ -207,7 +207,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddLokiBulkDataProcessor_ShouldRegisterTheJsonPolicy_FromTheOptions()
+    public void AddLokiBulkDataProcessor_ShouldRegisterTheJsonPolicyFromTheOptions_WhenTheyAreDefaultOrSet()
     {
         JsonPolicyFor(_ => { }).Should().Be(JsonPayloadPolicy.Default);
         JsonPolicyFor(o => { o.RequireDataMappingForJson = true; o.MaxJsonPayloadBytes = 1024; })
@@ -240,7 +240,7 @@ public class RegistrationTests
     }
 
     [Test]
-    public void LegacyAddLokiBulkDataProcessor_ShouldHideTheConnectionStringInTheScopedFactoryDelegate()
+    public void LegacyAddLokiBulkDataProcessor_ShouldHideTheConnectionStringInTheScopedFactoryDelegate_WhenRegistered()
     {
         var services = new ServiceCollection();
         services.AddLokiBulkDataProcessor(ConnectionString);

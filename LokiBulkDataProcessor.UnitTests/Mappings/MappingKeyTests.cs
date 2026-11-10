@@ -10,7 +10,7 @@ public class MappingKeyTests
     [TestCase(null, "Destination", "Destination")]
     [TestCase("", "Destination", "Destination")]
     [TestCase("  ", "Destination", "Destination")]
-    public void For_ShouldUseTheSourceName_ElseTheDestinationTableName(string sourceName, string destination, string expected)
+    public void For_ShouldReturnTheSourceNameOrTheDestinationTableName_WhenTheSourceNameIsSetOrBlank(string sourceName, string destination, string expected)
     {
         MappingKey.For(sourceName, destination).Should().Be(expected);
     }
