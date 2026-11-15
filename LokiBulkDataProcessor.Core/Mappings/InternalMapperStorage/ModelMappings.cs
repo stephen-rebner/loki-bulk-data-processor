@@ -1,30 +1,32 @@
-﻿using Loki.BulkDataProcessor.Mappings.Interfaces;
+using Loki.BulkDataProcessor.Mappings.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace Loki.BulkDataProcessor.Mappings.InternalMapperStorage
 {
     /// <summary>
-    /// A class that holds a collection of model mappings
-    /// The mappings are added dynamically when instantiated
+    /// Holds the model mappings (<see cref="ModelMapping{TSource}"/>) discovered in the mapping assemblies.
+    /// Immutable after construction.
     /// </summary>
     internal class ModelMappings : AbstractMappings<AbstractModelMapping>, IModelMappingCollection
     {
-        /// <summary>
-        /// Adds all Model mappings contained in the assembly provided
-        /// </summary>
-        /// <param name="mappingAssmebly">The assembly in which the mappings are contained</param>
-        internal ModelMappings(Assembly mappingAssmebly)
+        /// <summary>Instantiates every concrete model mapping in <paramref name="mappingAssemblies"/>.</summary>
+        /// <exception cref="InvalidOperationException">Two mappings target the same model type.</exception>
+        public ModelMappings(IEnumerable<Assembly> mappingAssemblies)
+            : this(FindMappingTypes(mappingAssemblies))
         {
-            AddMappingsIfMappingAssemblyNotNull(mappingAssmebly);
         }
 
-        /// <summary>
-        /// Returns a model mapping which equals the type provided
-        /// </summary>
-        /// <param name="sourceType">The type to match on</param>
-        /// <returns>A model mapping if there is a match, else returns null</returns>
+        /// <summary>Instantiates the given mapping types (tests use this to avoid scanning a whole assembly).</summary>
+        internal ModelMappings(IEnumerable<Type> mappingTypes)
+        {
+            AddMappings(mappingTypes);
+            ThrowIfDuplicateKeys(mapping => mapping.SourceType, EqualityComparer<Type>.Default, "the model type");
+        }
+
+        /// <summary>Returns the mapping for <paramref name="sourceType"/>, else null.</summary>
         public AbstractModelMapping GetMappingFor(Type sourceType)
         {
             return _mappings.FirstOrDefault(mapping => mapping.SourceType == sourceType);

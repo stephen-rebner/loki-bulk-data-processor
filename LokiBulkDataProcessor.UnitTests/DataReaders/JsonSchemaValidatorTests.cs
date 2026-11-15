@@ -210,5 +210,25 @@ namespace LokiBulkDataProcessor.UnitTests.DataReaders
             // Assert
             act.Should().Throw<InvalidDataException>().WithMessage("Unsupported column type 'unsupportedType' for column 'Id'.");
         }
+
+        [Test]
+        public void ValidateJsonSchema_ShouldEscapeControlCharactersAndTruncate_WhenEchoingPayloadNamesInTheMessage()
+        {
+            var longName = new string('x', 200);
+            var json = $$"""
+                {
+                  "tableName": "TestTable",
+                  "columns": [ { "name": "Id\r\nFAKE LOG LINE", "type": "{{longName}}" } ],
+                  "data": [ { "Id": 1 } ]
+                }
+                """;
+            using var document = JsonDocument.Parse(json);
+
+            Action act = () => JsonSchemaValidator.ValidateJsonSchema(document);
+
+            var message = act.Should().Throw<InvalidDataException>().Which.Message;
+            message.Should().Contain("Id??FAKE LOG LINE").And.NotContain("\r").And.NotContain("\n");
+            message.Should().Contain(new string('x', 128) + "...").And.NotContain(new string('x', 129));
+        }
     }
 }

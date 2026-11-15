@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Text.Json;
+using Loki.BulkDataProcessor.Utils.Validation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -51,7 +52,7 @@ namespace Loki.BulkDataProcessor.DataReaders
                 ExtractColumnMetadata(root);
                 InitializeDataEnumerator(root);
                 
-                _logger.LogInformation("JsonDataReader initialized successfully for table {TableName}", TableName);
+                _logger.LogInformation("JsonDataReader initialized successfully for table {TableName}", MessageText.Sanitize(TableName));
             }
             catch (JsonException ex)
             {
@@ -74,7 +75,7 @@ namespace Loki.BulkDataProcessor.DataReaders
         private void ExtractTableName(JsonElement root)
         {
             TableName = root.GetProperty(JsonSchemaConstants.TableName).GetString();
-            _logger.LogInformation("Reading data for table {TableName}", TableName);
+            _logger.LogInformation("Reading data for table {TableName}", MessageText.Sanitize(TableName));
         }
 
         private void ExtractColumnMetadata(JsonElement root)
@@ -205,6 +206,11 @@ namespace Loki.BulkDataProcessor.DataReaders
     
         public void Dispose()
         {
+            if (!_isOpen)
+            {
+                return;   // idempotent: the processor and BulkSource may both dispose it
+            }
+
             _logger.LogInformation("Disposing JsonDataReader");
             Close();
         }

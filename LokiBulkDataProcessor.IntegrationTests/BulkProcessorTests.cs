@@ -1199,8 +1199,10 @@ namespace LokiBulkDataProcessor.IntegrationTests
 
         private DataTable AndGivenAPostDataTableWithNoMapping(int blogId)
         {
+            // Named so no DataMapping matches: an unnamed table written to "Posts" would use PostDataMapping (#16).
             return TestObjectFactory.NewPostDataTable()
                 .Create()
+                .WithTableName("UnmappedPosts")
                 .WithDefaultColumnNames()
                 .WithRowData(blogId, Post1, PostContent1)
                 .WithRowData(blogId, Post2, PostContent2)

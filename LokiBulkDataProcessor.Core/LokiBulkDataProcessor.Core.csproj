@@ -5,19 +5,20 @@
     <PackageId>LokiBulkDataProcessor.Core</PackageId>
     <RootNamespace>Loki.BulkDataProcessor</RootNamespace>
     <Title>Loki Bulk Data Processor Core</Title>
-    <Description>Provider-neutral core of Loki Bulk Data Processor: the mapping API (ModelMapping, DataMapping), IBulkProcessor, the JSON reader and logging options. Do not install it on its own; install a provider package such as LokiBulkDataProcessor (SQL Server), which depends on it.</Description>
+    <Description>Provider-neutral core of Loki Bulk Data Processor: the mapping API (ModelMapping, DataMapping), IBulkProcessor, IBulkProcessorFactory, the JSON reader, the shared bulk-copy pipeline and the provider SPI. Do not install it on its own; install a provider package such as LokiBulkDataProcessor (SQL Server), which depends on it.</Description>
     <PackageTags>loki bulk-copy bulk-insert etl datareader datatable json mapping</PackageTags>
     <PackageReleaseNotes><![CDATA[
-        9.0.0 (in progress): new package. Holds the provider-neutral types that used to live in LokiBulkDataProcessor (mapping API, IBulkProcessor, JSON reader, LokiLoggingOptions) with unchanged namespaces; LokiBulkDataProcessor forwards them here. Models with get-only properties no longer throw NullReferenceException; those properties are skipped and not saved (#19). See the README "Upgrade Guide".
+        9.0.0 (in progress): new package. Holds the provider-neutral types that used to live in LokiBulkDataProcessor (mapping API, IBulkProcessor, JSON reader, LokiLoggingOptions) with unchanged namespaces; LokiBulkDataProcessor forwards them here. New: IBulkProcessorFactory (create a processor per provider and connection string), AddLokiBulkDataProcessor(options) with a provider builder, and the public provider SPI (Loki.BulkDataProcessor.Providers). One shared pipeline for every input shape: settings are per processor instance (#11), a failed copy no longer rolls back the caller's transaction (#12), Loki's connection and transaction are disposed on failure (#13), wrapped exceptions keep the driver exception as InnerException (#15), and DataMapping lookup follows one rule (#16). SaveAsync takes an optional CancellationToken. Models with get-only properties no longer throw NullReferenceException; those properties are skipped and not saved (#19). See the README "Upgrade Guide".
 ]]></PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FastMember" Version="1.5.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Step 3: the SQL Server provider still uses Core internals (ReflectionUtils, argument guards,
-         MappingInfo, DefaultConfigValues). Step 4 replaces this with the public provider SPI. -->
-    <InternalsVisibleTo Include="LokiBulkDataProcessor" />
+    <!-- Providers use only the public SPI, so no provider assembly gets InternalsVisibleTo. -->
     <InternalsVisibleTo Include="LokiBulkDataProcessor.UnitTests" />
   </ItemGroup>
 </Project>

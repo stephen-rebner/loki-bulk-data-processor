@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Loki.BulkDataProcessor.Utils.Validation;
 
 namespace Loki.BulkDataProcessor.DataReaders
 {
@@ -73,7 +74,7 @@ namespace Loki.BulkDataProcessor.DataReaders
                 // Check for duplicate column names
                 if (!columnNames.Add(columnName))
                 {
-                    throw new InvalidDataException($"Duplicate column name '{columnName}' found in the schema.");
+                    throw new InvalidDataException($"Duplicate column name '{MessageText.Sanitize(columnName)}' found in the schema.");
                 }
             }
             return columnNames;
@@ -88,7 +89,7 @@ namespace Loki.BulkDataProcessor.DataReaders
 
                 if (!IsValidColumnType(columnType))
                 {
-                    throw new InvalidDataException($"Unsupported column type '{columnType}' for column '{column.GetProperty(JsonSchemaConstants.ColumnName).GetString()}'.");
+                    throw new InvalidDataException($"Unsupported column type '{MessageText.Sanitize(columnType)}' for column '{MessageText.Sanitize(column.GetProperty(JsonSchemaConstants.ColumnName).GetString())}'.");
                 }
             }
         }
