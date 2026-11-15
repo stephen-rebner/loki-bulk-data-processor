@@ -1,3 +1,5 @@
+// Loki-private console logging (LokiLoggingOptions) is obsolete but still supported until 10.0.
+#pragma warning disable CS0618
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -16,8 +18,13 @@ public sealed class LokiBulkDataProcessorOptions
     /// <summary>Explicit logger factory used by Loki only (highest precedence). Loki does not register or dispose it.</summary>
     public ILoggerFactory LoggerFactory { get; set; }
 
-    /// <summary>Use the host's <see cref="ILoggerFactory"/> from DI. Off by default (logging is opt-in).</summary>
-    public bool UseHostLoggerFactory { get; set; }
+    /// <summary>
+    /// Log through the host's <see cref="ILoggerFactory"/> from DI, so Loki's entries go to the same sinks as the rest of the
+    /// app (Serilog, NLog, OpenTelemetry, Application Insights, ...). Default <c>true</c>. When the app registers no
+    /// <see cref="ILoggerFactory"/>, Loki logs nothing. Set <c>false</c> to keep Loki silent even when the host has logging.
+    /// <see cref="LoggerFactory"/> takes precedence over this.
+    /// </summary>
+    public bool UseHostLoggerFactory { get; set; } = true;
 
     /// <summary>
     /// When true, every JSON save (<c>IBulkProcessor.SaveAsync(Stream, ...)</c>) must find a registered <c>DataMapping</c>
@@ -59,7 +66,11 @@ public sealed class LokiBulkDataProcessorOptions
         return this;
     }
 
-    /// <summary>Loki-private console logging; it does not change the host's logging.</summary>
+    /// <summary>
+    /// Loki-private console logging; it does not change the host's logging. When enabled it takes precedence over the host's
+    /// logger factory.
+    /// </summary>
+    [Obsolete(LokiLoggingOptions.ObsoleteMessage)]
     public LokiBulkDataProcessorOptions UseConsoleLogging(Action<LokiLoggingOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);

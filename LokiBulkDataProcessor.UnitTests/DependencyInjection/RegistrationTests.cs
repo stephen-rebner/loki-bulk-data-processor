@@ -1,3 +1,5 @@
+// Loki-private console logging (LokiLoggingOptions) is obsolete but still supported until 10.0.
+#pragma warning disable CS0618
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -157,12 +159,62 @@ public class RegistrationTests
     }
 
     [Test]
-    public void AddLokiBulkDataProcessor_ShouldUseTheHostLoggerFactoryOnly_WhenOptedIn()
+    public void AddLokiBulkDataProcessor_ShouldUseTheHostLoggerFactory_WhenNoLoggingOptionIsSet()
+    {
+        var hostFactory = new RecordingLoggerFactory();
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(hostFactory);
+        services.AddLokiBulkDataProcessor().AddSqlServer();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<LokiLogging>().LoggerFactory.Should().BeSameAs(hostFactory);
+    }
+
+    [Test]
+    public void AddLokiBulkDataProcessor_ShouldLogNothing_WhenTheHostHasNoLoggerFactory()
+    {
+        var services = new ServiceCollection();
+        services.AddLokiBulkDataProcessor().AddSqlServer();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<LokiLogging>().LoggerFactory.Should().BeSameAs(NullLoggerFactory.Instance);
+    }
+
+    [Test]
+    public void AddLokiBulkDataProcessor_ShouldIgnoreTheHostLoggerFactory_WhenUseHostLoggerFactoryIsFalse()
     {
         var hostFactory = new RecordingLoggerFactory();
 
         LoggerFactoryUsedBy(hostFactory, useHost: false).Should().BeSameAs(NullLoggerFactory.Instance);
         LoggerFactoryUsedBy(hostFactory, useHost: true).Should().BeSameAs(hostFactory);
+    }
+
+    [Test]
+    public void LegacyAddLokiBulkDataProcessor_ShouldLogThroughTheHostLoggerFactory_WhenNoLoggerFactoryIsGiven()
+    {
+        var hostFactory = new RecordingLoggerFactory();
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(hostFactory);
+        services.AddLokiBulkDataProcessor(ConnectionString);
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<IBulkProcessor>().BatchSize = 10;
+
+        hostFactory.Contains(LogLevel.Information, "Setting BatchSize").Should().BeTrue();
+    }
+
+    [Test]
+    public void LegacyAddLokiBulkDataProcessor_ShouldPreferTheGivenLoggerFactory_WhenTheHostAlsoHasOne()
+    {
+        var hostFactory = new RecordingLoggerFactory();
+        var givenFactory = new RecordingLoggerFactory();
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(hostFactory);
+        services.AddLokiBulkDataProcessor(ConnectionString, null, givenFactory);
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<LokiLogging>().LoggerFactory.Should().BeSameAs(givenFactory);
     }
 
     [Test]

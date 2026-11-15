@@ -1,3 +1,5 @@
+// Loki-private console logging (LokiLoggingOptions) is obsolete but still supported until 10.0.
+#pragma warning disable CS0618
 using System;
 using System.Linq;
 using Loki.BulkDataProcessor.Internal;

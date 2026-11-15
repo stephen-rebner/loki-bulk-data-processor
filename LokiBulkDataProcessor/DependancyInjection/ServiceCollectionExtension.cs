@@ -1,3 +1,5 @@
+// Loki-private console logging (LokiLoggingOptions) is obsolete but still supported until 10.0.
+#pragma warning disable CS0618
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -27,8 +29,14 @@ namespace Loki.BulkDataProcessor.DependancyInjection
         /// <param name="services">The service collection.</param>
         /// <param name="connectionString">SQL Server connection string used by every scoped processor.</param>
         /// <param name="mappingAssembly">Assembly containing ModelMapping/DataMapping classes, or null for none.</param>
-        /// <param name="loggerFactory">Logger factory used by Loki only. It is not registered for the rest of the app.</param>
-        /// <param name="configureLogging">Loki-private console logging, used when <paramref name="loggerFactory"/> is null.</param>
+        /// <param name="loggerFactory">
+        /// Logger factory used by Loki only. It is not registered for the rest of the app. When null, Loki logs through the
+        /// host's <see cref="ILoggerFactory"/> from DI (or logs nothing if the app registers none).
+        /// </param>
+        /// <param name="configureLogging">
+        /// Obsolete: Loki-private console logging, used when <paramref name="loggerFactory"/> is null. Configure console output
+        /// in your host's logging instead; this will be removed in 10.0.
+        /// </param>
         public static IServiceCollection AddLokiBulkDataProcessor(
             this IServiceCollection services,
             string connectionString,

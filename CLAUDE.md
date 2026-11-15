@@ -123,8 +123,10 @@ build the schema with EF Core migrations from `IntegrationTests/Migrations` agai
   `InternalsVisibleTo`.
 - Argument guards use `Utils/Validation/ArgumentValidatorExtensions` (`ThrowIfNullOrEmptyString`,
   `ThrowIfLessThanZero`, `ThrowIfCollectionIsNullOrEmpty`, …) at the public boundary.
-- Logging is optional: every logger parameter defaults to `null` and falls back to
-  `NullLogger<T>.Instance`. Structured templates only; never log connection strings or row data.
+- Logging: Loki logs through the host's `ILoggerFactory` by default (`UseHostLoggerFactory = true`), an explicit
+  `LoggerFactory` overrides it, and with neither it falls back to `NullLoggerFactory`. Loki never registers an app-wide
+  `ILoggerFactory`. Console logging (`LokiLoggingOptions`) is `[Obsolete]`, removed in 10.0. Structured templates only;
+  never log connection strings or row data.
 - `BulkCallSettings.ConnectionString` is `[DebuggerBrowsable(Never)]` and its `ToString` omits it — keep secrets
   out of debugger views, logs, and exception messages. There is no public connection-string getter.
 - Test naming follows the existing style: `Member_Should<Outcome>_When/If<State>`

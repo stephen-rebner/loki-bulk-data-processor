@@ -1,3 +1,5 @@
+// Loki-private console logging (LokiLoggingOptions) is obsolete but still supported until 10.0.
+#pragma warning disable CS0618
 using System;
 using Loki.BulkDataProcessor.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +9,7 @@ namespace Loki.BulkDataProcessor.Internal;
 
 /// <summary>
 /// Picks Loki's logger factory at registration time. Precedence: an explicit factory, then Loki-private console
-/// logging, then the host's ILoggerFactory (only when opted in), then a no-op factory.
+/// logging (obsolete), then the host's ILoggerFactory (default; skipped when UseHostLoggerFactory is false), then a no-op factory.
 /// </summary>
 internal static class LokiLoggingSelector
 {
