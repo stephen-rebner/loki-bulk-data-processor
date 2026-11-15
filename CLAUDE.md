@@ -3,8 +3,8 @@
 A .NET 10 class library, published to NuGet as **`LokiBulkDataProcessor`**, for high-throughput bulk
 inserts. Callers hand it `IEnumerable<T>` models, a `DataTable`, an `IDataReader`, or a JSON stream
 and it streams the rows into a destination table with the database's native bulk-copy engine.
-Today the only provider is **SQL Server** (`SqlBulkCopy`). **Oracle** (`OracleBulkCopy`) is the next
-provider being added.
+Today the only released provider is **SQL Server** (`SqlBulkCopy`). **Oracle** (array-bound `INSERT`, with
+`OracleBulkCopy` direct path as an opt-in) is being added on `release/9.0`.
 
 This is a **library, not a service**: there is no `Program.cs`, no HTTP surface, no persistence layer
 of its own. Every public type is part of a published contract that other people's code compiles
@@ -17,8 +17,8 @@ nine steps, each a separate PR into the `release/9.0` branch. **Before doing any
 [`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
 decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
 (the spec). The PR that completes a step must also update the progress file. The layout below describes
-**`release/9.0` after step 5** (`master` still has the 8.x single-project layout until step 9). Oracle and the
-Oracle test project are added in steps 6-8.
+**`release/9.0` after step 6** (`master` still has the 8.x single-project layout until step 9). The Oracle integration
+test project is added in step 7 and Oracle direct path in step 8.
 
 ## Repository layout
 
@@ -55,8 +55,22 @@ LokiBulkDataProcessor/                     Package LokiBulkDataProcessor = the S
 ├── DependancyInjection/                   SqlServerBuilderExtensions.AddSqlServer(name), and the legacy
 │                                          ServiceCollectionExtension.AddLokiBulkDataProcessor(connectionString, ...)
 └── Properties/TypeForwards.cs             TypeForwardedTo Core for the public types that moved in step 3
+LokiBulkDataProcessor.Oracle/              Package LokiBulkDataProcessor.Oracle = the Oracle provider (Oracle.ManagedDataAccess.Core)
+├── Oracle/                                Public: OracleProvider (const Name = "Oracle"), OracleProviderOptions, OracleWriteMode
+│                                          (DirectPath rejected until step 8), OracleIdentifierResolution, OracleBooleanBinding
+├── Oracle/Internal/                       OracleBulkCopyProvider, OracleExceptionTranslator (by OracleException.Number),
+│   │                                      OracleValidation (marks Loki's own errors so they pass through untranslated), SafeText.
+│   │                                      The ONLY place ODP.NET types are used (put `using Oracle.ManagedDataAccess.Client;`
+│   │                                      above the file-scoped namespace: `Oracle.` binds to Loki's namespace otherwise)
+│   ├── Identifiers/                       OracleIdentifier (validate + quote, CWE-89), Unquoted/CatalogIdentifierResolver,
+│   │                                      OracleResolvedTarget
+│   ├── Types/OracleTypeMap.cs             .NET type → OracleDbType + value conversion (bool per OracleBooleanBinding)
+│   └── Writers/                           ArrayBindOracleWriter (chunks of BatchSize, 0 → 5000), ColumnBuffer,
+│                                          OracleInsertSqlBuilder
+└── DependancyInjection/                   OracleBuilderExtensions.AddOracle(configure, name)
 LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no database. TestDoubles/ has
-                                           FakeDbConnection/FakeDbTransaction/FakeProvider for pipeline tests
+                                           FakeDbConnection/FakeDbTransaction/FakeProvider for pipeline tests; SqlServer/ and
+                                           Oracle/ test each provider's internals (all three libraries grant it IVT)
 LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test project): abstract BulkProcessorContractTests
                                            (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
                                            no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back)
@@ -102,7 +116,8 @@ and keep the driver types in the provider's `Internal/` folder. No `if`/`switch`
 `IBulkProcessor`, `IBulkProcessorFactory`, the provider SPI in `Loki.BulkDataProcessor.Providers`, `ModelMapping<T>`,
 `DataMapping`, the `Mappings.Interfaces` fluent interfaces, `LokiServiceCollectionExtensions`, `ILokiBulkDataProcessorBuilder`,
 `LokiBulkDataProcessorOptions`, `ServiceCollectionExtension.AddLokiBulkDataProcessor`, `SqlServerBuilderExtensions`,
-`SqlServerProvider`, `LokiLoggingOptions`, and anything else `public` in either library. (`BulkProcessor`, `MappingException`,
+`SqlServerProvider`, `OracleBuilderExtensions`, `OracleProvider`, `OracleProviderOptions`, `OracleWriteMode`,
+`OracleIdentifierResolution`, `OracleBooleanBinding`, `LokiLoggingOptions`, and anything else `public` in any library. (`BulkProcessor`, `MappingException`,
 `IDataMappingCollection`, `IModelMappingCollection` and `AbstractMappings<T>` are `internal`.) Additive changes are a
 minor version; removals/renames/signature changes are a major version and need a README upgrade-guide
 row. `[Obsolete]` before removal.
@@ -159,7 +174,7 @@ provider-neutral message parts, no `""` data, never write identity columns or de
 
 `.github/workflows/dotnet.yml` runs on every push and PR to **`master`** (the default branch — not
 `main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
-is in the library's transitive graph, #17) and `sqlserver-integration` (Testcontainers SQL Server).
+is in the transitive graph of Core, the SQL package or the Oracle package, #17) and `sqlserver-integration` (Testcontainers SQL Server).
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`

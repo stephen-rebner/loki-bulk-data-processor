@@ -20,3 +20,5 @@ LokiBulkDataProcessor.sln.DotSettings.user
 /LokiBulkDataProcessor.Core/obj
 /LokiBulkDataProcessor.IntegrationTests.Contract/bin
 /LokiBulkDataProcessor.IntegrationTests.Contract/obj
+/LokiBulkDataProcessor.Oracle/bin
+/LokiBulkDataProcessor.Oracle/obj

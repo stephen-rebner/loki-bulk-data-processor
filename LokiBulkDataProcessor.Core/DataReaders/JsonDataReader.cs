@@ -137,10 +137,27 @@ namespace Loki.BulkDataProcessor.DataReaders
             
             if (_currentRow.TryGetProperty(columnName, out var property))
             {
-                return ConvertJsonElementToObject(property, _columnTypes[columnName]);
+                return ConvertOrThrowDataFree(property, columnName, _columnTypes[columnName]);
             }
     
             return DBNull.Value;
+        }
+
+        /// <summary>
+        /// BCL parse/convert errors quote the offending value (row data, CWE-209), so they are replaced by a message that
+        /// names only the column and the declared type. The BCL exception is deliberately NOT kept as InnerException.
+        /// </summary>
+        private static object ConvertOrThrowDataFree(JsonElement element, string columnName, string dataType)
+        {
+            try
+            {
+                return ConvertJsonElementToObject(element, dataType);
+            }
+            catch (Exception ex) when (ex is FormatException or OverflowException)
+            {
+                throw new FormatException(
+                    $"A value in JSON column '{MessageText.Sanitize(columnName)}' could not be converted to the declared type '{MessageText.Sanitize(dataType)}'.");
+            }
         }
     
         private static object ConvertJsonElementToObject(JsonElement element, string dataType)

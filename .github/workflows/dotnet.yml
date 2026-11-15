@@ -22,7 +22,7 @@ jobs:
       run: dotnet test LokiBulkDataProcessor.UnitTests -c Release --verbosity normal
     - name: Libraries have no test-only packages in their dependency graph (#17)
       run: |
-        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor; do
+        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor LokiBulkDataProcessor.Oracle; do
           dotnet list $p package --include-transitive > packages.txt
           cat packages.txt
           if grep -i testcontainers packages.txt; then

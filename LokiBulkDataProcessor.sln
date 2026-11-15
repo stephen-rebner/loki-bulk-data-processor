@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LokiBulkDataProcessor.Core"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LokiBulkDataProcessor.IntegrationTests.Contract", "LokiBulkDataProcessor.IntegrationTests.Contract\LokiBulkDataProcessor.IntegrationTests.Contract.csproj", "{34277EB8-95AF-4B50-8034-E94FA3A8DEFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LokiBulkDataProcessor.Oracle", "LokiBulkDataProcessor.Oracle\LokiBulkDataProcessor.Oracle.csproj", "{FA55AC6A-9D0D-46E4-BC9D-3D91E2660A81}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{34277EB8-95AF-4B50-8034-E94FA3A8DEFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34277EB8-95AF-4B50-8034-E94FA3A8DEFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34277EB8-95AF-4B50-8034-E94FA3A8DEFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA55AC6A-9D0D-46E4-BC9D-3D91E2660A81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA55AC6A-9D0D-46E4-BC9D-3D91E2660A81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA55AC6A-9D0D-46E4-BC9D-3D91E2660A81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA55AC6A-9D0D-46E4-BC9D-3D91E2660A81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

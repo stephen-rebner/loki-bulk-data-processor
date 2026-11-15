@@ -14,5 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\LokiBulkDataProcessor.Core\LokiBulkDataProcessor.Core.csproj" />
     <ProjectReference Include="..\LokiBulkDataProcessor\LokiBulkDataProcessor.csproj" />
+    <ProjectReference Include="..\LokiBulkDataProcessor.Oracle\LokiBulkDataProcessor.Oracle.csproj" />
   </ItemGroup>
 </Project>
