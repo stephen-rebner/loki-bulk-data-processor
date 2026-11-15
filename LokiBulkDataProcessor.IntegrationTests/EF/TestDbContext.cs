@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using LokiBulkDataProcessor.IntegrationTests.TestModels;
+using LokiBulkDataProcessor.IntegrationTests.Contract.TestModels;
 
 namespace LokiBulkDataProcessor.IntegrationTests.EF
 {

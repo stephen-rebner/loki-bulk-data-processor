@@ -21,7 +21,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.TestDbModel", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.TestDbModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

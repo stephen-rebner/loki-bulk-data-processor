@@ -1,107 +1,73 @@
-﻿using Loki.BulkDataProcessor;
+﻿using System.Threading.Tasks;
+using FluentAssertions;
+using Loki.BulkDataProcessor;
+using Loki.BulkDataProcessor.DependancyInjection;
+using LokiBulkDataProcessor.IntegrationTests.Contract.Mappings;
 using LokiBulkDataProcessor.IntegrationTests.EF;
+using LokiBulkDataProcessor.IntegrationTests.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using FluentAssertions;
-using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
-using System.Threading.Tasks;
-using Loki.BulkDataProcessor.DependancyInjection;
-using Testcontainers.MsSql;
 
 namespace LokiBulkDataProcessor.IntegrationTests.Abstract
 {
+    /// <summary>
+    /// Base for the SQL Server-only fixtures (the provider-neutral tests live in <see cref="SqlServerContractTests"/>).
+    /// One container per fixture; the database is re-created before each test. <see cref="BulkProcessor"/> comes from the
+    /// legacy <c>AddLokiBulkDataProcessor(connectionString, mappingAssembly)</c> registration, resolved in a new scope per test.
+    /// </summary>
     public abstract class BaseIntegrationTest
     {
-        private const string TestDbName = "IntegrationTestsDb";
+        protected const string TestPassword = SqlServerTestDatabase.Password;
 
-        protected const string TestPassword = "Pwd12345678!";
-
-        private MsSqlContainer MsSqlContainer;
+        private SqlServerTestDatabase _database;
+        private ServiceProvider _serviceProvider;
+        private IServiceScope _scope;
 
         protected TestDbContext TestDbContext;
 
         protected IBulkProcessor BulkProcessor;
-        
-        protected ServiceProvider ServiceProvider;
+
+        [OneTimeSetUp]
+        public async Task StartDatabaseAsync()
+        {
+            _database = new SqlServerTestDatabase();
+            await _database.StartAsync();
+        }
+
+        [OneTimeTearDown]
+        public async Task StopDatabaseAsync()
+        {
+            if (_database is not null)
+            {
+                await _database.DisposeAsync();
+            }
+        }
 
         [SetUp]
-        protected async Task TestSetup()
+        public async Task TestSetup()
         {
-            MsSqlContainer = InitContainerTest();
-
-            await MsSqlContainer.StartAsync();
-
-            var serviceCollection = ConfigureServiceCollection();
-            
-            var dbContextOptionsBuilder = BuildDbContextOptionsBuilder(ServiceProvider);
-
-            TestDbContext = new TestDbContext(dbContextOptionsBuilder.Options);
-
-            CreateDatabase();
-            
-            ConfigureStartUp(serviceCollection);
-
-            ServiceProvider = serviceCollection.BuildServiceProvider();
-
-            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
-        }
-        
-        protected void CreateLokiBulkDataProcessorWithNoMappings()
-        {
-            var serviceCollection = ConfigureServiceCollection();
-            
-            serviceCollection.AddLokiBulkDataProcessor(GetConnectionString(), null);
-            
-            ServiceProvider = serviceCollection.BuildServiceProvider();
-            
-            BulkProcessor = ServiceProvider.GetService<IBulkProcessor>();
-        }
-
-        private DbContextOptionsBuilder<TestDbContext> BuildDbContextOptionsBuilder(ServiceProvider serviceProvider)
-        {
-            var dbContextOptionsBuilder = new DbContextOptionsBuilder<TestDbContext>();
-
-            dbContextOptionsBuilder.UseSqlServer(GetConnectionString())
-                .UseInternalServiceProvider(serviceProvider);
-
-            return dbContextOptionsBuilder;
+            await _database.ResetAsync();
+            TestDbContext = _database.CreateDbContext();
+            _serviceProvider = BuildLegacyServices();
+            _scope = _serviceProvider.CreateScope();
+            BulkProcessor = _scope.ServiceProvider.GetRequiredService<IBulkProcessor>();
         }
 
         [TearDown]
-        protected async Task TestCleanup()
+        public async Task TestCleanup()
         {
-            await TestDbContext.DisposeAsync();
-            await MsSqlContainer.StopAsync();
+            _scope?.Dispose();
+            await (_serviceProvider?.DisposeAsync() ?? ValueTask.CompletedTask);
+            await (TestDbContext?.DisposeAsync() ?? ValueTask.CompletedTask);
         }
 
-        private MsSqlContainer InitContainerTest()
-        {
-            MsSqlContainer = new MsSqlBuilder()
-                .WithPassword(TestPassword)
-                .Build();
-
-            return MsSqlContainer;
-        }
-
-
-        protected async Task<IEnumerable<T>> LoadAllEntities<T>() where T : class
-        {
-            return await TestDbContext.Set<T>().ToListAsync();
-        }
+        protected string GetConnectionString() => _database.ConnectionString;
 
         protected void SaveEntities<T>(params T[] entities) where T : class
         {
             TestDbContext.AttachRange(entities);
             TestDbContext.SaveChanges();
-        }
-
-        protected async Task ShouldExistInTheDatabase<T>(IEnumerable<T> expectedDomainObjects) where T : class
-        {
-            var actualDomainObjects = await LoadAllEntities<T>();
-
-            expectedDomainObjects.Should().BeEquivalentTo(actualDomainObjects);
         }
 
         protected async Task TheDatabaseTableShouldBeEmpty<T>() where T : class
@@ -111,47 +77,11 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
             numberOfRecords.Should().Be(0);
         }
 
-        protected IBulkProcessorFactory BulkProcessorFactory => ServiceProvider.GetRequiredService<IBulkProcessorFactory>();
-
-        protected async Task<SqlConnection> OpenExternalConnectionAsync()
+        private ServiceProvider BuildLegacyServices()
         {
-            var sqlConnection = new SqlConnection(GetConnectionString());
-            await sqlConnection.OpenAsync();
-            return sqlConnection;
-        }
-
-        protected string GetConnectionString()
-        {
-            var connectionStringBuilder = new SqlConnectionStringBuilder(MsSqlContainer.GetConnectionString())
-            {
-                InitialCatalog = TestDbName,
-                TrustServerCertificate = true
-            };
-            
-            return connectionStringBuilder.ToString();
-        }
-
-        private void CreateDatabase()
-        {
-            TestDbContext.Database.EnsureDeleted();
-            TestDbContext.Database.Migrate();
-        }
-
-        private IServiceCollection ConfigureServiceCollection()
-        {
-            IServiceCollection services = new ServiceCollection();
-
-            services.AddEntityFrameworkSqlServer();
-
-            return services;
-        }
-
-
-        private void ConfigureStartUp(IServiceCollection serviceCollection)
-        {
-            var startup = new Startup(GetConnectionString());
-
-            startup.ConfigureServices(serviceCollection);
+            var services = new ServiceCollection();
+            services.AddLokiBulkDataProcessor(GetConnectionString(), typeof(PostMapping).Assembly);
+            return services.BuildServiceProvider();
         }
     }
 }
