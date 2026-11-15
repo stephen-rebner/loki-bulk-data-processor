@@ -58,7 +58,7 @@ public abstract partial class BulkProcessorContractTests
     [Test]
     public async Task SaveAsync_ShouldThrowAndSaveNothing_WhenAMappingIsRequiredAndTheJsonDestinationHasNone()
     {
-        using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.RequireDataMappingForJson = true; });
+        await using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.RequireDataMappingForJson = true; });
         using Stream json = ContractRows.TestDbModelsJson(TestDbModelsTable, ContractRows.TwoTestDbModels());
 
         Func<Task> action = () => CreateProcessor(services).SaveAsync(json, TestDbModelsTable);
@@ -70,7 +70,7 @@ public abstract partial class BulkProcessorContractTests
     [Test]
     public async Task SaveAsync_ShouldUseTheDestinationsDataMapping_WhenAMappingIsRequiredAndOneIsRegistered()
     {
-        using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.RequireDataMappingForJson = true; });
+        await using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.RequireDataMappingForJson = true; });
         int blogId = await GivenABlogAsync();
         using Stream json = ContractRows.MappedPostsJson("SomethingElse", blogId, "Mapped title");
 
@@ -82,7 +82,7 @@ public abstract partial class BulkProcessorContractTests
     [Test]
     public async Task SaveAsync_ShouldThrowInvalidDataExceptionAndSaveNothing_WhenTheJsonPayloadIsOverTheLimit()
     {
-        using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.MaxJsonPayloadBytes = 64; });
+        await using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.MaxJsonPayloadBytes = 64; });
         using Stream json = ContractRows.TestDbModelsJson(TestDbModelsTable, ContractRows.TwoTestDbModels());
 
         Func<Task> action = () => CreateProcessor(services).SaveAsync(json, TestDbModelsTable);
@@ -94,7 +94,7 @@ public abstract partial class BulkProcessorContractTests
     [Test]
     public async Task SaveAsync_ShouldSaveTheJson_WhenThePayloadIsWithinTheLimit()
     {
-        using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.MaxJsonPayloadBytes = 1024 * 1024; });
+        await using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.MaxJsonPayloadBytes = 1024 * 1024; });
         using Stream json = ContractRows.TestDbModelsJson(TestDbModelsTable, ContractRows.TwoTestDbModels());
 
         await CreateProcessor(services).SaveAsync(json);

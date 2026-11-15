@@ -17,29 +17,24 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract;
 /// </summary>
 public abstract partial class BulkProcessorContractTests
 {
-    [Test]
-    public async Task SaveAsync_ShouldLeaveTheTableEmpty_WhenACopyWithItsOwnTransactionFails()
-    {
-        int blogId = await GivenABlogAsync();
-        using DataTable posts = ContractRows.PostsDataTable(BadDestinationDataMapping.SourceName, "Title", "Content", "BlogId", blogId);
-
-        Func<Task> action = () => BulkProcessor.SaveAsync(posts, PostsTable);
-
-        await action.Should().ThrowAsync<InvalidOperationException>();
-        await ThePostsTableShouldBeEmpty();
-    }
-
+    /// <summary>
+    /// Loki's own transaction is rolled back after rows have already reached the server: four batches of one valid post,
+    /// then a post whose BlogId has no blog (a FOREIGN KEY violation, the only constraint it breaks: no identity column is
+    /// written). The control save proves the four valid rows load on their own, so the rejection came from the last row.
+    /// </summary>
     [Test]
     public async Task SaveAsync_ShouldLeaveTheTableEmpty_WhenALaterBatchIsRejected()
     {
         int blogId = await GivenABlogAsync();
-        Post[] validThenInvalid = ContractRows.Posts(blogId, count: 4).Append(ContractRows.Posts(blogId: 999_999, count: 1)[0]).ToArray();
+        Post[] valid = ContractRows.Posts(blogId, count: 4);
         BulkProcessor.BatchSize = 1;
 
-        Func<Task> action = () => BulkProcessor.SaveAsync(validThenInvalid, PostsTable);
+        Func<Task> action = () => BulkProcessor.SaveAsync(valid.Append(ContractRows.Posts(blogId: 999_999, count: 1)[0]), PostsTable);
 
         (await action.Should().ThrowAsync<InvalidOperationException>()).Which.InnerException.Should().NotBeNull("#15");
         await ThePostsTableShouldBeEmpty();
+        await BulkProcessor.SaveAsync(valid, PostsTable);
+        await ThePostTitlesShouldBe("Post1", "Post2", "Post3", "Post4");
     }
 
     [Test]

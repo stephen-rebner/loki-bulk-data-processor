@@ -52,7 +52,7 @@ public class BulkProcessorSqlServerTests : BaseIntegrationTest
     [Test]
     public async Task SaveAsync_ShouldSkipDeletedRows_WhenTheDataTableContainsAPendingDelete()
     {
-        using var table = ContractRows.TestDbModelsDataTable(ContractRows.TestDbModel(1, "kept"), ContractRows.TestDbModel(2, "deleted"));
+        using var table = ContractRows.TestDbModelsDataTable(ContractRows.TestDbModel("kept"), ContractRows.TestDbModel("deleted"));
         table.AcceptChanges();
         table.Rows[1].Delete();
 
@@ -71,7 +71,7 @@ public class BulkProcessorSqlServerTests : BaseIntegrationTest
         action.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("transaction");
         BulkProcessor.Transaction.Should().BeNull();
         foreignTransaction.WasTouched.Should().BeFalse("Loki never commits, rolls back or disposes a caller's transaction");
-        await BulkProcessor.SaveAsync(new[] { ContractRows.TestDbModel(1, "own transaction") }, nameof(TestDbContext.TestDbModels));
+        await BulkProcessor.SaveAsync(new[] { ContractRows.TestDbModel("own transaction") }, nameof(TestDbContext.TestDbModels));
         (await TestDbContext.TestDbModels.CountAsync()).Should().Be(1);
     }
 

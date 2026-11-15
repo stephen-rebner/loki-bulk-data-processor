@@ -5,7 +5,6 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
 {
     public class TestDataTableBuilder
     {
-        private const string IdColumnHeader = "Id";
         private const string StringColumnHeader = "StringColumn";
         private const string BoolColumnHeader = "BoolColumn";
         private const string DateColumnHeader = "DateColumn";
@@ -22,11 +21,9 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
             _dataTable.Columns.Add(new DataColumn(DateColumnHeader));
             _dataTable.Columns.Add(new DataColumn(NullableBoolColumnHeader));
             _dataTable.Columns.Add(new DataColumn(NullableDateColumnHeader));
-            _dataTable.Columns.Add(new DataColumn(IdColumnHeader));
         }
 
         public TestDataTableBuilder WithRowData(
-            int id,
             string stringValue,
             bool boolValue,
             DateTime dateValue,
@@ -34,7 +31,6 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
             DateTime? nullableDateValue)
         {
             var dataRow = _dataTable.NewRow();
-            dataRow[IdColumnHeader] = id;
             dataRow[StringColumnHeader] = stringValue;
             dataRow[BoolColumnHeader] = boolValue;
             dataRow[DateColumnHeader] = dateValue;

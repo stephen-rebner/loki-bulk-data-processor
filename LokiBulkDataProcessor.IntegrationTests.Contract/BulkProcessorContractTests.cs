@@ -20,9 +20,16 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract;
 /// <c>[OneTimeSetUp]</c>); data is reset before every test (<see cref="ResetDataAsync"/> in <c>[SetUp]</c>).
 /// </summary>
 /// <remarks>
-/// The schema every provider must create: <c>Blogs(Id identity PK, Url)</c>, <c>Posts(Id identity PK, BlogId FK → Blogs,
-/// Title, Content)</c> and <c>TestDbModels(Id, StringColumn, BoolColumn, DateColumn, NullableBoolColumn, NullableDateColumn)</c>.
-/// The tests in the partial files only use ADO.NET base types and assert only provider-neutral parts of messages.
+/// <para>The schema every provider must create: <c>Blogs(Id identity PK, Url)</c>, <c>Posts(Id identity PK, BlogId FK → Blogs,
+/// Title, Content)</c> and <c>TestDbModels(Id identity PK, StringColumn, BoolColumn, DateColumn, NullableBoolColumn,
+/// NullableDateColumn)</c>.</para>
+/// <para><b>The contract never writes identity columns.</b> No model mapping, DataTable, reader or JSON payload in it
+/// carries Blogs.Id, Posts.Id or TestDbModels.Id; blogs are inserted through <see cref="InsertBlogAsync"/>, which returns the
+/// generated Id. Ids are never compared and no assertion depends on row order, so the suite behaves the same whether a
+/// provider's bulk copy ignores supplied identity values (SqlBulkCopy without KeepIdentity) or would insert them, and
+/// whether the identity is <c>GENERATED ALWAYS</c> or <c>BY DEFAULT</c>. Failure tests therefore fail on the constraint they
+/// name (for example the Posts → Blogs FOREIGN KEY), never on a primary key.</para>
+/// <para>The tests in the partial files only use ADO.NET base types and assert only provider-neutral parts of messages.</para>
 /// </remarks>
 [NonParallelizable]
 public abstract partial class BulkProcessorContractTests
@@ -63,10 +70,10 @@ public abstract partial class BulkProcessorContractTests
 
     protected abstract Task<int> CountBlogsAsync();
 
-    /// <summary>Every row of Posts, ordered by Id.</summary>
+    /// <summary>Every row of Posts, in any order (the contract never depends on row order).</summary>
     protected abstract Task<IReadOnlyList<PostRow>> ReadPostsAsync();
 
-    /// <summary>Every row of TestDbModels, ordered by Id.</summary>
+    /// <summary>Every row of TestDbModels, in any order (the contract never depends on row order).</summary>
     protected abstract Task<IReadOnlyList<TestDbModel>> ReadTestDbModelsAsync();
 
     /// <summary>Returns <paramref name="connectionString"/> with the pool limited to <paramref name="maxPoolSize"/>
@@ -95,9 +102,14 @@ public abstract partial class BulkProcessorContractTests
     [OneTimeTearDown]
     public async Task StopContractFixtureAsync()
     {
-        await DisposeIfBuiltAsync(_services);
-        await DisposeIfBuiltAsync(_servicesWithoutMappings);
-        await StopDatabaseAsync();
+        try
+        {
+            await DisposeServicesAsync();
+        }
+        finally
+        {
+            await StopDatabaseAsync();
+        }
     }
 
     [SetUp]
@@ -142,11 +154,23 @@ public abstract partial class BulkProcessorContractTests
     protected async Task TheTestDbModelsShouldBe(IEnumerable<TestDbModel> expected) =>
         (await ReadTestDbModelsAsync()).Should().BeEquivalentTo(expected);
 
-    /// <summary>Asserts the StringColumn values in Id order.</summary>
+    /// <summary>Asserts the StringColumn values, in any order (the generated Id is never used as a sort key).</summary>
     protected async Task TheTestDbModelValuesShouldBe(params string[] expected) =>
-        (await ReadTestDbModelsAsync()).Select(model => model.StringColumn).Should().Equal(expected);
+        (await ReadTestDbModelsAsync()).Select(model => model.StringColumn).Should().BeEquivalentTo(expected);
 
     protected async Task TheTestDbModelsTableShouldBeEmpty() => (await ReadTestDbModelsAsync()).Should().BeEmpty();
+
+    private async Task DisposeServicesAsync()
+    {
+        try
+        {
+            await DisposeIfBuiltAsync(_services);
+        }
+        finally
+        {
+            await DisposeIfBuiltAsync(_servicesWithoutMappings);
+        }
+    }
 
     private static async Task DisposeIfBuiltAsync(ServiceProvider services)
     {

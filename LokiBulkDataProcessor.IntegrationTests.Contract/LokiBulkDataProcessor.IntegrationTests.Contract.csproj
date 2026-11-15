@@ -12,6 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.7.0" />
+    <!-- ObjectReader for the IDataReader row sets; explicit rather than relying on Core's transitive reference. -->
+    <PackageReference Include="FastMember" Version="1.5.0" />
     <!-- The library only depends on DI abstractions; the contract builds a real container. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="nunit" Version="3.13.3" />

@@ -46,9 +46,8 @@ public abstract partial class BulkProcessorContractTests
         int blogId = await GivenABlogAsync();
         var posts = new[] { new { Title = "T1", Content = "C1", BlogId = blogId } };
         using IDataReader reader = ObjectReader.Create(posts, "Title", "Content", "BlogId");
-        IBulkProcessor processor = Factory.Create(ProviderName.ToLowerInvariant(), ConnectionString);
 
-        await processor.SaveAsync(reader, PostsTable, sourceName: "UnmappedPosts");
+        await BulkProcessor.SaveAsync(reader, PostsTable, sourceName: "UnmappedPosts");
 
         await ThePostTitlesShouldBe("T1");
     }

@@ -2,6 +2,11 @@
 
 namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestModels
 {
+    /// <summary>
+    /// A row of TestDbModels. Deliberately has no <c>Id</c>: the table's Id is an identity column and the contract never
+    /// writes identity columns, so no input shape built from this type can carry one. Providers key the table on a
+    /// database-generated Id that the contract never reads.
+    /// </summary>
     public class TestDbModel
     {
         public string StringColumn { get; set; }
@@ -13,8 +18,5 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestModels
         public bool? NullableBoolColumn { get; set; }
 
         public DateTime? NullableDateColumn { get; set; }
-
-        public int Id { get; set; }
-        
     }
 }

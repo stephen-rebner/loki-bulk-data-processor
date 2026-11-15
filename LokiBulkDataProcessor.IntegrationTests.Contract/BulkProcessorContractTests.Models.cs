@@ -26,8 +26,8 @@ public abstract partial class BulkProcessorContractTests
     {
         var models = new List<TestDbModelWithGetOnlyProperty>
         {
-            new() { Id = 1, StringColumn = "String Value 1", BoolColumn = true, DateColumn = ContractRows.Date1 },
-            new() { Id = 2, StringColumn = "String Value 2", BoolColumn = false, DateColumn = ContractRows.Date2, NullableBoolColumn = true }
+            new() { StringColumn = "String Value 1", BoolColumn = true, DateColumn = ContractRows.Date1 },
+            new() { StringColumn = "String Value 2", BoolColumn = false, DateColumn = ContractRows.Date2, NullableBoolColumn = true }
         };
 
         await BulkProcessor.SaveAsync(models, TestDbModelsTable);
@@ -58,8 +58,8 @@ public abstract partial class BulkProcessorContractTests
     [Test]
     public async Task SaveAsync_ShouldPreserveNulls_WhenNullableColumnsHaveNoValue()
     {
-        TestDbModel withNulls = ContractRows.FullTestDbModel(1, null, ContractRows.Date1, true, null, null);
-        using var tableWithNulls = ContractRows.TestDbModelsDataTable(ContractRows.FullTestDbModel(2, null, ContractRows.Date2, false, null, null));
+        TestDbModel withNulls = ContractRows.FullTestDbModel(null, ContractRows.Date1, true, null, null);
+        using var tableWithNulls = ContractRows.TestDbModelsDataTable(ContractRows.FullTestDbModel(null, ContractRows.Date2, false, null, null));
 
         await BulkProcessor.SaveAsync(new[] { withNulls }, TestDbModelsTable);
         await BulkProcessor.SaveAsync(tableWithNulls, TestDbModelsTable);
@@ -81,8 +81,8 @@ public abstract partial class BulkProcessorContractTests
     public async Task SaveAsync_ShouldSaveEveryRow_WhenTheBatchSizeIsSmallerThanTheRowCount()
     {
         BulkProcessor.BatchSize = 2;
-        TestDbModel[] models = { ContractRows.TestDbModel(1, "Row 1"), ContractRows.TestDbModel(2, "Row 2"),
-            ContractRows.TestDbModel(3, "Row 3"), ContractRows.TestDbModel(4, "Row 4"), ContractRows.TestDbModel(5, "Row 5") };
+        TestDbModel[] models = { ContractRows.TestDbModel("Row 1"), ContractRows.TestDbModel("Row 2"),
+            ContractRows.TestDbModel("Row 3"), ContractRows.TestDbModel("Row 4"), ContractRows.TestDbModel("Row 5") };
 
         await BulkProcessor.SaveAsync(models, TestDbModelsTable);
 

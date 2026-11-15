@@ -13,53 +13,53 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract;
 /// <summary>
 /// Row sets shared by every provider's contract run, in every input shape Loki accepts (models, DataTable,
 /// IDataReader, JSON). No value is an empty string: Oracle stores <c>""</c> as NULL, so that case has its own
-/// Oracle-only test.
+/// Oracle-only test. No row set carries an identity column (Blogs.Id, Posts.Id, TestDbModels.Id): the contract never
+/// writes identity columns, and row identity is the values, never a generated Id.
 /// </summary>
 public static class ContractRows
 {
     public static readonly string[] TestDbModelColumns =
-        { "Id", "StringColumn", "DateColumn", "BoolColumn", "NullableBoolColumn", "NullableDateColumn" };
+        { "StringColumn", "DateColumn", "BoolColumn", "NullableBoolColumn", "NullableDateColumn" };
 
     public static readonly DateTime Date1 = new(2020, 01, 26);
     public static readonly DateTime Date2 = new(2020, 01, 27);
     public static readonly DateTime Date3 = new(2020, 01, 28);
 
     /// <summary>A TestDbModel with every non-nullable column set and both nullable columns null.</summary>
-    public static TestDbModel TestDbModel(int id, string value, DateTime? date = null, bool flag = true) =>
+    public static TestDbModel TestDbModel(string value, DateTime? date = null, bool flag = true) =>
         TestObjectFactory.TestDbModelObject()
-            .WithId(id)
             .WithStringColumnValue(value)
             .WithDateColumnValue(date ?? Date1)
             .WithBoolColumnValue(flag)
             .Build();
 
     /// <summary>A TestDbModel with every column, including the nullable ones, set.</summary>
-    public static TestDbModel FullTestDbModel(int id, string value, DateTime date, bool flag, bool? nullableFlag, DateTime? nullableDate)
+    public static TestDbModel FullTestDbModel(string value, DateTime date, bool flag, bool? nullableFlag, DateTime? nullableDate)
     {
-        TestDbModel model = TestDbModel(id, value, date, flag);
+        TestDbModel model = TestDbModel(value, date, flag);
         model.NullableBoolColumn = nullableFlag;
         model.NullableDateColumn = nullableDate;
         return model;
     }
 
-    public static TestDbModel[] TwoTestDbModels() => new[] { TestDbModel(1, "One"), TestDbModel(2, "Two", Date2, flag: false) };
+    public static TestDbModel[] TwoTestDbModels() => new[] { TestDbModel("One"), TestDbModel("Two", Date2, flag: false) };
 
     /// <summary>Two rows that mix null and non-null values in the nullable columns.</summary>
     public static TestDbModel[] TwoMixedNullTestDbModels() => new[]
     {
-        FullTestDbModel(1, "String Value 1", Date1, true, null, null),
-        FullTestDbModel(2, "String Value 2", Date2, false, true, new DateTime(2020, 01, 19))
+        FullTestDbModel("String Value 1", Date1, true, null, null),
+        FullTestDbModel("String Value 2", Date2, false, true, new DateTime(2020, 01, 19))
     };
 
     public static TestDbModel[] ThreeMixedNullTestDbModels() =>
-        TwoMixedNullTestDbModels().Append(FullTestDbModel(3, "String Value 3", Date3, true, false, new DateTime(2020, 1, 10))).ToArray();
+        TwoMixedNullTestDbModels().Append(FullTestDbModel("String Value 3", Date3, true, false, new DateTime(2020, 1, 10))).ToArray();
 
     public static DataTable TestDbModelsDataTable(params TestDbModel[] rows)
     {
         TestDataTableBuilder builder = TestObjectFactory.NewTestDataTable();
         foreach (TestDbModel row in rows)
         {
-            builder.WithRowData(row.Id, row.StringColumn, row.BoolColumn, row.DateColumn, row.NullableBoolColumn, row.NullableDateColumn);
+            builder.WithRowData(row.StringColumn, row.BoolColumn, row.DateColumn, row.NullableBoolColumn, row.NullableDateColumn);
         }
 
         return builder.Build();
@@ -73,12 +73,12 @@ public static class ContractRows
         tableName,
         columns = new[]
         {
-            Column("Id", "int"), Column("StringColumn", "string"), Column("DateColumn", "datetime"),
+            Column("StringColumn", "string"), Column("DateColumn", "datetime"),
             Column("BoolColumn", "bool"), Column("NullableBoolColumn", "bool"), Column("NullableDateColumn", "datetime")
         },
         data = rows.Select(row => new
         {
-            row.Id, row.StringColumn, row.DateColumn, row.BoolColumn, row.NullableBoolColumn, row.NullableDateColumn
+            row.StringColumn, row.DateColumn, row.BoolColumn, row.NullableBoolColumn, row.NullableDateColumn
         })
     });
 

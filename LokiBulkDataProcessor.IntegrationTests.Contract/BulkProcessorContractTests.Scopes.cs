@@ -92,8 +92,8 @@ public abstract partial class BulkProcessorContractTests
 
     private async Task SaveTwoRowsOneAtATimeAsync(InputShape shape, string valuePrefix)
     {
-        await SaveOneRowAsync(shape, ContractRows.FullTestDbModel(1, $"{valuePrefix} 1", ContractRows.Date1, true, null, null));
-        await SaveOneRowAsync(shape, ContractRows.FullTestDbModel(2, $"{valuePrefix} 2", ContractRows.Date2, false, true, new System.DateTime(2020, 01, 19)));
+        await SaveOneRowAsync(shape, ContractRows.FullTestDbModel($"{valuePrefix} 1", ContractRows.Date1, true, null, null));
+        await SaveOneRowAsync(shape, ContractRows.FullTestDbModel($"{valuePrefix} 2", ContractRows.Date2, false, true, new System.DateTime(2020, 01, 19)));
     }
 
     private async Task SaveOneRowAsync(InputShape shape, TestDbModel row)

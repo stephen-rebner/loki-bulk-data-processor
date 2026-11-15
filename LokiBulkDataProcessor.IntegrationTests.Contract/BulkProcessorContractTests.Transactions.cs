@@ -68,7 +68,8 @@ public abstract partial class BulkProcessorContractTests
         await InsertBlogAsync("caller-work", transaction);
         BulkProcessor.Transaction = transaction;
 
-        Func<Task> rejectedCopy = () => BulkProcessor.SaveAsync(ContractRows.Posts(blogId: 999_999), PostsTable);
+        // One post for a blog that does not exist: a FOREIGN KEY violation (no identity column is written, so nothing else can fail).
+        Func<Task> rejectedCopy = () => BulkProcessor.SaveAsync(ContractRows.Posts(blogId: 999_999, count: 1), PostsTable);
 
         (await rejectedCopy.Should().ThrowAsync<InvalidOperationException>()).Which.InnerException.Should().NotBeNull("#15");
         await transaction.CommitAsync();
@@ -85,9 +86,9 @@ public abstract partial class BulkProcessorContractTests
         await using DbTransaction transaction = await connection.BeginTransactionAsync();
         withCallerTransaction.Transaction = transaction;
 
-        await withCallerTransaction.SaveAsync(new[] { ContractRows.TestDbModel(1, "rolled back") }, TestDbModelsTable);
+        await withCallerTransaction.SaveAsync(new[] { ContractRows.TestDbModel("rolled back") }, TestDbModelsTable);
         await transaction.RollbackAsync();
-        await withOwnTransaction.SaveAsync(new[] { ContractRows.TestDbModel(2, "committed") }, TestDbModelsTable);
+        await withOwnTransaction.SaveAsync(new[] { ContractRows.TestDbModel("committed") }, TestDbModelsTable);
 
         withOwnTransaction.Transaction.Should().BeNull();
         await TheTestDbModelValuesShouldBe("committed");

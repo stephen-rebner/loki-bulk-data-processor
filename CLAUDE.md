@@ -61,7 +61,7 @@ LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test proj
                                            (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
                                            no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back)
 LokiBulkDataProcessor.IntegrationTests/    SQL Server: SqlServerContractTests (runs the contract) + SQL-only fixtures (EF Core
-                                           transaction, logging, SqlBulkCopy specifics). NUnit + Testcontainers.MsSql + EF Core
+                                           transaction, logging, SqlBulkCopy specifics, 8.x legacy registration). NUnit + Testcontainers.MsSql + EF Core
                                            (test schema via EF migrations; SqlServer/SqlServerTestDatabase)
 .github/workflows/dotnet.yml               unit + sqlserver-integration jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
@@ -114,14 +114,14 @@ dotnet restore
 dotnet build
 dotnet test LokiBulkDataProcessor.UnitTests                 # fast, no Docker
 dotnet test LokiBulkDataProcessor.IntegrationTests          # needs Docker (Testcontainers SQL Server)
-dotnet test --filter "FullyQualifiedName~BulkProcessorTests"
+dotnet test LokiBulkDataProcessor.IntegrationTests --filter "FullyQualifiedName~SqlServerContractTests"
 dotnet pack LokiBulkDataProcessor -c Release                # GeneratePackageOnBuild is also on
 ```
 
 Integration tests start **one container per fixture** (`[OneTimeSetUp]`) and reset the data before each test: the SQL
 fixtures drop and re-create the database with EF Core migrations from `IntegrationTests/Migrations` (`TestDbContext`).
 Provider-neutral behaviour goes in the Contract project's `BulkProcessorContractTests` (ADO.NET base types only, assert only
-provider-neutral message parts, no `""` data); provider-specific behaviour goes in the provider's own test project.
+provider-neutral message parts, no `""` data, never write identity columns or depend on row order); provider-specific behaviour goes in the provider's own test project.
 
 ## Conventions
 

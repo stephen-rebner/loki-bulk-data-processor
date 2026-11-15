@@ -5,5 +5,5 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.Dtos;
 /// </summary>
 public class TestDbModelWithGetOnlyProperty : TestDbModel
 {
-    public string Description => $"{Id}: {StringColumn}";
+    public string Description => $"{StringColumn}: {BoolColumn}";
 }

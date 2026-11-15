@@ -65,7 +65,10 @@ public sealed class SqlServerContractTests : BulkProcessorContractTests
     protected override async Task<IReadOnlyList<TestDbModel>> ReadTestDbModelsAsync()
     {
         await using TestDbContext context = _database.CreateDbContext();
-        return await context.TestDbModels.AsNoTracking().OrderBy(model => model.Id).ToListAsync();
+        // TestDbModel has no Id (the contract never writes identity columns); order by the shadow key only for readable output.
+        return await context.TestDbModels.AsNoTracking()
+            .OrderBy(model => Microsoft.EntityFrameworkCore.EF.Property<int>(model, TestDbContext.TestDbModelKey))
+            .ToListAsync();
     }
 
     protected override string WithMaxPoolSize(string connectionString, int maxPoolSize) =>

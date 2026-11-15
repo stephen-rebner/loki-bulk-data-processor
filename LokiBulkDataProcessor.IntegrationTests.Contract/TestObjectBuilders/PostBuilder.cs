@@ -46,12 +46,6 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
             return this;
         }
 
-        public PostBuilder WithId(int id)
-        {
-            _post.Id = id;
-            return this;
-        }
-
         public Post Build()
         {
             return _post;
