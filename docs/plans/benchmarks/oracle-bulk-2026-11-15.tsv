@@ -1,0 +1,55 @@
+volume	table	engine	method	median_ms	min_ms	rows_per_sec	note
+10000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 1000	69	62	145916	
+10000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 5000	47	44	213138	
+10000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 20000	50	43	198759	
+10000	BENCH_HEAP	Oracle	ArrayBind typed[] chunk 5000	63	55	157808	
+10000	BENCH_HEAP	Oracle	ArrayBind APPEND_VALUES one execute	-	-	-	FAILED: OracleException: ORA-38910: BATCH ERROR mode is not supported for this operation
+10000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 0	62	58	160097	
+10000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 5000	64	62	157396	
+10000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 0	73	70	137147	
+10000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 5000	78	71	128753	
+10000	BENCH_IDX	Oracle	ArrayBind object[] chunk 1000	120	115	83467	
+10000	BENCH_IDX	Oracle	ArrayBind object[] chunk 5000	73	68	137422	
+10000	BENCH_IDX	Oracle	ArrayBind object[] chunk 20000	72	47	139638	
+10000	BENCH_IDX	Oracle	ArrayBind typed[] chunk 5000	65	53	153610	
+10000	BENCH_IDX	Oracle	ArrayBind APPEND_VALUES one execute	53	48	188661	
+10000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 0	52	48	192920	
+10000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 5000	45	44	222546	
+10000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 0	97	76	102830	
+10000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 5000	99	87	100581	
+100000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 1000	275	233	363968	
+100000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 5000	300	189	333821	
+100000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 20000	337	277	296684	
+100000	BENCH_HEAP	Oracle	ArrayBind typed[] chunk 5000	234	211	427007	
+100000	BENCH_HEAP	Oracle	ArrayBind APPEND_VALUES one execute	-	-	-	FAILED: OracleException: ORA-38910: BATCH ERROR mode is not supported for this operation
+100000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 0	239	218	418151	
+100000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 5000	209	207	478868	
+100000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 0	326	294	306454	
+100000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 5000	471	453	212377	
+100000	BENCH_IDX	Oracle	ArrayBind object[] chunk 1000	877	846	114083	
+100000	BENCH_IDX	Oracle	ArrayBind object[] chunk 5000	793	693	126072	
+100000	BENCH_IDX	Oracle	ArrayBind object[] chunk 20000	878	770	113873	
+100000	BENCH_IDX	Oracle	ArrayBind typed[] chunk 5000	756	709	132204	
+100000	BENCH_IDX	Oracle	ArrayBind APPEND_VALUES one execute	843	756	118664	
+100000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 0	341	329	293239	
+100000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 5000	318	308	314867	
+100000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 0	705	675	141869	
+100000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 5000	820	798	121928	
+1000000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 1000	3221	3074	310492	
+1000000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 5000	2732	2649	365967	
+1000000	BENCH_HEAP	Oracle	ArrayBind object[] chunk 20000	2762	2594	362096	
+1000000	BENCH_HEAP	Oracle	ArrayBind typed[] chunk 5000	2924	2741	342042	
+1000000	BENCH_HEAP	Oracle	ArrayBind APPEND_VALUES one execute	-	-	-	FAILED: OracleException: ORA-38910: BATCH ERROR mode is not supported for this operation
+1000000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 0	2073	1952	482282	
+1000000	BENCH_HEAP	Oracle	OracleBulkCopy BatchSize 5000	2180	2028	458759	
+1000000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 0	3154	3100	317033	
+1000000	BENCH_HEAP	SqlServer	SqlBulkCopy BatchSize 5000	4156	4139	240587	
+1000000	BENCH_IDX	Oracle	ArrayBind object[] chunk 1000	8176	8056	122312	
+1000000	BENCH_IDX	Oracle	ArrayBind object[] chunk 5000	7856	7853	127291	
+1000000	BENCH_IDX	Oracle	ArrayBind object[] chunk 20000	8602	8590	116248	
+1000000	BENCH_IDX	Oracle	ArrayBind typed[] chunk 5000	8220	8149	121648	
+1000000	BENCH_IDX	Oracle	ArrayBind APPEND_VALUES one execute	8268	8068	120941	
+1000000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 0	3084	2997	324259	
+1000000	BENCH_IDX	Oracle	OracleBulkCopy BatchSize 5000	3274	2982	305429	
+1000000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 0	8579	8392	116570	
+1000000	BENCH_IDX	SqlServer	SqlBulkCopy BatchSize 5000	8935	8448	111920	
