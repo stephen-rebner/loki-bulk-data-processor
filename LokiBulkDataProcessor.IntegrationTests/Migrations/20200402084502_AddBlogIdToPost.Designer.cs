@@ -21,7 +21,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.Blog", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.Blog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -36,7 +36,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                     b.ToTable("Blogs");
                 });
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.Post", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.Post", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,7 +59,7 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                     b.ToTable("Posts");
                 });
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.TestDbModel", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.TestDbModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -86,9 +86,9 @@ namespace LokiBulkDataProcessor.IntegrationTests.Migrations
                     b.ToTable("TestDbModels");
                 });
 
-            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.TestModels.Post", b =>
+            modelBuilder.Entity("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.Post", b =>
                 {
-                    b.HasOne("LokiBulkDataProcessor.IntegrationTests.TestModels.Blog", "Blog")
+                    b.HasOne("LokiBulkDataProcessor.IntegrationTests.Contract.TestModels.Blog", "Blog")
                         .WithMany("Posts")
                         .HasForeignKey("BlogId")
                         .OnDelete(DeleteBehavior.Cascade)

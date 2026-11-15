@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Provider-neutral contract suite (BulkProcessorContractTests) plus the shared test models, mappings and row builders.
+    A class library, NOT a test project: no Microsoft.NET.Test.Sdk / test adapter, so `dotnet test` never tries to run
+    the abstract base on its own. Each provider's integration test project derives a concrete fixture from it.
+    Must not reference any database driver (no SqlClient, no Oracle, no EF Core): provider specifics come through the
+    abstract members of BulkProcessorContractTests.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.7.0" />
+    <!-- ObjectReader for the IDataReader row sets; explicit rather than relying on Core's transitive reference. -->
+    <PackageReference Include="FastMember" Version="1.5.0" />
+    <!-- The library only depends on DI abstractions; the contract builds a real container. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="nunit" Version="3.13.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LokiBulkDataProcessor.Core\LokiBulkDataProcessor.Core.csproj" />
+  </ItemGroup>
+</Project>

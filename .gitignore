@@ -18,3 +18,5 @@
 LokiBulkDataProcessor.sln.DotSettings.user
 /LokiBulkDataProcessor.Core/bin
 /LokiBulkDataProcessor.Core/obj
+/LokiBulkDataProcessor.IntegrationTests.Contract/bin
+/LokiBulkDataProcessor.IntegrationTests.Contract/obj

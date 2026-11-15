@@ -17,8 +17,8 @@ nine steps, each a separate PR into the `release/9.0` branch. **Before doing any
 [`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
 decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
 (the spec). The PR that completes a step must also update the progress file. The layout below describes
-**`release/9.0` after step 4** (`master` still has the 8.x single-project layout until step 9). Oracle, the
-contract test project and the Oracle test project are added in steps 5-8.
+**`release/9.0` after step 5** (`master` still has the 8.x single-project layout until step 9). Oracle and the
+Oracle test project are added in steps 6-8.
 
 ## Repository layout
 
@@ -57,7 +57,12 @@ LokiBulkDataProcessor/                     Package LokiBulkDataProcessor = the S
 └── Properties/TypeForwards.cs             TypeForwardedTo Core for the public types that moved in step 3
 LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no database. TestDoubles/ has
                                            FakeDbConnection/FakeDbTransaction/FakeProvider for pipeline tests
-LokiBulkDataProcessor.IntegrationTests/    NUnit + Testcontainers.MsSql + EF Core (test schema via EF migrations)
+LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test project): abstract BulkProcessorContractTests
+                                           (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
+                                           no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back)
+LokiBulkDataProcessor.IntegrationTests/    SQL Server: SqlServerContractTests (runs the contract) + SQL-only fixtures (EF Core
+                                           transaction, logging, SqlBulkCopy specifics, 8.x legacy registration). NUnit + Testcontainers.MsSql + EF Core
+                                           (test schema via EF migrations; SqlServer/SqlServerTestDatabase)
 .github/workflows/dotnet.yml               unit + sqlserver-integration jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
 ```
@@ -109,12 +114,14 @@ dotnet restore
 dotnet build
 dotnet test LokiBulkDataProcessor.UnitTests                 # fast, no Docker
 dotnet test LokiBulkDataProcessor.IntegrationTests          # needs Docker (Testcontainers SQL Server)
-dotnet test --filter "FullyQualifiedName~BulkProcessorTests"
+dotnet test LokiBulkDataProcessor.IntegrationTests --filter "FullyQualifiedName~SqlServerContractTests"
 dotnet pack LokiBulkDataProcessor -c Release                # GeneratePackageOnBuild is also on
 ```
 
-Integration tests start a fresh container **per test** (`[SetUp]` in `BaseIntegrationTest`) and
-build the schema with EF Core migrations from `IntegrationTests/Migrations` against `TestDbContext`.
+Integration tests start **one container per fixture** (`[OneTimeSetUp]`) and reset the data before each test: the SQL
+fixtures drop and re-create the database with EF Core migrations from `IntegrationTests/Migrations` (`TestDbContext`).
+Provider-neutral behaviour goes in the Contract project's `BulkProcessorContractTests` (ADO.NET base types only, assert only
+provider-neutral message parts, no `""` data, never write identity columns or depend on row order); provider-specific behaviour goes in the provider's own test project.
 
 ## Conventions
 

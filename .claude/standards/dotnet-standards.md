@@ -172,8 +172,8 @@ Every change ships with tests:
 Naming: `Member_Should<Outcome>_When/If<State>` (existing style, e.g.
 `Timeout_ShouldThrow_IfValueSetLessThanZero`).
 
-Integration test fixtures follow `Abstract/BaseIntegrationTest`: container per test in `[SetUp]`,
-stopped in `[TearDown]`. A new provider gets its own base class (parallel to the SQL Server one)
+Integration test fixtures start one container per fixture in `[OneTimeSetUp]` (stopped in `[OneTimeTearDown]`)
+and reset the data before each test in `[SetUp]`. A new provider gets its own base class (parallel to the SQL Server one)
 rather than branching inside the existing base. No `Thread.Sleep`.
 
 ## What NOT to do

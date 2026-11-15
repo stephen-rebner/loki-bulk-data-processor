@@ -2,14 +2,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.DependancyInjection;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
-using LokiBulkDataProcessor.IntegrationTests.TestModels;
-using LokiBulkDataProcessor.IntegrationTests.TestObjectBuilders;
+using LokiBulkDataProcessor.IntegrationTests.Contract.Mappings;
+using LokiBulkDataProcessor.IntegrationTests.Contract.TestModels;
+using LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -27,7 +27,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         {
             _loggerFactory = new TestLoggerFactory();
             var services = new ServiceCollection();
-            services.AddLokiBulkDataProcessor(GetConnectionString(), Assembly.GetExecutingAssembly(), _loggerFactory);
+            services.AddLokiBulkDataProcessor(GetConnectionString(), typeof(PostMapping).Assembly, _loggerFactory);
             _loggingServiceProvider = services.BuildServiceProvider();
             _bulkProcessorWithTestLogger = _loggingServiceProvider.CreateScope().ServiceProvider.GetRequiredService<IBulkProcessor>();
         }
@@ -44,7 +44,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
             var models = new List<TestDbModel>
             {
                 TestObjectFactory.TestDbModelObject()
-                    .WithId(1)
                     .WithStringColumnValue("String Value 1")
                     .WithDateColumnValue(new DateTime(2020, 01, 26))
                     .WithBoolColumnValue(true)
@@ -70,7 +69,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public void BulkProcessor_ShouldLogError_WhenExceptionOccurs()
         {
-            var models = new List<TestDbModel> { new() { Id = 1 } };
+            var models = new List<TestDbModel> { new() { StringColumn = "x" } };
             const string nonExistentTable = "NonExistentTable";
 
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -103,7 +102,7 @@ namespace LokiBulkDataProcessor.IntegrationTests
         [Test]
         public async Task BulkProcessor_ShouldNeverLogTheConnectionString_WhenSavesSucceedOrFail()
         {
-            var models = new List<TestDbModel> { new() { Id = 1, StringColumn = "x" } };
+            var models = new List<TestDbModel> { new() { StringColumn = "x" } };
             await _bulkProcessorWithTestLogger.SaveAsync(models, nameof(TestDbContext.TestDbModels));
             Assert.ThrowsAsync<InvalidOperationException>(async () => await _bulkProcessorWithTestLogger.SaveAsync(models, "NonExistentTable"));
 
