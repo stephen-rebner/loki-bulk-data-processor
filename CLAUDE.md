@@ -174,7 +174,8 @@ provider-neutral message parts, no `""` data, never write identity columns or de
 
 `.github/workflows/dotnet.yml` runs on every push and PR to **`master`** (the default branch — not
 `main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
-is in the transitive graph of Core, the SQL package or the Oracle package, #17) and `sqlserver-integration` (Testcontainers SQL Server).
+is in the transitive graph of Core, the SQL package or the Oracle package, #17, + a gate that fails when NuGet reports a known
+vulnerability in any of their direct or transitive packages) and `sqlserver-integration` (Testcontainers SQL Server).
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`
