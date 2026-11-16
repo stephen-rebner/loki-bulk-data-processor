@@ -82,6 +82,15 @@ public abstract partial class BulkProcessorContractTests
     /// </summary>
     protected abstract IReadOnlyCollection<string> ConnectionStringSecrets { get; }
 
+    /// <summary>Returns <paramref name="connectionString"/> with its password replaced by <paramref name="password"/> (a login that fails).</summary>
+    protected abstract string WithPassword(string connectionString, string password);
+
+    /// <summary>
+    /// Returns <paramref name="connectionString"/> pointing at <paramref name="host"/>:<paramref name="port"/>, where nothing listens,
+    /// with a connect timeout of a few seconds so the failure is quick.
+    /// </summary>
+    protected abstract string WithServer(string connectionString, string host, int port);
+
     /// <summary>
     /// Takes an exclusive lock on TestDbModels inside <paramref name="transaction"/> (on its connection), so that any other session's
     /// INSERT into TestDbModels waits until the transaction ends. Used to make a save block, for the timeout and cancellation tests.

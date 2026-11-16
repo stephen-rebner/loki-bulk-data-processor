@@ -73,6 +73,12 @@ public sealed class SqlServerContractTests : BulkProcessorContractTests
 
     protected override IReadOnlyCollection<string> ConnectionStringSecrets { get; } = new[] { SqlServerTestDatabase.Password };
 
+    protected override string WithPassword(string connectionString, string password) =>
+        new SqlConnectionStringBuilder(connectionString) { Password = password, ConnectTimeout = 5 }.ToString();
+
+    protected override string WithServer(string connectionString, string host, int port) =>
+        new SqlConnectionStringBuilder(connectionString) { DataSource = $"{host},{port}", ConnectTimeout = 3, ConnectRetryCount = 0 }.ToString();
+
     protected override async Task LockTestDbModelsTableAsync(DbTransaction transaction)
     {
         await using var command = new SqlCommand(

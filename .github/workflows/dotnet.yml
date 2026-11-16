@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: [ "master", "release/**" ]
 
+# Least privilege: the jobs only read the repository.
+permissions:
+  contents: read
+
 jobs:
   unit:
     runs-on: ubuntu-latest
@@ -49,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -61,12 +67,21 @@ jobs:
     timeout-minutes: 30
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
     - name: Pull the Oracle image
-      # Keep in sync with OracleTestDatabase.Image (pinned tag). Pulled up front so the ~1.3 GB download is not part of the test run.
-      run: docker pull gvenzl/oracle-free:23.26.3-slim-faststart
+      # The image (tag + digest) has one source: the OracleTestDatabase.Image constant. Pulled up front so the ~1.3 GB download
+      # is not part of the test run; fails if the constant cannot be read or is not digest-pinned.
+      run: |
+        image=$(grep -oP 'const string Image = "\K[^"]+' LokiBulkDataProcessor.Oracle.IntegrationTests/OracleTestDatabase.cs)
+        if [[ "$image" != *@sha256:* ]]; then
+          echo "::error::OracleTestDatabase.Image must be a digest-pinned image reference (found '$image')"
+          exit 1
+        fi
+        docker pull "$image"
     - name: Oracle integration tests
       run: dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests -c Release --verbosity normal

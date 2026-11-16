@@ -3,6 +3,7 @@ using System.Data;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor.Providers;
+using LokiBulkDataProcessor.IntegrationTests.Contract;
 using Loki.BulkDataProcessor.Oracle;
 using NUnit.Framework;
 
@@ -14,8 +15,6 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 /// </summary>
 public sealed partial class OracleArrayBindTests
 {
-    private const string HostileTableName = "TestDbModels; DROP TABLE Blogs--";
-
     [Test]
     public async Task SaveAsync_ShouldThrowTheMissingTableMessageWithTheCasingHint_WhenAMixedCaseTableIsWrittenUnquoted()
     {
@@ -75,7 +74,7 @@ public sealed partial class OracleArrayBindTests
     {
         await _database.InsertBlogAsync("http://a-url.com");
 
-        Func<Task> action = () => Processor().SaveAsync(TwoTestDbModelRows(), HostileTableName);
+        Func<Task> action = () => Processor().SaveAsync(TwoTestDbModelRows(), HostileIdentifiers.TableName);
 
         (await action.Should().ThrowExactlyAsync<ArgumentException>()).Which.ParamName.Should().Be("destinationTableName");
         (await _database.CountBlogsAsync()).Should().Be(1);
@@ -86,10 +85,25 @@ public sealed partial class OracleArrayBindTests
     {
         await _database.InsertBlogAsync("http://a-url.com");
 
-        Func<Task> action = () => Processor(CatalogProvider).SaveAsync(TwoTestDbModelRows(), HostileTableName);
+        Func<Task> action = () => Processor(CatalogProvider).SaveAsync(TwoTestDbModelRows(), HostileIdentifiers.TableName);
 
         await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage("The destination table * was not found*");
         (await _database.CountBlogsAsync()).Should().Be(1);
+    }
+
+    /// <summary>Under CatalogLookup a hostile column name is only compared with catalogue names, never put into SQL.</summary>
+    [Test]
+    public async Task SaveAsync_ShouldThrowTheColumnMappingMessageAndTouchNothing_WhenCatalogLookupGetsAHostileColumnName()
+    {
+        await _database.InsertBlogAsync("http://a-url.com");
+        using DataTable rows = Table((HostileIdentifiers.ColumnName, typeof(string)));
+        rows.Rows.Add("x");
+
+        Func<Task> action = () => Processor(CatalogProvider).SaveAsync(rows, "\"MixedCase\"");
+
+        await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage($"{BulkCopyErrorMessages.ColumnMappingMismatch} (*not found)");
+        (await _database.CountBlogsAsync()).Should().Be(1);
+        (await _database.QueryAsync(OracleSchema.SelectMixedCaseNames, reader => reader.GetString(0))).Should().BeEmpty();
     }
 
     private static DataTable NameRows(string name)

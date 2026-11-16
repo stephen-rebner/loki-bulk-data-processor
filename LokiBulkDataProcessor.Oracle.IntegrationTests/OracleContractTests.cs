@@ -45,6 +45,19 @@ public sealed class OracleContractTests : BulkProcessorContractTests
 
     protected override Task<IReadOnlyList<TestDbModel>> ReadTestDbModelsAsync() => _database.ReadTestDbModelsAsync();
 
+    protected override string WithPassword(string connectionString, string password) =>
+        new OracleConnectionStringBuilder(connectionString) { Password = password, ConnectionTimeout = 5 }.ToString();
+
+    /// <summary>Keeps the service name (EZConnect <c>host:port/service</c>) and replaces only the host and port.</summary>
+    protected override string WithServer(string connectionString, string host, int port)
+    {
+        var builder = new OracleConnectionStringBuilder(connectionString);
+        string serviceName = builder.DataSource[(builder.DataSource.IndexOf('/') + 1)..];
+        builder.DataSource = $"{host}:{port}/{serviceName}";
+        builder.ConnectionTimeout = 3;
+        return builder.ToString();
+    }
+
     protected override Task LockTestDbModelsTableAsync(DbTransaction transaction) =>
         OracleTestDatabase.ExecuteAsync((OracleTransaction)transaction, OracleSchema.LockTestDbModels);
 

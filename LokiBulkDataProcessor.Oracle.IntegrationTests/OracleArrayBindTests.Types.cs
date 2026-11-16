@@ -28,6 +28,8 @@ public sealed partial class OracleArrayBindTests
 
     private const string SelectBooleanFlag = "SELECT Label, BooleanFlag FROM OracleTypes";
 
+    private const string SelectInterval = "SELECT Label, IntervalColumn FROM OracleTypes";
+
     private const string SelectGuid = "SELECT GuidColumn, RAWTOHEX(GuidColumn) FROM OracleTypes";
 
     private const string SelectValues = """
@@ -160,7 +162,19 @@ public sealed partial class OracleArrayBindTests
         stored.Single(row => row.Label == "values").Should().BeEquivalentTo(new DbDataReaderRow("values", Timestamp, Offset, Interval,
             new DateTime(2026, 11, 16), 123456789012345678.0123456789m, Math.PI, long.MaxValue, new byte[] { 1, 2, 3 }));
         stored.Single(row => row.Label == "nulls").Should().BeEquivalentTo(new DbDataReaderRow("nulls", null, null, null, null, null, null, null, null));
-        stored.Single(row => row.Label == "time only").Interval.Should().Be(new TimeSpan(0, 13, 14, 15));
+    }
+
+    [Test]
+    public async Task SaveAsync_ShouldStoreAnInterval_WhenTheSourceColumnIsATimeOnly()
+    {
+        using DataTable rows = Table(("Label", typeof(string)), ("IntervalColumn", typeof(TimeOnly)));
+        rows.Rows.Add("time only", new TimeOnly(13, 14, 15, 678));
+        rows.Rows.Add("null", DBNull.Value);
+
+        await Processor().SaveAsync(rows, OracleTypesTable);
+
+        (await _database.QueryAsync(SelectInterval, reader => (reader.GetString(0), reader.IsDBNull(1) ? (TimeSpan?)null : ((OracleDataReader)reader).GetTimeSpan(1))))
+            .Should().BeEquivalentTo(new[] { ("time only", (TimeSpan?)new TimeSpan(0, 13, 14, 15, 678)), ("null", null) });
     }
 
     private static DataTable FlagRows(string column)
@@ -172,7 +186,7 @@ public sealed partial class OracleArrayBindTests
         return rows;
     }
 
-    /// <summary>A row with a value in every typed column, a row of nulls, and a TimeOnly row (all in one chunk).</summary>
+    /// <summary>A row with a value in every typed column and a row of nulls (one chunk).</summary>
     private static DataTable ValueRows()
     {
         DataTable rows = Table(("Label", typeof(string)), ("TimestampColumn", typeof(DateTime)), ("OffsetColumn", typeof(DateTimeOffset)),
@@ -181,8 +195,6 @@ public sealed partial class OracleArrayBindTests
         rows.Rows.Add("values", Timestamp, Offset, Interval, new DateOnly(2026, 11, 16), 123456789012345678.0123456789m, Math.PI,
             long.MaxValue, new byte[] { 1, 2, 3 });
         rows.Rows.Add("nulls", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
-        rows.Rows.Add("time only", DBNull.Value, DBNull.Value, new TimeOnly(13, 14, 15).ToTimeSpan(), DBNull.Value, DBNull.Value,
-            DBNull.Value, DBNull.Value, DBNull.Value);
         return rows;
     }
 

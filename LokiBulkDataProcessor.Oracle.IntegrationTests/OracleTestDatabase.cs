@@ -18,10 +18,12 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 public sealed class OracleTestDatabase : IAsyncDisposable
 {
     /// <summary>
-    /// Pinned version tag. It is the build that <c>gvenzl/oracle-free:23-slim-faststart</c> pointed to when step 7 was written
-    /// (Oracle AI Database 26ai Free, 23.26.3); the floating <c>23-slim-faststart</c> tag moves with every release.
+    /// Pinned by tag and digest (the multi-arch index digest): the build that <c>gvenzl/oracle-free:23-slim-faststart</c> pointed to when
+    /// step 7 was written (Oracle AI Database 26ai Free, 23.26.3); the floating tag moves with every release, and the digest makes a
+    /// re-pushed tag fail instead of silently changing the database under the tests. The CI <c>oracle-integration</c> job reads this
+    /// line to pull the same image, so keep it a single-line string literal.
     /// </summary>
-    public const string Image = "gvenzl/oracle-free:23.26.3-slim-faststart";
+    public const string Image = "gvenzl/oracle-free:23.26.3-slim-faststart@sha256:f5ff19033860d662c821cb04eb10483fa94f14f78eae252d054291ea07028093";
 
     public const string Username = "loki_test";
 

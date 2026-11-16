@@ -7,6 +7,7 @@ using FluentAssertions;
 using FluentAssertions.Specialized;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.Providers;
+using LokiBulkDataProcessor.IntegrationTests.Contract;
 using NUnit.Framework;
 using Oracle.ManagedDataAccess.Client;
 
@@ -33,25 +34,28 @@ public sealed partial class OracleArrayBindTests
     }
 
     /// <summary>
-    /// Characterisation (step 7 finding): ODP.NET runs array DML in batch-error mode, so the valid rows of a failed chunk are inserted
-    /// and only the failing rows are skipped (ORA-24381 with the row errors in <see cref="OracleException.Errors"/>). In Loki's own
-    /// transaction they are rolled back; in a caller's transaction they stay until the caller rolls back. See the step 7 follow-up.
+    /// Each chunk is all-or-nothing in a caller's transaction (step 7 security fix). ODP.NET runs array DML in batch-error mode and
+    /// would keep the failed chunk's valid row ("valid in failed chunk"). Loki rolls back to its savepoint taken before that chunk, so
+    /// the row is gone. The earlier, successful chunk and the caller's own row stay, and the caller's transaction is still usable.
     /// </summary>
     [Test]
-    public async Task SaveAsync_ShouldLeaveTheValidRowsOfTheFailedChunkInTheCallersTransaction_WhenOneRowIsRejected()
+    public async Task SaveAsync_ShouldUndoOnlyTheFailedChunkInTheCallersTransaction_WhenARowOfALaterChunkIsRejected()
     {
         await using OracleConnection connection = await _database.OpenConnectionAsync();
         await using OracleTransaction transaction = connection.BeginTransaction();
         await OracleTestDatabase.ExecuteAsync(transaction, OracleSchema.InsertKeyedRow, OracleTestDatabase.Bind("id", 1), OracleTestDatabase.Bind("name", "caller"));
         IBulkProcessor processor = Processor();
         processor.Transaction = transaction;
+        processor.BatchSize = 2;
 
-        Func<Task> action = () => processor.SaveAsync(KeyedRows((1, "duplicate"), (2, "valid")), "KeyedRows");
+        Func<Task> action = () => processor.SaveAsync(
+            KeyedRows((2, "first chunk a"), (3, "first chunk b"), (4, "valid in failed chunk"), (1, "duplicate")), "KeyedRows");
 
         await ThrowsTranslated(action, "Bulk copy to 'KeyedRows' failed (Oracle error ORA-00001). See InnerException for details.", 1);
         (await OracleTestDatabase.QueryAsync(connection, OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0)))
-            .Should().Equal(new[] { "caller", "valid" }, "the chunk's valid row is in the caller's transaction (batch-error mode)");
-        transaction.Rollback();
+            .Should().Equal(new[] { "caller", "first chunk a", "first chunk b" }, "only the failed chunk is undone; earlier chunks stay");
+        transaction.Commit();
+        (await _database.QueryAsync(OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0))).Should().HaveCount(3);
     }
 
     [Test]
@@ -96,7 +100,8 @@ public sealed partial class OracleArrayBindTests
 
         Func<Task> action = () => Processor().SaveAsync(rows, OracleTypesTable);
 
-        var thrown = await ThrowsTranslated(action, "Bulk copy to 'OracleTypes' failed (Oracle error ORA-12899). See InnerException for details.", 12899);
+        ExceptionAssertions<InvalidOperationException> thrown =
+            await ThrowsTranslated(action, "Bulk copy to 'OracleTypes' failed (Oracle error ORA-12899). See InnerException for details.", 12899);
         thrown.Which.Message.Should().NotContain(RowValue);
         (await _database.QueryAsync(SelectText, reader => reader.GetString(0))).Should().BeEmpty();
     }
@@ -132,22 +137,26 @@ public sealed partial class OracleArrayBindTests
     [Test]
     public async Task SaveAsync_ShouldThrowTheOra01013TimeoutMessage_WhenTheTimeoutExpiresWhileWaitingForALock()
     {
-        var processor = Processor();
+        IBulkProcessor processor = Processor();
         processor.Timeout = 1;
 
         Func<Task> action = () => WhileTestDbModelsIsLockedAsync(() => processor.SaveAsync(TwoTestDbModelRows(), "TestDbModels"));
 
         (await ThrowsTranslated(action, "Bulk copy to 'TestDbModels' failed (Oracle error ORA-01013). See InnerException for details. *", 1013))
-            .Which.InnerException.Should().BeOfType<TimeoutException>();
+            .Which.InnerException.Should().BeAssignableTo<TimeoutException>("Loki's own command timeout, not the driver's cancellation");
         (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
     }
 
     [Test]
     public async Task SaveAsync_ShouldThrowOperationCanceledWithOra01013Inside_WhenTheTokenIsCancelledWhileWaitingForALock()
     {
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var cancellation = new CancellationTokenSource();
 
-        Func<Task> action = () => WhileTestDbModelsIsLockedAsync(() => Processor().SaveAsync(TwoTestDbModelRows(), "TestDbModels", cancellation.Token));
+        Func<Task> action = () => WhileTestDbModelsIsLockedAsync(() =>
+        {
+            cancellation.CancelAfter(TimeSpan.FromSeconds(1));   // the clock starts once the lock is held
+            return Processor().SaveAsync(TwoTestDbModelRows(), "TestDbModels", cancellation.Token);
+        });
 
         (await action.Should().ThrowAsync<OperationCanceledException>()).Which.InnerException.Should().BeOfType<OracleException>()
             .Which.Number.Should().Be(1013);
@@ -160,7 +169,8 @@ public sealed partial class OracleArrayBindTests
     /// </summary>
     private static async Task<ExceptionAssertions<InvalidOperationException>> ThrowsTranslated(Func<Task> action, string messagePattern, int oraNumber)
     {
-        var thrown = await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(messagePattern);
+        ExceptionAssertions<InvalidOperationException> thrown =
+            await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(messagePattern);
         OracleException oracle = FindOracleException(thrown.Which);
         oracle.Should().NotBeNull("the driver error is kept (#15)");
         oracle.Errors.Cast<OracleError>().Select(error => error.Number).Prepend(oracle.Number).Should().Contain(oraNumber);
@@ -199,20 +209,12 @@ public sealed partial class OracleArrayBindTests
         return rows;
     }
 
-    /// <summary>Another session holds TestDbModels for four seconds and then rolls back, while <paramref name="save"/> runs.</summary>
+    /// <summary>Another session holds TestDbModels (shared timing: <see cref="HeldTableLock"/>) while <paramref name="save"/> runs.</summary>
     private async Task WhileTestDbModelsIsLockedAsync(Func<Task> save)
     {
         await using OracleConnection blocker = await _database.OpenConnectionAsync();
         await using OracleTransaction lockHolder = blocker.BeginTransaction();
         await OracleTestDatabase.ExecuteAsync(lockHolder, OracleSchema.LockTestDbModels);
-        Task release = Task.Delay(TimeSpan.FromSeconds(4)).ContinueWith(_ => lockHolder.Rollback(), TaskScheduler.Default);
-        try
-        {
-            await save();
-        }
-        finally
-        {
-            await release;
-        }
+        await HeldTableLock.WhileHeldAsync(lockHolder, save);
     }
 }

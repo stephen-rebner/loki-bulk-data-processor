@@ -10,7 +10,7 @@ public class HostileDestinationDataMapping : DataMapping
 {
     public const string SourceName = "HostileDestinationPosts";
 
-    public const string HostileColumn = "Title\"]; DROP TABLE Blogs--";
+    public const string HostileColumn = HostileIdentifiers.ColumnName;
 
     public override string SourceTableName => SourceName;
 

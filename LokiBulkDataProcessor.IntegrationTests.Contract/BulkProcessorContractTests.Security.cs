@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
+using FluentAssertions.Specialized;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.Providers;
 using LokiBulkDataProcessor.IntegrationTests.Contract.Mappings;
@@ -22,16 +24,21 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract;
 /// </summary>
 public abstract partial class BulkProcessorContractTests
 {
-    private const string HostileTableName = "TestDbModels; DROP TABLE Blogs--";
+    private const string WrongPassword = "Wrong_Pwd_9z";
+
+    /// <summary>Nothing listens on the discard port of the loopback address, so the connection is refused at once.</summary>
+    private const string UnreachableHost = "127.0.0.1";
+
+    private const int UnreachablePort = 9;
 
     [Test]
     public async Task SaveAsync_ShouldThrowAndLeaveEveryTableUntouched_WhenTheDestinationTableNameIsHostile()
     {
         await GivenABlogAsync();
 
-        Func<Task> action = () => BulkProcessor.SaveAsync(ContractRows.TwoTestDbModels(), HostileTableName);
+        Func<Task> action = () => BulkProcessor.SaveAsync(ContractRows.TwoTestDbModels(), HostileIdentifiers.TableName);
 
-        await action.Should().ThrowAsync<Exception>();
+        await ThrowsArgumentOrInvalidOperation(action);
         (await CountBlogsAsync()).Should().Be(1, "the injected DROP TABLE must never run");
         await TheTestDbModelsTableShouldBeEmpty();
     }
@@ -68,7 +75,8 @@ public abstract partial class BulkProcessorContractTests
     public async Task BulkProcessor_ShouldNeverLogOrThrowTheConnectionStringSecrets_WhenSavesSucceedOrFail()
     {
         var loggerFactory = new TestLoggerFactory();
-        await using ServiceProvider services = BuildServices(options => options.LoggerFactory = loggerFactory);
+        // With the contract mappings, so the Post save reaches the database and fails on the FOREIGN KEY (not on an unmapped property).
+        await using ServiceProvider services = BuildServices(options => { AddContractMappings(options); options.LoggerFactory = loggerFactory; });
         IBulkProcessor processor = CreateProcessor(services);
 
         await processor.SaveAsync(ContractRows.TwoTestDbModels(), TestDbModelsTable);
@@ -95,7 +103,61 @@ public abstract partial class BulkProcessorContractTests
         }
     }
 
-    private static async Task<Exception> FailureOf(Func<Task> save) => (await save.Should().ThrowAsync<Exception>()).Which;
+    /// <summary>A wrong password: the fixed open-failure message, and no password (wrong or real) in Message or ToString().</summary>
+    [Test]
+    public async Task SaveAsync_ShouldThrowTheFixedOpenFailureMessageWithoutSecrets_WhenThePasswordIsWrong()
+    {
+        IBulkProcessor processor = NewProcessor(WithPassword(ConnectionString, WrongPassword));
+
+        Exception failure = await OpenFailureOf(processor);
+
+        TheOpenFailureShouldNotExpose(failure, ConnectionStringSecrets.Append(WrongPassword));
+    }
+
+    /// <summary>
+    /// An unreachable server: the fixed open-failure message, which therefore names neither the host nor the port, and no password in
+    /// Message or ToString(). ToString() may name the host and port: it includes the driver's own error (#15), which on both providers
+    /// can describe the endpoint it could not reach, so only the Message is held to that.
+    /// </summary>
+    [Test]
+    public async Task SaveAsync_ShouldThrowTheFixedOpenFailureMessageWithoutSecrets_WhenTheServerIsUnreachable()
+    {
+        IBulkProcessor processor = NewProcessor(WithServer(ConnectionString, UnreachableHost, UnreachablePort));
+
+        Exception failure = await OpenFailureOf(processor);
+
+        TheOpenFailureShouldNotExpose(failure, ConnectionStringSecrets);
+        failure.Message.Should().NotContain(UnreachableHost);
+    }
+
+    private async Task<Exception> OpenFailureOf(IBulkProcessor processor)
+    {
+        Func<Task> action = () => processor.SaveAsync(ContractRows.TwoTestDbModels(), TestDbModelsTable);
+        ExceptionAssertions<InvalidOperationException> thrown = await action.Should().ThrowExactlyAsync<InvalidOperationException>()
+            .WithMessage($"Could not open a connection or begin a transaction for provider '{ProviderName}'. See InnerException for details.");
+        thrown.Which.InnerException.Should().NotBeNull("the driver's error is kept (#15)");
+        return thrown.Which;
+    }
+
+    private static void TheOpenFailureShouldNotExpose(Exception failure, IEnumerable<string> secrets)
+    {
+        foreach (string secret in secrets)
+        {
+            failure.Message.Should().NotContain(secret);
+            failure.ToString().Should().NotContain(secret, "neither the message nor any InnerException may carry a password");
+        }
+    }
+
+    /// <summary>A failure must be one of the two documented types: ArgumentException (rejected before any SQL) or InvalidOperationException.</summary>
+    private static async Task<Exception> ThrowsArgumentOrInvalidOperation(Func<Task> action)
+    {
+        Exception thrown = (await action.Should().ThrowAsync<Exception>()).Which;
+        thrown.Should().Match<Exception>(exception => exception is ArgumentException || exception is InvalidOperationException,
+            "a failed save is reported as ArgumentException or InvalidOperationException, never as a raw driver exception");
+        return thrown;
+    }
+
+    private static Task<Exception> FailureOf(Func<Task> save) => ThrowsArgumentOrInvalidOperation(save);
 
     /// <summary>One post whose title column has the given (hostile) name; the other columns match Posts by name.</summary>
     private static Stream PostsJsonWithTitleColumn(string titleColumn, int blogId)
