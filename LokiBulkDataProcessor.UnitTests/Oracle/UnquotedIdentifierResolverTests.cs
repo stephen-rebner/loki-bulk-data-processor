@@ -16,7 +16,7 @@ public class UnquotedIdentifierResolverTests
     {
         var target = new BulkWriteTarget("loki.Posts", new[] { new ColumnMap("Title", "Title"), new ColumnMap("Body", "Content") });
 
-        OracleResolvedTarget resolved = await new UnquotedIdentifierResolver().ResolveAsync(null, target, CancellationToken.None);
+        OracleResolvedTarget resolved = await new UnquotedIdentifierResolver().ResolveAsync(null, target, 30, CancellationToken.None);
 
         resolved.SchemaSql.Should().Be("\"LOKI\"");
         resolved.TableSql.Should().Be("\"POSTS\"");

@@ -17,18 +17,46 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 /// </summary>
 internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
 {
-    internal const string CatalogQuery =
-        "SELECT OWNER, TABLE_NAME, COLUMN_NAME FROM ALL_TAB_COLUMNS " +
-        "WHERE UPPER(OWNER) = UPPER(NVL(:owner, SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA'))) " +
-        "AND UPPER(TABLE_NAME) = UPPER(:tableName)";
+    /// <summary>
+    /// Fast path. Compares the dictionary columns exactly, with the caller's name as given and as Oracle folds an unquoted name
+    /// (<c>UPPER</c> on the bind side only), so Oracle can use the dictionary indexes. With no schema, only the current schema is searched.
+    /// </summary>
+    internal const string ExactCatalogQuery = """
+        SELECT OWNER, TABLE_NAME, COLUMN_NAME FROM ALL_TAB_COLUMNS
+        WHERE OWNER IN (NVL(:owner, SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')), UPPER(:owner))
+        AND TABLE_NAME IN (:tableName, UPPER(:tableName))
+        """;
 
-    public async Task<OracleResolvedTarget> ResolveAsync(OracleConnection connection, BulkWriteTarget target, CancellationToken cancellationToken)
+    /// <summary>
+    /// Fallback for an unquoted name whose object is stored in mixed case (<c>mixedcase</c> for <c>"MixedCase"</c>). It is
+    /// case-insensitive, so it scans the dictionary; it runs only when <see cref="ExactCatalogQuery"/> finds nothing.
+    /// </summary>
+    internal const string CaseInsensitiveCatalogQuery = """
+        SELECT OWNER, TABLE_NAME, COLUMN_NAME FROM ALL_TAB_COLUMNS
+        WHERE ((:owner IS NULL AND OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')) OR UPPER(OWNER) = UPPER(:owner))
+        AND UPPER(TABLE_NAME) = UPPER(:tableName)
+        """;
+
+    public async Task<OracleResolvedTarget> ResolveAsync(OracleConnection connection, BulkWriteTarget target, int timeoutSeconds,
+        CancellationToken cancellationToken)
     {
         (string schema, string table) = OracleIdentifier.Split(target.TableName);
-        IReadOnlyList<CatalogRow> rows = await QueryAsync(connection,
-            OracleIdentifier.StripQuotes(schema), OracleIdentifier.StripQuotes(table), cancellationToken).ConfigureAwait(false);
+        string owner = OracleIdentifier.StripQuotes(schema);
+        string tableName = OracleIdentifier.StripQuotes(table);
+        IReadOnlyList<CatalogRow> rows = await QueryAsync(connection, ExactCatalogQuery, owner, tableName, timeoutSeconds, cancellationToken)
+            .ConfigureAwait(false);
+        if (rows.Count == 0 && NeedsCaseInsensitiveFallback(schema, table))
+        {
+            rows = await QueryAsync(connection, CaseInsensitiveCatalogQuery, owner, tableName, timeoutSeconds, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return Resolve(rows, target);
     }
+
+    /// <summary>A quoted name must match exactly, so the fallback can only help when the table or a given schema is unquoted.</summary>
+    internal static bool NeedsCaseInsensitiveFallback(string schema, string table) =>
+        !OracleIdentifier.IsQuoted(table) || (schema is not null && !OracleIdentifier.IsQuoted(schema));
 
     /// <summary>Picks the table, owner and columns from the catalogue rows. Pure, so it is unit-tested without a database.</summary>
     internal static OracleResolvedTarget Resolve(IReadOnlyList<CatalogRow> rows, BulkWriteTarget target)
@@ -42,10 +70,10 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
         return new OracleResolvedTarget(OracleIdentifier.Quote(owner), OracleIdentifier.Quote(tableName), columns);
     }
 
-    private static async Task<IReadOnlyList<CatalogRow>> QueryAsync(OracleConnection connection, string owner, string table,
-        CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<CatalogRow>> QueryAsync(OracleConnection connection, string query, string owner, string table,
+        int timeoutSeconds, CancellationToken cancellationToken)
     {
-        using OracleCommand command = CreateCatalogCommand(connection, owner, table);
+        using OracleCommand command = CreateCatalogCommand(connection, query, owner, table, timeoutSeconds);
         List<CatalogRow> rows = [];
         using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -56,10 +84,12 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
         return rows;
     }
 
-    internal static OracleCommand CreateCatalogCommand(OracleConnection connection, string owner, string table)
+    /// <summary>Builds a catalogue query with the caller's names as bind variables and <paramref name="timeoutSeconds"/> as its timeout.</summary>
+    internal static OracleCommand CreateCatalogCommand(OracleConnection connection, string query, string owner, string table, int timeoutSeconds)
     {
         OracleCommand command = connection.CreateCommand();
-        command.CommandText = CatalogQuery;
+        command.CommandText = query;
+        command.CommandTimeout = timeoutSeconds;
         command.BindByName = true;
         command.Parameters.Add("owner", OracleDbType.Varchar2).Value = (object)owner ?? DBNull.Value;
         command.Parameters.Add("tableName", OracleDbType.Varchar2).Value = table ?? string.Empty;
@@ -71,6 +101,7 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
         string notFound = $"The destination table '{SafeText.Sanitize(requestedTable)}' was not found or is not visible to the connected user.";
         string tableName = PickName(rows.Select(r => r.Table).Distinct().ToArray(), table, "table", notFound);
         string[] owners = rows.Where(r => r.Table == tableName).Select(r => r.Owner).Distinct().ToArray();
+        // With no schema both queries return only the current schema, so there is at most one owner here.
         string owner = PickName(owners, schema ?? owners.FirstOrDefault(), "schema", notFound);
         return (owner, tableName);
     }

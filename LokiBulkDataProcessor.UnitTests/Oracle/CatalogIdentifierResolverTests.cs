@@ -97,17 +97,55 @@ public class CatalogIdentifierResolverTests
         resolved.QualifiedTableSql.Should().Be("\"OTHER\".\"POSTS\"");
     }
 
-    [Test]
-    public void CreateCatalogCommand_ShouldBindTheCallersNames_WhenBuildingTheQuery()
+    [TestCase(CatalogIdentifierResolver.ExactCatalogQuery)]
+    [TestCase(CatalogIdentifierResolver.CaseInsensitiveCatalogQuery)]
+    public void CreateCatalogCommand_ShouldBindTheCallersNames_WhenBuildingTheQuery(string query)
     {
         using var connection = new OracleConnection();
         string hostile = "Posts' OR '1'='1";
 
-        using OracleCommand command = CatalogIdentifierResolver.CreateCatalogCommand(connection, null, hostile);
+        using OracleCommand command = CatalogIdentifierResolver.CreateCatalogCommand(connection, query, null, hostile, 30);
 
-        command.CommandText.Should().Be(CatalogIdentifierResolver.CatalogQuery).And.NotContain(hostile);
+        command.CommandText.Should().Be(query).And.NotContain(hostile);
         command.BindByName.Should().BeTrue();
         command.Parameters["owner"].Value.Should().Be(DBNull.Value);
         command.Parameters["tableName"].Value.Should().Be(hostile);
+    }
+
+    [TestCase(0)]
+    [TestCase(45)]
+    public void CreateCatalogCommand_ShouldUseTheProcessorTimeout_WhenBuildingTheQuery(int timeoutSeconds)
+    {
+        using var connection = new OracleConnection();
+
+        using OracleCommand command = CatalogIdentifierResolver.CreateCatalogCommand(
+            connection, CatalogIdentifierResolver.ExactCatalogQuery, "LOKI", "Posts", timeoutSeconds);
+
+        command.CommandTimeout.Should().Be(timeoutSeconds);
+    }
+
+    [Test]
+    public void ExactCatalogQuery_ShouldNotWrapTheDictionaryColumnsInFunctions_SoOracleCanUseTheDictionaryIndexes()
+    {
+        CatalogIdentifierResolver.ExactCatalogQuery.Should().NotMatchRegex(@"\w+\(\s*(OWNER|TABLE_NAME)\b");
+        CatalogIdentifierResolver.ExactCatalogQuery.Should().Contain("OWNER IN (").And.Contain("TABLE_NAME IN (");
+    }
+
+    [Test]
+    public void ExactCatalogQuery_ShouldSearchOnlyTheCurrentSchema_WhenNoSchemaIsGiven()
+    {
+        CatalogIdentifierResolver.ExactCatalogQuery.Should().Contain("NVL(:owner, SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA'))");
+        CatalogIdentifierResolver.CaseInsensitiveCatalogQuery.Should()
+            .Contain("(:owner IS NULL AND OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA'))");
+    }
+
+    [TestCase(null, "Posts", true)]
+    [TestCase(null, "\"Posts\"", false)]
+    [TestCase("app", "\"Posts\"", true)]
+    [TestCase("\"App\"", "\"Posts\"", false)]
+    [TestCase("\"App\"", "Posts", true)]
+    public void NeedsCaseInsensitiveFallback_ShouldBeFalse_OnlyWhenEveryGivenNameIsQuoted(string schema, string table, bool expected)
+    {
+        CatalogIdentifierResolver.NeedsCaseInsensitiveFallback(schema, table).Should().Be(expected);
     }
 }

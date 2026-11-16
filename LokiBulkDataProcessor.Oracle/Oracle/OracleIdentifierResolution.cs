@@ -16,7 +16,8 @@ public enum OracleIdentifierResolution
     /// Looks the table and its columns up in <c>ALL_TAB_COLUMNS</c> (exact match first, then a single case-insensitive match) and
     /// quotes the names the catalogue returns. Needed for quoted mixed-case objects such as <c>"MixedCase"</c>; wrap a name in double
     /// quotes to require an exact match. The names you pass are only ever sent as bind variables. Costs one dictionary query per
-    /// save. Covers tables and views, not synonyms.
+    /// save, which compares names exactly so Oracle can use the dictionary indexes; a second, slower case-insensitive query runs only
+    /// when the first finds nothing. Both honour <c>IBulkProcessor.Timeout</c>. Covers tables and views, not synonyms.
     /// </summary>
     CatalogLookup = 1
 }

@@ -13,7 +13,8 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 /// </summary>
 internal sealed class UnquotedIdentifierResolver : IOracleIdentifierResolver
 {
-    public Task<OracleResolvedTarget> ResolveAsync(OracleConnection connection, BulkWriteTarget target, CancellationToken cancellationToken) =>
+    public Task<OracleResolvedTarget> ResolveAsync(OracleConnection connection, BulkWriteTarget target, int timeoutSeconds,
+        CancellationToken cancellationToken) =>
         Task.FromResult(Resolve(target));
 
     internal static OracleResolvedTarget Resolve(BulkWriteTarget target)

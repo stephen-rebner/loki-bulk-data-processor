@@ -31,7 +31,7 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
         cancellationToken.ThrowIfCancellationRequested();
-        OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, cancellationToken).ConfigureAwait(false);
+        OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
         OracleBoundColumn[] columns = BindColumns(source, resolved);
         using OracleCommand command = CreateInsertCommand(resolved, columns);
         (int rows, int executions) = await CopyRowsAsync(source, command, columns, cancellationToken).ConfigureAwait(false);
