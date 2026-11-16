@@ -14,6 +14,14 @@ public class MessageTextTests
         MessageText.Sanitize(value).Should().Be(expected);
     }
 
+    [TestCase("Posts\u202Egnp.exe", "Posts?gnp.exe")]
+    [TestCase("a\u2028b\u2029c", "a?b?c")]
+    [TestCase("zero\u200Bwidth", "zero?width")]
+    public void Sanitize_ShouldReplaceSeparatorAndFormatCharacters_IfAnyArePresent(string value, string expected)
+    {
+        MessageText.Sanitize(value).Should().Be(expected);
+    }
+
     [Test]
     public void Sanitize_ShouldTruncate_WhenTheValueIsLongerThanMaxLength()
     {

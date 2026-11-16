@@ -42,4 +42,12 @@ public static class BulkCopyErrorMessages
     /// <param name="errorCode">The driver's error number or code, for example "547" or "ORA-00001"; sanitised.</param>
     public static string BulkCopyFailed(string tableName, string databaseName, string errorCode) =>
         $"Bulk copy to '{MessageText.Sanitize(tableName)}' failed ({MessageText.Sanitize(databaseName)} error {MessageText.Sanitize(errorCode)}). See InnerException for details.";
+
+    /// <summary>
+    /// Makes caller-supplied text, such as a table or column name, safe to echo in an exception message: control, line/paragraph
+    /// separator and format (for example bidi override) characters become '?', and text longer than 128 characters is truncated
+    /// and marked with "...". Providers should pass every name they echo through it. Returns an empty string for null.
+    /// </summary>
+    /// <param name="value">The text to make safe.</param>
+    public static string Sanitize(string value) => MessageText.Sanitize(value);
 }

@@ -27,8 +27,24 @@ public interface IBulkCopyProvider
     IBulkWriter CreateWriter(BulkWriteContext context);
 
     /// <summary>
-    /// Translates a write failure into a provider-neutral exception. Must return a NEW exception whose
-    /// <see cref="Exception.InnerException"/> is <paramref name="exception"/>, so the driver error is never lost.
+    /// Translates a write failure into a provider-neutral exception.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Return a NEW exception whose <see cref="Exception.InnerException"/> chain contains <paramref name="exception"/>, so the
+    /// driver error is never lost (#15). Keep its message fixed and data-free: driver messages can quote row values.
+    /// </para>
+    /// <para>
+    /// Return <paramref name="exception"/> itself only for an error your provider raised before writing (for example a rejected
+    /// table or column name) whose message is already safe to show; the pipeline then rethrows it unchanged. Returning null does
+    /// the same. Never return a driver exception or an exception from the caller's data unchanged.
+    /// </para>
+    /// <para>
+    /// If the returned exception does not carry <paramref name="exception"/> as an InnerException, or this method throws, the
+    /// pipeline throws an <see cref="InvalidOperationException"/> with <see cref="BulkCopyErrorMessages.BulkCopyFailed(string)"/>
+    /// and <paramref name="exception"/> as InnerException instead. Not called when the save was cancelled: the pipeline then
+    /// throws an <see cref="OperationCanceledException"/> with <paramref name="exception"/> as InnerException.
+    /// </para>
+    /// </remarks>
     Exception TranslateException(Exception exception, BulkWriteTarget target);
 }

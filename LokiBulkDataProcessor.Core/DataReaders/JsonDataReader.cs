@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Loki.BulkDataProcessor.Utils.Validation;
@@ -137,12 +138,35 @@ namespace Loki.BulkDataProcessor.DataReaders
             
             if (_currentRow.TryGetProperty(columnName, out var property))
             {
-                return ConvertJsonElementToObject(property, _columnTypes[columnName]);
+                return ConvertOrThrowDataFree(property, columnName, _columnTypes[columnName]);
             }
     
             return DBNull.Value;
         }
+
+        /// <summary>
+        /// BCL parse/convert errors quote the offending value (row data, CWE-209), so they are replaced by a message that
+        /// names only the column and the declared type. The BCL exception is deliberately NOT kept as InnerException.
+        /// </summary>
+        private static object ConvertOrThrowDataFree(JsonElement element, string columnName, string dataType)
+        {
+            try
+            {
+                return ConvertJsonElementToObject(element, dataType);
+            }
+            catch (Exception ex) when (ex is FormatException or OverflowException or InvalidOperationException)
+            {
+                throw new FormatException(
+                    $"A value in JSON column '{MessageText.Sanitize(columnName)}' could not be converted to the declared type '{MessageText.Sanitize(dataType)}'.");
+            }
+        }
     
+        /// <summary>
+        /// Converts one JSON value to the declared type. Numeric types need a JSON number that fits the type (a number sent as a
+        /// string has always been rejected). Dates are parsed with the invariant culture when they are not ISO 8601, so the host's
+        /// culture never changes the data (day and month do not flip). Booleans are strict: true/false only. Anything else throws,
+        /// and <see cref="ConvertOrThrowDataFree"/> turns that into a data-free <see cref="FormatException"/>.
+        /// </summary>
         private static object ConvertJsonElementToObject(JsonElement element, string dataType)
         {
             if (element.ValueKind == JsonValueKind.Null)
@@ -150,20 +174,39 @@ namespace Loki.BulkDataProcessor.DataReaders
     
             return dataType.ToLower() switch
             {
-                DataTypeConstants.Int or DataTypeConstants.Int32 => element.TryGetInt32(out int intValue) ? intValue : Convert.ToInt32(element.GetString()),
-                DataTypeConstants.Long or DataTypeConstants.Int64 => element.TryGetInt64(out long longValue) ? longValue : Convert.ToInt64(element.GetString()),
-                DataTypeConstants.Decimal => element.TryGetDecimal(out decimal decimalValue) ? decimalValue : Convert.ToDecimal(element.GetString()),
-                DataTypeConstants.Double => element.TryGetDouble(out double doubleValue) ? doubleValue : Convert.ToDouble(element.GetString()),
-                DataTypeConstants.Float or DataTypeConstants.Single => element.TryGetSingle(out float floatValue) ? floatValue : Convert.ToSingle(element.GetString()),
-                DataTypeConstants.Boolean or DataTypeConstants.Bool => element.ValueKind == JsonValueKind.True || (element.ValueKind == JsonValueKind.String && bool.TryParse(element.GetString(), out bool result) && result),
-                DataTypeConstants.DateTime or DataTypeConstants.Date => element.TryGetDateTime(out DateTime dateValue) ? dateValue : DateTime.Parse(element.GetString()),
-                DataTypeConstants.Guid => element.TryGetGuid(out Guid guidValue) ? guidValue : Guid.Parse(element.GetString()),
-                DataTypeConstants.Byte => element.TryGetByte(out byte byteValue) ? byteValue : Convert.ToByte(element.GetString()),
-                DataTypeConstants.Short or DataTypeConstants.Int16 => element.TryGetInt16(out short shortValue) ? shortValue : Convert.ToInt16(element.GetString()),
-                DataTypeConstants.Char => element.GetString().Length > 0 ? element.GetString()[0] : '\0',
+                DataTypeConstants.Int or DataTypeConstants.Int32 => Number(element).TryGetInt32(out int intValue) ? intValue : throw new FormatException(),
+                DataTypeConstants.Long or DataTypeConstants.Int64 => Number(element).TryGetInt64(out long longValue) ? longValue : throw new FormatException(),
+                DataTypeConstants.Decimal => Number(element).TryGetDecimal(out decimal decimalValue) ? decimalValue : throw new FormatException(),
+                DataTypeConstants.Double => Number(element).TryGetDouble(out double doubleValue) ? doubleValue : throw new FormatException(),
+                DataTypeConstants.Float or DataTypeConstants.Single => Number(element).TryGetSingle(out float floatValue) ? floatValue : throw new FormatException(),
+                DataTypeConstants.Boolean or DataTypeConstants.Bool => ToBoolean(element),
+                DataTypeConstants.DateTime or DataTypeConstants.Date => element.TryGetDateTime(out DateTime dateValue) ? dateValue : DateTime.Parse(StringOf(element), Invariant, DateTimeStyles.None),
+                DataTypeConstants.Guid => element.TryGetGuid(out Guid guidValue) ? guidValue : Guid.Parse(StringOf(element)),
+                DataTypeConstants.Byte => Number(element).TryGetByte(out byte byteValue) ? byteValue : throw new FormatException(),
+                DataTypeConstants.Short or DataTypeConstants.Int16 => Number(element).TryGetInt16(out short shortValue) ? shortValue : throw new FormatException(),
+                DataTypeConstants.Char => StringOf(element).Length > 0 ? StringOf(element)[0] : '\0',
                 DataTypeConstants.String or _ => element.ValueKind == JsonValueKind.String ? element.GetString() : element.ToString()
             };
         }
+
+        private static JsonElement Number(JsonElement element) =>
+            element.ValueKind == JsonValueKind.Number ? element : throw new FormatException();
+
+        private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+
+        /// <summary>The value as a JSON string; a number, object or array is rejected.</summary>
+        private static string StringOf(JsonElement element) =>
+            element.ValueKind == JsonValueKind.String ? element.GetString() : throw new FormatException();
+
+        /// <summary>JSON true/false, or the strings "true"/"false" (any case). Anything else, including 1 and 0, is rejected
+        /// rather than silently read as false.</summary>
+        private static bool ToBoolean(JsonElement element) => element.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.String when bool.TryParse(element.GetString(), out bool parsed) => parsed,
+            _ => throw new FormatException()
+        };
     
         public Type GetFieldType(int i)
         {

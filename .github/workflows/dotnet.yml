@@ -22,7 +22,7 @@ jobs:
       run: dotnet test LokiBulkDataProcessor.UnitTests -c Release --verbosity normal
     - name: Libraries have no test-only packages in their dependency graph (#17)
       run: |
-        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor; do
+        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor LokiBulkDataProcessor.Oracle; do
           dotnet list $p package --include-transitive > packages.txt
           cat packages.txt
           if grep -i testcontainers packages.txt; then
@@ -30,6 +30,20 @@ jobs:
             exit 1
           fi
         done
+    - name: Libraries have no known vulnerable packages, direct or transitive
+      # Fails on any advisory NuGet reports for a package the libraries ship with (e.g. the Oracle driver's transitive
+      # 8.0.x System.* packages), so a new advisory is caught on the next build. Test projects are not checked here.
+      run: |
+        failed=0
+        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor LokiBulkDataProcessor.Oracle; do
+          dotnet list $p package --vulnerable --include-transitive > vulnerable.txt
+          cat vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then
+            echo "::error::$p has a dependency with a known vulnerability; see the list above"
+            failed=1
+          fi
+        done
+        exit $failed
 
   sqlserver-integration:
     runs-on: ubuntu-latest
