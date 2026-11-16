@@ -17,8 +17,8 @@ nine steps, each a separate PR into the `release/9.0` branch. **Before doing any
 [`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
 decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
 (the spec). The PR that completes a step must also update the progress file. The layout below describes
-**`release/9.0` after step 6** (`master` still has the 8.x single-project layout until step 9). The Oracle integration
-test project is added in step 7 and Oracle direct path in step 8.
+**`release/9.0` after step 7** (`master` still has the 8.x single-project layout until step 9). Oracle direct path is
+added in step 8.
 
 ## Repository layout
 
@@ -73,11 +73,16 @@ LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no
                                            Oracle/ test each provider's internals (all three libraries grant it IVT)
 LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test project): abstract BulkProcessorContractTests
                                            (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
-                                           no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back)
+                                           no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back,
+                                           ConnectionStringSecrets, LockTestDbModelsTableAsync). TestLogging/TestLoggerFactory captures logs
 LokiBulkDataProcessor.IntegrationTests/    SQL Server: SqlServerContractTests (runs the contract) + SQL-only fixtures (EF Core
                                            transaction, logging, SqlBulkCopy specifics, 8.x legacy registration). NUnit + Testcontainers.MsSql + EF Core
                                            (test schema via EF migrations; SqlServer/SqlServerTestDatabase)
-.github/workflows/dotnet.yml               unit + sqlserver-integration jobs on push/PR to master and release/**
+LokiBulkDataProcessor.Oracle.IntegrationTests/  Oracle: OracleContractTests (runs the contract with the default options) +
+                                           OracleArrayBindTests (partial: Types, Errors, Identifiers, Transactions). NUnit +
+                                           Testcontainers.Oracle on the pinned gvenzl/oracle-free:23.26.3-slim-faststart; schema = constant
+                                           DDL in OracleSchema, OracleTestDatabase (ClearAllPools + TRUNCATE/DELETE per test, bind variables only)
+.github/workflows/dotnet.yml               unit + sqlserver-integration + oracle-integration jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
 ```
 
@@ -130,11 +135,16 @@ dotnet build
 dotnet test LokiBulkDataProcessor.UnitTests                 # fast, no Docker
 dotnet test LokiBulkDataProcessor.IntegrationTests          # needs Docker (Testcontainers SQL Server)
 dotnet test LokiBulkDataProcessor.IntegrationTests --filter "FullyQualifiedName~SqlServerContractTests"
+dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests   # needs Docker (Testcontainers Oracle Free, ~1.3 GB image)
+dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests --filter "FullyQualifiedName~OracleContractTests"
 dotnet pack LokiBulkDataProcessor -c Release                # GeneratePackageOnBuild is also on
 ```
 
 Integration tests start **one container per fixture** (`[OneTimeSetUp]`) and reset the data before each test: the SQL
-fixtures drop and re-create the database with EF Core migrations from `IntegrationTests/Migrations` (`TestDbContext`).
+fixtures drop and re-create the database with EF Core migrations from `IntegrationTests/Migrations` (`TestDbContext`); the
+Oracle fixtures create `OracleSchema` once per container and empty every table before each test. A contract schema change
+needs both: a new EF migration and the matching `OracleSchema` DDL. The gvenzl Oracle images set `DISABLE_OOB=ON`, so a
+timeout or cancellation only reaches the server when its current call returns (never hold a lock forever in a test).
 Provider-neutral behaviour goes in the Contract project's `BulkProcessorContractTests` (ADO.NET base types only, assert only
 provider-neutral message parts, no `""` data, never write identity columns or depend on row order); provider-specific behaviour goes in the provider's own test project.
 
@@ -175,7 +185,9 @@ provider-neutral message parts, no `""` data, never write identity columns or de
 `.github/workflows/dotnet.yml` runs on every push and PR to **`master`** (the default branch — not
 `main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
 is in the transitive graph of Core, the SQL package or the Oracle package, #17, + a gate that fails when NuGet reports a known
-vulnerability in any of their direct or transitive packages) and `sqlserver-integration` (Testcontainers SQL Server).
+vulnerability in any of their direct or transitive packages), `sqlserver-integration` (Testcontainers SQL Server) and
+`oracle-integration` (pulls the pinned Oracle Free image, then Testcontainers Oracle; 30-minute timeout). The Oracle image tag
+is in two places: `OracleTestDatabase.Image` and the job's `docker pull`.
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`
