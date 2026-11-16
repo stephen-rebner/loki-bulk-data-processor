@@ -65,8 +65,8 @@ LokiBulkDataProcessor.Oracle/              Package LokiBulkDataProcessor.Oracle 
 │   ├── Identifiers/                       OracleIdentifier (validate + quote, CWE-89), Unquoted/CatalogIdentifierResolver,
 │   │                                      OracleResolvedTarget
 │   ├── Types/OracleTypeMap.cs             .NET type → OracleDbType + value conversion (bool per OracleBooleanBinding)
-│   └── Writers/                           ArrayBindOracleWriter (chunks of BatchSize, 0 → 5000), ColumnBuffer,
-│                                          OracleInsertSqlBuilder
+│   └── Writers/                           ArrayBindOracleWriter (chunks of BatchSize, 0 → 5000, each all-or-nothing via
+│                                          the LOKI_CHUNK savepoint in ChunkSavepoint.cs), ColumnBuffer, OracleInsertSqlBuilder
 └── DependancyInjection/                   OracleBuilderExtensions.AddOracle(configure, name)
 LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no database. TestDoubles/ has
                                            FakeDbConnection/FakeDbTransaction/FakeProvider for pipeline tests; SqlServer/ and
@@ -74,13 +74,14 @@ LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no
 LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test project): abstract BulkProcessorContractTests
                                            (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
                                            no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back,
-                                           ConnectionStringSecrets, LockTestDbModelsTableAsync). TestLogging/TestLoggerFactory captures logs
+                                           ConnectionStringSecrets, WithPassword, WithServer, LockTestDbModelsTableAsync). Shared with
+                                           provider tests: TestLogging/TestLoggerFactory, HeldTableLock (lock timing), HostileIdentifiers
 LokiBulkDataProcessor.IntegrationTests/    SQL Server: SqlServerContractTests (runs the contract) + SQL-only fixtures (EF Core
                                            transaction, logging, SqlBulkCopy specifics, 8.x legacy registration). NUnit + Testcontainers.MsSql + EF Core
                                            (test schema via EF migrations; SqlServer/SqlServerTestDatabase)
 LokiBulkDataProcessor.Oracle.IntegrationTests/  Oracle: OracleContractTests (runs the contract with the default options) +
                                            OracleArrayBindTests (partial: Types, Errors, Identifiers, Transactions). NUnit +
-                                           Testcontainers.Oracle on the pinned gvenzl/oracle-free:23.26.3-slim-faststart; schema = constant
+                                           Testcontainers.Oracle on gvenzl/oracle-free:23.26.3-slim-faststart pinned by digest; schema = constant
                                            DDL in OracleSchema, OracleTestDatabase (ClearAllPools + TRUNCATE/DELETE per test, bind variables only)
 .github/workflows/dotnet.yml               unit + sqlserver-integration + oracle-integration jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
@@ -106,6 +107,9 @@ IBulkProcessor.SaveAsync(...)              (Internal/BulkProcessor) guard args (
 Lifetimes: `IBulkProcessorFactory`, `MappingRegistry`, `LokiLogging` and every `IBulkCopyProvider` are singletons
 (immutable, no per-call state). Each `Create` returns a new `IBulkProcessor`; the legacy registration makes
 `IBulkProcessor` scoped. Connections, transactions and writers are per call.
+
+**Oracle chunks** — the array-bind writer sets a savepoint before each chunk and rolls back to it on failure (ODP.NET's
+batch-error mode would keep the chunk's valid rows); that undoes only Loki's own rows and never ends the transaction.
 
 **Transaction rule** — if the caller set `IBulkProcessor.Transaction`, Loki never commits, rolls back,
 disposes or closes it (or its connection), also when a save fails (#12); the caller owns it. Otherwise
@@ -186,8 +190,9 @@ provider-neutral message parts, no `""` data, never write identity columns or de
 `main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
 is in the transitive graph of Core, the SQL package or the Oracle package, #17, + a gate that fails when NuGet reports a known
 vulnerability in any of their direct or transitive packages), `sqlserver-integration` (Testcontainers SQL Server) and
-`oracle-integration` (pulls the pinned Oracle Free image, then Testcontainers Oracle; 30-minute timeout). The Oracle image tag
-is in two places: `OracleTestDatabase.Image` and the job's `docker pull`.
+`oracle-integration` (pulls the digest-pinned Oracle Free image, then Testcontainers Oracle; 30-minute timeout). The image
+reference lives only in `OracleTestDatabase.Image`; the job greps it from there (keep it a one-line literal with `@sha256:`).
+The workflow runs with `permissions: contents: read`.
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`
