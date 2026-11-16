@@ -55,3 +55,18 @@ jobs:
         dotnet-version: 10.0.x
     - name: SQL Server integration tests
       run: dotnet test LokiBulkDataProcessor.IntegrationTests -c Release --verbosity normal
+
+  oracle-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Pull the Oracle image
+      # Keep in sync with OracleTestDatabase.Image (pinned tag). Pulled up front so the ~1.3 GB download is not part of the test run.
+      run: docker pull gvenzl/oracle-free:23.26.3-slim-faststart
+    - name: Oracle integration tests
+      run: dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests -c Release --verbosity normal

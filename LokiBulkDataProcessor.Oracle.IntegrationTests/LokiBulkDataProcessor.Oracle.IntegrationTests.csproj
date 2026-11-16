@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.7.0" />
+    <!-- The library only depends on DI abstractions; the tests build a real container. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="nunit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
+    <PackageReference Include="Testcontainers.Oracle" Version="4.16.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LokiBulkDataProcessor.Oracle\LokiBulkDataProcessor.Oracle.csproj" />
+    <!-- Provider-neutral contract suite + shared models/mappings; OracleContractTests derives from it. -->
+    <ProjectReference Include="..\LokiBulkDataProcessor.IntegrationTests.Contract\LokiBulkDataProcessor.IntegrationTests.Contract.csproj" />
+  </ItemGroup>
+</Project>
