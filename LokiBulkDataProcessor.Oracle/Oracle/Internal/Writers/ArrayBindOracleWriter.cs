@@ -139,10 +139,11 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
         return count;
     }
 
+    /// <summary>An expired <see cref="OracleCommand.CommandTimeout"/> becomes a <see cref="TimeoutException"/> (see <see cref="OracleCommandTimeout"/>).</summary>
     private static Task ExecuteChunkAsync(OracleCommand command, ColumnBuffer chunk, CancellationToken cancellationToken)
     {
         BindChunk(command, chunk);
-        return command.ExecuteNonQueryAsync(cancellationToken);
+        return OracleCommandTimeout.RunAsync(command.ExecuteNonQueryAsync, cancellationToken);
     }
 
     /// <summary>Attaches one array per parameter; every array is exactly <c>ArrayBindCount</c> long.</summary>

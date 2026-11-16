@@ -75,7 +75,7 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
     {
         using OracleCommand command = CreateCatalogCommand(connection, query, owner, table, timeoutSeconds);
         List<CatalogRow> rows = [];
-        using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using DbDataReader reader = await OracleCommandTimeout.RunAsync(command.ExecuteReaderAsync, cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             rows.Add(new CatalogRow(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
