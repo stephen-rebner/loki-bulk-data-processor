@@ -15,12 +15,14 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
 
         public TestDataTableBuilder()
         {
+            // Typed columns: an untyped DataColumn is a string column, and "True" or a culture-formatted date is converted
+            // by SqlBulkCopy but not by Oracle (ORA-01722 for NUMBER(1), NLS-dependent for TIMESTAMP).
             _dataTable = new DataTable();
-            _dataTable.Columns.Add(new DataColumn(StringColumnHeader));
-            _dataTable.Columns.Add(new DataColumn(BoolColumnHeader));
-            _dataTable.Columns.Add(new DataColumn(DateColumnHeader));
-            _dataTable.Columns.Add(new DataColumn(NullableBoolColumnHeader));
-            _dataTable.Columns.Add(new DataColumn(NullableDateColumnHeader));
+            _dataTable.Columns.Add(new DataColumn(StringColumnHeader, typeof(string)));
+            _dataTable.Columns.Add(new DataColumn(BoolColumnHeader, typeof(bool)));
+            _dataTable.Columns.Add(new DataColumn(DateColumnHeader, typeof(DateTime)));
+            _dataTable.Columns.Add(new DataColumn(NullableBoolColumnHeader, typeof(bool)));
+            _dataTable.Columns.Add(new DataColumn(NullableDateColumnHeader, typeof(DateTime)));
         }
 
         public TestDataTableBuilder WithRowData(
@@ -31,11 +33,11 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders
             DateTime? nullableDateValue)
         {
             var dataRow = _dataTable.NewRow();
-            dataRow[StringColumnHeader] = stringValue;
+            dataRow[StringColumnHeader] = (object)stringValue ?? DBNull.Value;
             dataRow[BoolColumnHeader] = boolValue;
             dataRow[DateColumnHeader] = dateValue;
-            dataRow[NullableBoolColumnHeader] = nullableBoolValue;
-            dataRow[NullableDateColumnHeader] = nullableDateValue;
+            dataRow[NullableBoolColumnHeader] = (object)nullableBoolValue ?? DBNull.Value;
+            dataRow[NullableDateColumnHeader] = (object)nullableDateValue ?? DBNull.Value;
 
             _dataTable.Rows.Add(dataRow);
             return this;

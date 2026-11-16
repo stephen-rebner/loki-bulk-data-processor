@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.DependancyInjection;
 using LokiBulkDataProcessor.IntegrationTests.Abstract;
 using LokiBulkDataProcessor.IntegrationTests.Contract.Mappings;
+using LokiBulkDataProcessor.IntegrationTests.Contract.TestLogging;
 using LokiBulkDataProcessor.IntegrationTests.Contract.TestModels;
 using LokiBulkDataProcessor.IntegrationTests.Contract.TestObjectBuilders;
 using Microsoft.Extensions.DependencyInjection;
@@ -97,46 +96,6 @@ namespace LokiBulkDataProcessor.IntegrationTests
             thrown.Which.ToString().Should().Contain(rowValue, "the driver's error, with the value, is kept on InnerException (#15)");
             _loggerFactory.Entries.Should().NotContain(entry =>
                 entry.Message.Contains(rowValue) || (entry.Exception != null && entry.Exception.ToString().Contains(rowValue)));
-        }
-
-        [Test]
-        public async Task BulkProcessor_ShouldNeverLogTheConnectionString_WhenSavesSucceedOrFail()
-        {
-            var models = new List<TestDbModel> { new() { StringColumn = "x" } };
-            await _bulkProcessorWithTestLogger.SaveAsync(models, nameof(TestDbContext.TestDbModels));
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await _bulkProcessorWithTestLogger.SaveAsync(models, "NonExistentTable"));
-
-            _loggerFactory.Entries.Should().NotContain(entry =>
-                entry.Message.Contains(TestPassword) || (entry.Exception != null && entry.Exception.ToString().Contains(TestPassword)));
-        }
-    }
-
-    /// <summary>Captures every entry written through the loggers it creates.</summary>
-    public sealed class TestLoggerFactory : ILoggerFactory
-    {
-        private readonly ConcurrentQueue<LogEntry> _entries = new();
-
-        public IReadOnlyList<LogEntry> Entries => _entries.ToArray();
-
-        public ILogger CreateLogger(string categoryName) => new TestLogger(_entries);
-
-        public void AddProvider(ILoggerProvider provider) { }
-
-        public void Dispose() { }
-
-        public bool Contains(LogLevel level, string fragment) =>
-            Entries.Any(entry => entry.LogLevel == level && entry.Message.Contains(fragment, StringComparison.Ordinal));
-
-        public sealed record LogEntry(LogLevel LogLevel, string Message, Exception Exception);
-
-        private sealed class TestLogger(ConcurrentQueue<LogEntry> entries) : ILogger
-        {
-            public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => true;
-
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) =>
-                entries.Enqueue(new LogEntry(logLevel, formatter(state, exception), exception));
         }
     }
 }

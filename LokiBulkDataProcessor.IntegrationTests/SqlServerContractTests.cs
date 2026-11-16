@@ -71,6 +71,15 @@ public sealed class SqlServerContractTests : BulkProcessorContractTests
             .ToListAsync();
     }
 
+    protected override IReadOnlyCollection<string> ConnectionStringSecrets { get; } = new[] { SqlServerTestDatabase.Password };
+
+    protected override async Task LockTestDbModelsTableAsync(DbTransaction transaction)
+    {
+        await using var command = new SqlCommand(
+            "SELECT COUNT(*) FROM TestDbModels WITH (TABLOCKX, HOLDLOCK)", (SqlConnection)transaction.Connection, (SqlTransaction)transaction);
+        await command.ExecuteScalarAsync();
+    }
+
     protected override string WithMaxPoolSize(string connectionString, int maxPoolSize) =>
         new SqlConnectionStringBuilder(connectionString) { MaxPoolSize = maxPoolSize, ConnectTimeout = 5 }.ToString();
 

@@ -18,8 +18,6 @@ namespace LokiBulkDataProcessor.IntegrationTests.Abstract
     /// </summary>
     public abstract class BaseIntegrationTest
     {
-        protected const string TestPassword = SqlServerTestDatabase.Password;
-
         private SqlServerTestDatabase _database;
         private ServiceProvider _serviceProvider;
         private IServiceScope _scope;
