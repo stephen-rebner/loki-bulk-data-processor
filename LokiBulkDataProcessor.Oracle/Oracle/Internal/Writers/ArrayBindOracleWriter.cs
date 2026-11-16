@@ -15,7 +15,9 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Writers;
 /// <summary>
 /// <see cref="OracleWriteMode.ArrayBind"/>: one conventional-path INSERT executed once per chunk with every parameter bound
 /// to an array of values. Runs on the context's connection inside its transaction (ODP.NET commands always join the
-/// connection's active transaction); never commits, rolls back or disposes the connection or transaction.
+/// connection's active transaction). Each chunk runs after a savepoint and a failed chunk is rolled back to it
+/// (<see cref="OracleChunkSavepoint"/>), so a chunk is all-or-nothing; the writer never commits, rolls back (the whole transaction)
+/// or disposes the connection or transaction.
 /// </summary>
 internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleTransaction transaction, BulkWriteOptions options,
     IOracleIdentifierResolver resolver, OracleTypeMap typeMap, ILogger logger) : IBulkWriter
@@ -101,9 +103,13 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
     }
 
     private Task<(int Rows, int Executions)> CopyRowsAsync(IDataReader source, OracleCommand command,
-        IReadOnlyList<OracleBoundColumn> columns, CancellationToken cancellationToken) =>
-        CopyInChunksAsync(source, new ColumnBuffer(columns, ChunkSize(options.BatchSize, columns.Count)),
-            (chunk, token) => ExecuteChunkAsync(command, chunk, token), cancellationToken);
+        IReadOnlyList<OracleBoundColumn> columns, CancellationToken cancellationToken)
+    {
+        IChunkSavepoint savepoint = transaction is null ? NoChunkSavepoint.Instance : new OracleChunkSavepoint(transaction);
+        return CopyInChunksAsync(source, new ColumnBuffer(columns, ChunkSize(options.BatchSize, columns.Count)),
+            (chunk, token) => RunInSavepointAsync(savepoint, ct => ExecuteChunkAsync(command, chunk, ct), logger, token),
+            cancellationToken);
+    }
 
     /// <summary>Reads every row into the buffer and hands each full (and the final partial) chunk to <paramref name="executeChunk"/>.</summary>
     internal static async Task<(int Rows, int Executions)> CopyInChunksAsync(IDataReader source, ColumnBuffer buffer,
@@ -139,11 +145,44 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
         return count;
     }
 
-    /// <summary>An expired <see cref="OracleCommand.CommandTimeout"/> becomes a <see cref="TimeoutException"/> (see <see cref="OracleCommandTimeout"/>).</summary>
+    /// <summary>
+    /// Makes one chunk all-or-nothing: sets <paramref name="savepoint"/>, runs the chunk and, if it fails, rolls back to the savepoint
+    /// (only this chunk's rows; earlier chunks and the transaction itself are untouched) and rethrows the original error. A failed
+    /// savepoint rollback is logged (type only) and never replaces the original error.
+    /// </summary>
+    internal static async Task RunInSavepointAsync(IChunkSavepoint savepoint, Func<CancellationToken, Task> executeChunk, ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        await savepoint.SetAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await executeChunk(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await RollBackToSavepointAsync(savepoint, logger).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static async Task RollBackToSavepointAsync(IChunkSavepoint savepoint, ILogger logger)
+    {
+        try
+        {
+            await savepoint.RollBackAsync().ConfigureAwait(false);
+        }
+        catch (Exception rollbackFailure)
+        {
+            logger.LogError("Rolling back the failed chunk to its savepoint failed with {ExceptionType}; the chunk's error is rethrown",
+                rollbackFailure.GetType().FullName);
+        }
+    }
+
+    /// <summary>An expired <see cref="OracleCommand.CommandTimeout"/> becomes an <see cref="OracleCommandTimeoutException"/>.</summary>
     private static Task ExecuteChunkAsync(OracleCommand command, ColumnBuffer chunk, CancellationToken cancellationToken)
     {
         BindChunk(command, chunk);
-        return OracleCommandTimeout.RunAsync(command.ExecuteNonQueryAsync, cancellationToken);
+        return OracleCommandTimeout.RunAsync(command.ExecuteNonQueryAsync, command.CommandTimeout, cancellationToken);
     }
 
     /// <summary>Attaches one array per parameter; every array is exactly <c>ArrayBindCount</c> long.</summary>

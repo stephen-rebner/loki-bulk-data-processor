@@ -50,11 +50,14 @@ internal static class OracleExceptionTranslator
             : new InvalidOperationException(BulkCopyErrorMessages.BulkCopyFailed(target?.TableName), exception);
     }
 
-    /// <summary>The ORA number from the InnerException chain; a timeout from <see cref="OracleCommandTimeout"/> is ORA-01013.</summary>
+    /// <summary>
+    /// The ORA number from the InnerException chain. Loki's own <see cref="OracleCommandTimeoutException"/> is ORA-01013 even without an
+    /// OracleException inside; any other <see cref="TimeoutException"/> is not an Oracle error and gets the generic message.
+    /// </summary>
     private static int? OracleErrorNumber(Exception exception) =>
         FindOracleException(exception) is { } oracle
             ? EffectiveNumber(oracle.Number, ErrorNumbers(oracle))
-            : exception is TimeoutException ? CommandCancelled : null;
+            : exception is OracleCommandTimeoutException ? CommandCancelled : null;
 
     private static IEnumerable<int> ErrorNumbers(OracleException oracle) =>
         oracle.Errors?.Cast<OracleError>().Select(error => error.Number) ?? [];

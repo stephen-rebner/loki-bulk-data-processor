@@ -71,7 +71,7 @@ public class OracleExceptionTranslatorTests
     public void Translate_ShouldReturnTheTimeoutMessage_WhenACommandTimeoutWrapsTheDriversCancellation()
     {
         OracleException oracle = NewOracleException(1013, "ORA-01013: user requested cancel of current operation");
-        var original = new TimeoutException(OracleCommandTimeout.Message, new OperationCanceledException("ORA-01013", oracle));
+        var original = new OracleCommandTimeoutException(new OperationCanceledException("ORA-01013", oracle));
 
         Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
 
@@ -81,13 +81,25 @@ public class OracleExceptionTranslatorTests
     }
 
     [Test]
-    public void Translate_ShouldTreatATimeoutAsOra01013_WhenItCarriesNoOracleException()
+    public void Translate_ShouldTreatLokisCommandTimeoutAsOra01013_WhenItCarriesNoOracleException()
     {
-        var original = new TimeoutException(OracleCommandTimeout.Message);
+        var original = new OracleCommandTimeoutException(new OperationCanceledException());
 
         Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
 
         translated.Message.Should().Contain("(Oracle error ORA-01013)").And.Contain(OracleExceptionTranslator.TimeoutHint);
+        translated.InnerException.Should().BeSameAs(original);
+    }
+
+    [Test]
+    public void Translate_ShouldUseTheGenericFixedMessage_WhenAnotherTimeoutExceptionCarriesNoOracleException()
+    {
+        var original = new TimeoutException("some other component timed out");
+
+        Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
+
+        translated.Should().BeOfType<InvalidOperationException>().Which.Message.Should()
+            .Be(BulkCopyErrorMessages.BulkCopyFailed("Posts"), "only Loki's own command timeout is reported as ORA-01013");
         translated.InnerException.Should().BeSameAs(original);
     }
 

@@ -10,6 +10,12 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// error as InnerException, and a cancelled token throws an <see cref="System.OperationCanceledException"/>.
 /// </para>
 /// <para>
+/// Each chunk is all-or-nothing, like a SqlBulkCopy batch: Loki sets a savepoint before every chunk and, if any row of the chunk fails,
+/// rolls back to it (ODP.NET would otherwise keep the chunk's valid rows). Rolling back to that savepoint never ends your transaction.
+/// Chunks that succeeded before the failure stay in your <see cref="IBulkProcessor.Transaction"/>, so roll back your transaction after a
+/// failed save unless you mean to keep them. With Loki's own transaction the whole save is rolled back.
+/// </para>
+/// <para>
 /// ODP.NET delivers a timeout or cancellation to the server as a break. When out-of-band breaks are disabled (<c>DISABLE_OOB=ON</c>
 /// in the server's or client's <c>sqlnet.ora</c>, common in containers, for example the gvenzl/oracle-free images), the server acts on it
 /// only when the current call returns: a chunk that waits on a lock held by another session is not interrupted until that lock is released.

@@ -71,7 +71,9 @@ public class BulkCopyPipelineTests
         var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>();
 
         thrown.Which.InnerException.Should().BeSameAs(writeError);
-        _loggerFactory.Entries.Should().Contain(entry => entry.Level == LogLevel.Error && entry.Exception == rollbackError);
+        _loggerFactory.Entries.Should().Contain(entry => entry.Level == LogLevel.Error && entry.Exception == null
+            && entry.Message.Contains(typeof(InvalidOperationException).FullName) && !entry.Message.Contains("rollback failure"),
+            "only the rollback error's type is logged, never its message");
         _provider.Connection.DisposeCount.Should().Be(1);
     }
 

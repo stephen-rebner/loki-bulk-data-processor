@@ -58,7 +58,9 @@ internal sealed class ConnectionScope : IAsyncDisposable
         }
         catch (Exception rollbackException)
         {
-            _logger.LogError(rollbackException, "Rolling back the internal transaction failed; the original bulk copy error is rethrown");
+            // Type only, like the dispose failures: no exception object, so no driver text reaches the host's log.
+            _logger.LogError("Rolling back the internal transaction failed with {ExceptionType}; the original bulk copy error is rethrown",
+                rollbackException.GetType().FullName);
         }
     }
 
