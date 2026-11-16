@@ -56,7 +56,7 @@ internal sealed class OracleBulkCopyProvider : IBulkCopyProvider
     }
 
     public Exception TranslateException(Exception exception, BulkWriteTarget target) =>
-        OracleExceptionTranslator.Translate(exception, target);
+        OracleExceptionTranslator.Translate(exception, target, Options.IdentifierResolution);
 
     private static IOracleIdentifierResolver CreateResolver(OracleIdentifierResolution resolution) =>
         resolution == OracleIdentifierResolution.CatalogLookup

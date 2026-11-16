@@ -59,7 +59,7 @@ LokiBulkDataProcessor.Oracle/              Package LokiBulkDataProcessor.Oracle 
 ├── Oracle/                                Public: OracleProvider (const Name = "Oracle"), OracleProviderOptions, OracleWriteMode
 │                                          (DirectPath rejected until step 8), OracleIdentifierResolution, OracleBooleanBinding
 ├── Oracle/Internal/                       OracleBulkCopyProvider, OracleExceptionTranslator (by OracleException.Number),
-│   │                                      OracleValidation (marks Loki's own errors so they pass through untranslated), SafeText.
+│   │                                      OracleValidation (marks Loki's own errors so they pass through untranslated).
 │   │                                      The ONLY place ODP.NET types are used (put `using Oracle.ManagedDataAccess.Client;`
 │   │                                      above the file-scoped namespace: `Oracle.` binds to Loki's namespace otherwise)
 │   ├── Identifiers/                       OracleIdentifier (validate + quote, CWE-89), Unquoted/CatalogIdentifierResolver,

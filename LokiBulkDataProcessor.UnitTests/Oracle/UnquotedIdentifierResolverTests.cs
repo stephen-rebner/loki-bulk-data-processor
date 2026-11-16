@@ -39,11 +39,13 @@ public class UnquotedIdentifierResolverTests
     [TestCase("Bad Schema.Posts")]
     [TestCase("a.b.c")]
     [TestCase("")]
-    public void Resolve_ShouldThrowAMarkedArgumentException_WhenTheTableNameIsHostileOrInvalid(string tableName)
+    public void Resolve_ShouldThrowAMarkedArgumentExceptionForTheCallersParameter_WhenTheTableNameIsHostileOrInvalid(string tableName)
     {
         Action action = () => UnquotedIdentifierResolver.Resolve(new BulkWriteTarget(tableName, new[] { new ColumnMap("A", "A") }));
 
-        action.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("TableName");
+        var thrown = action.Should().Throw<ArgumentException>();
+        thrown.Which.ParamName.Should().Be("destinationTableName");
+        OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
     }
 
     [TestCase("Title\"; DROP TABLE Blogs--")]
@@ -51,12 +53,12 @@ public class UnquotedIdentifierResolverTests
     [TestCase("Ti;tle")]
     [TestCase("Ti--tle")]
     [TestCase("\"Title\"")]
-    public void Resolve_ShouldThrowAMarkedArgumentException_WhenADestinationColumnIsHostile(string column)
+    public void Resolve_ShouldThrowAMarkedColumnMappingMismatch_WhenADestinationColumnIsHostile(string column)
     {
         Action action = () => UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Title", column) }));
 
-        var thrown = action.Should().Throw<ArgumentException>().WithMessage("The destination column '*");
-        thrown.Which.ParamName.Should().Be("DestinationColumn");
+        var thrown = action.Should().Throw<InvalidOperationException>()
+            .WithMessage($"{BulkCopyErrorMessages.ColumnMappingMismatch} (The destination column '*");
         OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
     }
 }

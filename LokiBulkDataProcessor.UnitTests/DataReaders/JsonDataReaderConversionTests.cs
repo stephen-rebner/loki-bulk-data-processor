@@ -47,7 +47,7 @@ public class JsonDataReaderConversionTests
 
         Action action = () => reader.GetValue(0);
 
-        action.Should().Throw<Exception>().Which.Message.Should().NotContain(RowValue);
+        action.Should().Throw<FormatException>().Which.Message.Should().NotContain(RowValue);
     }
 
     [Test]

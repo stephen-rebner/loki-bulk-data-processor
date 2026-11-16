@@ -4,8 +4,8 @@ namespace Loki.BulkDataProcessor.Oracle;
 public enum OracleBooleanBinding
 {
     /// <summary>
-    /// Default. <c>true</c>/<c>false</c> bind as NUMBER 1/0: works with <c>NUMBER(1)</c> columns on 19c and later, and is
-    /// implicitly converted to <c>BOOLEAN</c> on 23ai.
+    /// Default. <c>true</c>/<c>false</c> bind as NUMBER 1/0: works with <c>NUMBER(1)</c> columns on 19c and later. For a native
+    /// <c>BOOLEAN</c> column on 23ai, prefer <see cref="Boolean"/>.
     /// </summary>
     Number = 0,
 

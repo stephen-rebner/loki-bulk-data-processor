@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Oracle.ManagedDataAccess.Client;
+using Loki.BulkDataProcessor.Providers;
 
 namespace Loki.BulkDataProcessor.Oracle.Internal.Types;
 
@@ -18,7 +19,7 @@ internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
 
     private static readonly IReadOnlyDictionary<Type, OracleBinding> Bindings = new Dictionary<Type, OracleBinding>
     {
-        [typeof(string)] = new(OracleDbType.Varchar2, AsIs),            // "" is stored as NULL (Oracle semantics)
+        [typeof(string)] = new(OracleDbType.Varchar2, AsIs),   // "" is stored as NULL; VARCHAR2 bind limit applies (see OracleProvider)
         [typeof(char)] = new(OracleDbType.Varchar2, value => value.ToString()),
         [typeof(byte)] = new(OracleDbType.Byte, AsIs),
         [typeof(sbyte)] = new(OracleDbType.Int16, value => (short)(sbyte)value),
@@ -34,6 +35,8 @@ internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
         [typeof(DateTime)] = new(OracleDbType.TimeStamp, AsIs),
         [typeof(DateTimeOffset)] = new(OracleDbType.TimeStampTZ, AsIs),
         [typeof(TimeSpan)] = new(OracleDbType.IntervalDS, AsIs),
+        [typeof(DateOnly)] = new(OracleDbType.Date, value => ((DateOnly)value).ToDateTime(TimeOnly.MinValue)),   // DATE, midnight
+        [typeof(TimeOnly)] = new(OracleDbType.IntervalDS, value => ((TimeOnly)value).ToTimeSpan()),            // INTERVAL DAY TO SECOND
         [typeof(Guid)] = new(OracleDbType.Raw, value => ((Guid)value).ToByteArray()),   // RAW(16), .NET byte order (same as direct path)
         [typeof(byte[])] = new(OracleDbType.Raw, AsIs),                                 // up to the RAW limit; BLOB is not supported
     };
@@ -73,5 +76,5 @@ internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
 
     private static NotSupportedException Unsupported(Type type, string sourceColumn) =>
         OracleValidation.NotSupported(
-            $"The source column '{SafeText.Sanitize(sourceColumn)}' has type {type.Name}, which the Oracle array-bind writer does not support.");
+            $"The source column '{BulkCopyErrorMessages.Sanitize(sourceColumn)}' has type {type.Name}, which the Oracle array-bind writer does not support.");
 }

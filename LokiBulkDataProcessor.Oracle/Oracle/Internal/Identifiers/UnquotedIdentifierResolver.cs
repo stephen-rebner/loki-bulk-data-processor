@@ -20,15 +20,12 @@ internal sealed class UnquotedIdentifierResolver : IOracleIdentifierResolver
     internal static OracleResolvedTarget Resolve(BulkWriteTarget target)
     {
         (string schema, string table) = OracleIdentifier.Split(target.TableName);
-        string schemaSql = schema is null ? null : Fold(schema, "schema", nameof(BulkWriteTarget.TableName));
-        string tableSql = Fold(table, "table", nameof(BulkWriteTarget.TableName));
+        string schemaSql = schema is null ? null : OracleIdentifier.QuoteFolded(OracleIdentifier.RequireSimpleTableName(schema, "schema"));
+        string tableSql = OracleIdentifier.QuoteFolded(OracleIdentifier.RequireSimpleTableName(table, "table"));
         OracleResolvedColumn[] columns = target.Columns
             .Select(column => new OracleResolvedColumn(column.SourceColumn,
-                Fold(column.DestinationColumn, "destination column", nameof(ColumnMap.DestinationColumn))))
+                OracleIdentifier.QuoteFolded(OracleIdentifier.RequireSimpleColumnName(column.DestinationColumn))))
             .ToArray();
         return new OracleResolvedTarget(schemaSql, tableSql, columns);
     }
-
-    private static string Fold(string name, string role, string paramName) =>
-        OracleIdentifier.QuoteFolded(OracleIdentifier.RequireSimple(name, role, paramName));
 }

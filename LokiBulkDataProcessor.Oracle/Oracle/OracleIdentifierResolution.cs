@@ -5,8 +5,9 @@ public enum OracleIdentifierResolution
 {
     /// <summary>
     /// Default. Each name (<c>TABLE</c> or <c>SCHEMA.TABLE</c>, and every destination column) must be a simple identifier: a letter,
-    /// then letters, digits, <c>_</c>, <c>$</c> or <c>#</c>, at most 128 characters. Anything else is rejected with an
-    /// <see cref="System.ArgumentException"/> before any SQL runs. Names are folded to upper case, exactly as Oracle folds unquoted
+    /// then letters, digits, <c>_</c>, <c>$</c> or <c>#</c>, at most 128 characters. Anything else is rejected before any SQL
+    /// runs: a table or schema name with an <see cref="System.ArgumentException"/> (<c>ParamName</c> "destinationTableName"), a column
+    /// with an <see cref="System.InvalidOperationException"/> starting with the column-mapping-mismatch message. Names are folded to upper case, exactly as Oracle folds unquoted
     /// names, so <c>Posts</c> and <c>POSTS</c> both mean the table created as <c>CREATE TABLE Posts</c>; they are then quoted,
     /// so reserved words such as <c>Date</c> or <c>Comment</c> also work as column names.
     /// </summary>

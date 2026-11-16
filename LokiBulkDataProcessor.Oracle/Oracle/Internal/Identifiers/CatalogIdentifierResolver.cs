@@ -98,7 +98,8 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
 
     private static (string Owner, string Table) PickTable(IReadOnlyList<CatalogRow> rows, string schema, string table, string requestedTable)
     {
-        string notFound = $"The destination table '{SafeText.Sanitize(requestedTable)}' was not found or is not visible to the connected user.";
+        Func<string> notFound = () =>
+            $"The destination table '{BulkCopyErrorMessages.Sanitize(requestedTable)}' was not found or is not visible to the connected user.";
         string tableName = PickName(rows.Select(r => r.Table).Distinct().ToArray(), table, "table", notFound);
         string[] owners = rows.Where(r => r.Table == tableName).Select(r => r.Owner).Distinct().ToArray();
         // With no schema both queries return only the current schema, so there is at most one owner here.
@@ -107,36 +108,37 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
     }
 
     private static string PickColumn(IReadOnlyCollection<string> tableColumns, string requested) =>
-        PickName(tableColumns, requested, "column",
-            $"{BulkCopyErrorMessages.ColumnMappingMismatch} ('{SafeText.Sanitize(OracleIdentifier.StripQuotes(requested))}' not found)");
+        PickName(tableColumns, requested, "column", () =>
+            $"{BulkCopyErrorMessages.ColumnMappingMismatch} ('{BulkCopyErrorMessages.Sanitize(OracleIdentifier.StripQuotes(requested))}' not found)");
 
     /// <summary>Exact match first, then a single case-insensitive match; otherwise a clear error. A quoted request matches exactly only.</summary>
-    internal static string PickName(IReadOnlyCollection<string> candidates, string requested, string role, string notFoundMessage)
+    /// <param name="notFoundMessage">Built only when the name is not found, so a successful lookup allocates no message.</param>
+    internal static string PickName(IReadOnlyCollection<string> candidates, string requested, string role, Func<string> notFoundMessage)
     {
         if (string.IsNullOrEmpty(requested) || candidates.Count == 0)
         {
-            throw OracleValidation.InvalidOperation(notFoundMessage);
+            throw OracleValidation.InvalidOperation(notFoundMessage());
         }
 
         string name = OracleIdentifier.StripQuotes(requested);
         string exact = candidates.FirstOrDefault(c => c == name);
         if (exact is not null || OracleIdentifier.IsQuoted(requested))
         {
-            return exact ?? throw OracleValidation.InvalidOperation(notFoundMessage);
+            return exact ?? throw OracleValidation.InvalidOperation(notFoundMessage());
         }
 
         return PickCaseInsensitive(candidates, name, role, notFoundMessage);
     }
 
-    private static string PickCaseInsensitive(IReadOnlyCollection<string> candidates, string name, string role, string notFoundMessage)
+    private static string PickCaseInsensitive(IReadOnlyCollection<string> candidates, string name, string role, Func<string> notFoundMessage)
     {
         string[] folded = candidates.Where(c => string.Equals(c, name, StringComparison.OrdinalIgnoreCase)).ToArray();
         return folded.Length switch
         {
             1 => folded[0],
-            0 => throw OracleValidation.InvalidOperation(notFoundMessage),
+            0 => throw OracleValidation.InvalidOperation(notFoundMessage()),
             _ => throw OracleValidation.InvalidOperation(
-                $"The {role} '{SafeText.Sanitize(name)}' matches more than one object case-insensitively; quote it to choose exactly.")
+                $"The {role} '{BulkCopyErrorMessages.Sanitize(name)}' matches more than one object case-insensitively; quote it to choose exactly.")
         };
     }
 

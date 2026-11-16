@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using FluentAssertions;
+using Loki.BulkDataProcessor.Oracle;
 using Loki.BulkDataProcessor.Oracle.Internal;
 using Loki.BulkDataProcessor.Providers;
 using NUnit.Framework;
@@ -162,5 +163,29 @@ public class OracleExceptionTranslatorTests
     public void ErrorCode_ShouldFormatFiveDigits_WhenGivenANumber(int number, string expected)
     {
         OracleExceptionTranslator.ErrorCode(number).Should().Be(expected);
+    }
+
+    [TestCase(904)]
+    [TestCase(942)]
+    public void Translate_ShouldLeaveOutTheCasingHint_WhenTheProviderUsesCatalogLookup(int number)
+    {
+        OracleException original = NewOracleException(number, $"ORA-{number:D5}: {RowValue}");
+
+        Exception translated = OracleExceptionTranslator.Translate(original, Target, OracleIdentifierResolution.CatalogLookup);
+
+        translated.Message.Should().NotContain("OracleIdentifierResolution.CatalogLookup").And.NotContain(RowValue);
+        translated.InnerException.Should().BeSameAs(original);
+    }
+
+    [Test]
+    public void FromNumber_ShouldExplainTheVarchar2BindLimit_WhenAStringIsTooLong()
+    {
+        var inner = new Exception();
+
+        Exception translated = OracleExceptionTranslator.FromNumber(1461, inner, "Posts");
+
+        translated.Message.Should().StartWith("Bulk copy to 'Posts' failed (Oracle error ORA-01461).")
+            .And.Contain("4000 bytes").And.Contain("CLOB").And.NotContain("CatalogLookup");
+        translated.InnerException.Should().BeSameAs(inner);
     }
 }

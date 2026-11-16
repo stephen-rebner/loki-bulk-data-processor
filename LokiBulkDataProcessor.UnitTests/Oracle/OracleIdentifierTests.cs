@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using Loki.BulkDataProcessor.Oracle.Internal;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
+using Loki.BulkDataProcessor.Providers;
 using NUnit.Framework;
 
 namespace LokiBulkDataProcessor.UnitTests.Oracle;
@@ -15,15 +16,16 @@ public class OracleIdentifierTests
     [TestCase("blog_posts")]
     [TestCase("T1$#")]
     [TestCase("x")]
-    public void RequireSimple_ShouldReturnTheName_WhenItIsASimpleIdentifier(string name)
+    public void RequireSimpleTableName_ShouldReturnTheName_WhenItIsASimpleIdentifier(string name)
     {
-        OracleIdentifier.RequireSimple(name, "table", "TableName").Should().Be(name);
+        OracleIdentifier.RequireSimpleTableName(name, "table").Should().Be(name);
+        OracleIdentifier.RequireSimpleColumnName(name).Should().Be(name);
     }
 
     [Test]
-    public void RequireSimple_ShouldAcceptTheName_WhenItIsExactly128Characters()
+    public void RequireSimpleTableName_ShouldAcceptTheName_WhenItIsExactly128Characters()
     {
-        OracleIdentifier.RequireSimple(LongestValid, "table", "TableName").Should().Be(LongestValid);
+        OracleIdentifier.RequireSimpleTableName(LongestValid, "table").Should().Be(LongestValid);
     }
 
     [TestCase(null)]
@@ -46,30 +48,59 @@ public class OracleIdentifierTests
     [TestCase("Pösts")]
     [TestCase("Posts\0")]
     [TestCase("a.b")]
-    public void RequireSimple_ShouldThrowAMarkedArgumentException_WhenTheNameIsNotASimpleIdentifier(string name)
+    public void RequireSimpleTableName_ShouldThrowAMarkedArgumentExceptionForTheCallersParameter_WhenTheNameIsNotASimpleIdentifier(string name)
     {
-        Action action = () => OracleIdentifier.RequireSimple(name, "table", "TableName");
+        Action action = () => OracleIdentifier.RequireSimpleTableName(name, "table");
 
         var thrown = action.Should().Throw<ArgumentException>()
             .WithMessage("The table '*' is not a valid unquoted Oracle identifier*OracleIdentifierResolution.CatalogLookup*");
-        thrown.Which.ParamName.Should().Be("TableName");
+        thrown.Which.ParamName.Should().Be("destinationTableName");
+        OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase(" ")]
+    [TestCase("Posts ")]
+    [TestCase("1Posts")]
+    [TestCase("_Posts")]
+    [TestCase("Posts; DROP TABLE Blogs--")]
+    [TestCase("TestDbModels; DROP TABLE Blogs--")]
+    [TestCase("Posts--")]
+    [TestCase("Po\"sts")]
+    [TestCase("\"Posts\"")]
+    [TestCase("[Posts]")]
+    [TestCase("Posts]")]
+    [TestCase("Posts'")]
+    [TestCase("Po sts")]
+    [TestCase("Posts\r\nX")]
+    [TestCase("Posts\n")]
+    [TestCase("Pösts")]
+    [TestCase("Posts\0")]
+    [TestCase("a.b")]
+    public void RequireSimpleColumnName_ShouldThrowAMarkedColumnMappingMismatch_WhenTheNameIsNotASimpleIdentifier(string name)
+    {
+        Action action = () => OracleIdentifier.RequireSimpleColumnName(name);
+
+        var thrown = action.Should().Throw<InvalidOperationException>()
+            .WithMessage($"{BulkCopyErrorMessages.ColumnMappingMismatch} (The destination column '*' is not a valid unquoted Oracle identifier*");
         OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
     }
 
     [Test]
-    public void RequireSimple_ShouldThrow_WhenTheNameIsLongerThan128Characters()
+    public void RequireSimpleTableName_ShouldThrow_WhenTheNameIsLongerThan128Characters()
     {
-        Action action = () => OracleIdentifier.RequireSimple(LongestValid + "c", "table", "TableName");
+        Action action = () => OracleIdentifier.RequireSimpleTableName(LongestValid + "c", "table");
 
         action.Should().Throw<ArgumentException>();
     }
 
     [Test]
-    public void RequireSimple_ShouldSanitiseTheEchoedName_WhenItContainsControlCharactersOrIsLong()
+    public void RequireSimpleTableName_ShouldSanitiseTheEchoedName_WhenItContainsControlCharactersOrIsLong()
     {
         string hostile = "Posts\r\nFORGED LOG LINE" + new string('x', 300);
 
-        Action action = () => OracleIdentifier.RequireSimple(hostile, "table", "TableName");
+        Action action = () => OracleIdentifier.RequireSimpleTableName(hostile, "table");
 
         string message = action.Should().Throw<ArgumentException>().Which.Message;
         message.Should().NotContain("\r").And.NotContain("\n").And.Contain("Posts??FORGED").And.Contain("...");
@@ -96,11 +127,11 @@ public class OracleIdentifierTests
     [TestCase("")]
     [TestCase("A\"B")]
     [TestCase("A\0B")]
-    public void Quote_ShouldThrow_WhenTheNameCannotBeAnOracleIdentifier(string name)
+    public void Quote_ShouldThrowAMarkedInvalidOperationException_WhenTheCatalogueNameCannotBeQuoted(string name)
     {
         Action action = () => OracleIdentifier.Quote(name);
 
-        action.Should().Throw<ArgumentException>();
+        OracleValidation.IsValidationFailure(action.Should().Throw<InvalidOperationException>().Which).Should().BeTrue();
     }
 
     [Test]
@@ -108,7 +139,7 @@ public class OracleIdentifierTests
     {
         Action action = () => OracleIdentifier.Quote(new string('a', 129));
 
-        action.Should().Throw<ArgumentException>();
+        action.Should().Throw<InvalidOperationException>();
     }
 
     [TestCase("Posts", null, "Posts")]
@@ -126,7 +157,7 @@ public class OracleIdentifierTests
         Action action = () => OracleIdentifier.Split(qualified);
 
         action.Should().Throw<ArgumentException>().WithMessage("*must be 'TABLE' or 'SCHEMA.TABLE'*")
-            .Which.ParamName.Should().Be("TableName");
+            .Which.ParamName.Should().Be("destinationTableName");
     }
 
     [TestCase("\"MixedCase\"", true, "MixedCase")]

@@ -16,16 +16,35 @@ internal static partial class OracleIdentifier
     [GeneratedRegex(@"\A[A-Za-z][A-Za-z0-9_$#]{0,127}\z", RegexOptions.CultureInvariant)]  // \z, not $: $ also matches before a trailing \n
     private static partial Regex SimpleIdentifier();
 
-    /// <summary>Returns <paramref name="name"/> when it is a simple (unquoted) identifier; otherwise throws a marked <c>ArgumentException</c>.</summary>
-    /// <param name="name">The caller's name.</param>
-    /// <param name="role">What the name is, for the message ("table", "schema", "destination column").</param>
-    /// <param name="paramName">Reported as <c>ArgumentException.ParamName</c>.</param>
-    public static string RequireSimple(string name, string role, string paramName) =>
-        name is not null && SimpleIdentifier().IsMatch(name)
+    /// <summary>
+    /// The <c>ParamName</c> of the <see cref="System.ArgumentException"/> for a rejected table or schema name: the
+    /// <c>IBulkProcessor.SaveAsync</c> parameter the name came from.
+    /// </summary>
+    internal const string DestinationTableParameter = "destinationTableName";
+
+    /// <summary>True when <paramref name="name"/> is a simple (unquoted) identifier.</summary>
+    public static bool IsSimple(string name) => name is not null && SimpleIdentifier().IsMatch(name);
+
+    /// <summary>The data-free reason a name is not a simple identifier; <paramref name="role"/> is "table", "schema" or "destination column".</summary>
+    public static string NotSimpleMessage(string role, string name) =>
+        $"The {role} '{BulkCopyErrorMessages.Sanitize(name)}' is not a valid unquoted Oracle identifier ({SimpleRule}). Use OracleIdentifierResolution.CatalogLookup for quoted mixed-case names.";
+
+    /// <summary>
+    /// Returns a valid table or schema name; otherwise throws a marked <see cref="System.ArgumentException"/> whose <c>ParamName</c>
+    /// is <see cref="DestinationTableParameter"/>.
+    /// </summary>
+    public static string RequireSimpleTableName(string name, string role) =>
+        IsSimple(name) ? name : throw OracleValidation.Argument(NotSimpleMessage(role, name), DestinationTableParameter);
+
+    /// <summary>
+    /// Returns a valid destination column; otherwise throws a marked <see cref="System.InvalidOperationException"/> that starts with
+    /// <see cref="BulkCopyErrorMessages.ColumnMappingMismatch"/>, the same type and prefix SQL Server gives for a destination column
+    /// it cannot use. Column names come from mappings or the source, not from a <c>SaveAsync</c> argument.
+    /// </summary>
+    public static string RequireSimpleColumnName(string name) =>
+        IsSimple(name)
             ? name
-            : throw OracleValidation.Argument(
-                $"The {role} '{SafeText.Sanitize(name)}' is not a valid unquoted Oracle identifier ({SimpleRule}). " +
-                "Use OracleIdentifierResolution.CatalogLookup for quoted mixed-case names.", paramName);
+            : throw OracleValidation.InvalidOperation($"{BulkCopyErrorMessages.ColumnMappingMismatch} ({NotSimpleMessage("destination column", name)})");
 
     /// <summary>Folds a validated simple identifier to upper case (what Oracle does with unquoted names) and quotes it.</summary>
     public static string QuoteFolded(string simpleName) => Quote(simpleName.ToUpperInvariant());
@@ -34,7 +53,7 @@ internal static partial class OracleIdentifier
     public static string Quote(string exactName) =>
         !string.IsNullOrEmpty(exactName) && exactName.Length <= MaxLength && exactName.IndexOfAny(['"', '\0']) < 0
             ? $"\"{exactName}\""
-            : throw OracleValidation.Argument("Invalid Oracle identifier returned from the catalogue.", nameof(exactName));
+            : throw OracleValidation.InvalidOperation("The Oracle catalogue returned an object name that cannot be quoted safely.");
 
     /// <summary>Splits <c>TABLE</c> or <c>SCHEMA.TABLE</c>. A quoted name may not contain a dot.</summary>
     public static (string Schema, string Table) Split(string qualifiedName)
@@ -45,7 +64,7 @@ internal static partial class OracleIdentifier
             1 => (null, parts[0]),
             2 => (parts[0], parts[1]),
             _ => throw OracleValidation.Argument(
-                $"The destination table '{SafeText.Sanitize(qualifiedName)}' must be 'TABLE' or 'SCHEMA.TABLE'.", nameof(BulkWriteTarget.TableName))
+                $"The destination table '{BulkCopyErrorMessages.Sanitize(qualifiedName)}' must be 'TABLE' or 'SCHEMA.TABLE'.", DestinationTableParameter)
         };
     }
 

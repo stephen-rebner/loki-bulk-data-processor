@@ -23,8 +23,8 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
     /// <summary>Rows per execution when BatchSize is 0 ("all rows" would need everything in memory). Benchmarked sweet spot.</summary>
     internal const int DefaultChunkSize = 5000;
 
-    /// <summary>Upper bound on rows per execution, so a huge BatchSize cannot allocate unbounded buffers. 20000 already gains nothing.</summary>
-    internal const int MaxChunkSize = 100_000;
+    /// <summary>Upper bound on rows per execution, so a huge BatchSize cannot allocate large buffers; the benchmarks showed no gain above it.</summary>
+    internal const int MaxChunkSize = 20_000;
 
     public async Task WriteAsync(IDataReader source, BulkWriteTarget target, CancellationToken cancellationToken)
     {
@@ -34,8 +34,24 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
         OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
         OracleBoundColumn[] columns = BindColumns(source, resolved);
         using OracleCommand command = CreateInsertCommand(resolved, columns);
-        (int rows, int executions) = await CopyRowsAsync(source, command, columns, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("Array-bind insert wrote {RowCount} rows in {ExecutionCount} executions", rows, executions);
+        try
+        {
+            (int rows, int executions) = await CopyRowsAsync(source, command, columns, cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("Array-bind insert wrote {RowCount} rows in {ExecutionCount} executions", rows, executions);
+        }
+        finally
+        {
+            DisposeParameters(command);
+        }
+    }
+
+    /// <summary>OracleParameter holds unmanaged resources and disposing the command does not dispose its parameters.</summary>
+    private static void DisposeParameters(OracleCommand command)
+    {
+        foreach (OracleParameter parameter in command.Parameters)
+        {
+            parameter.Dispose();
+        }
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -116,6 +132,7 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
     private static async Task<int> FlushAsync(ColumnBuffer buffer, Func<ColumnBuffer, CancellationToken, Task> executeChunk,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();   // also covers a slow source reader between flushes
         int count = buffer.Count;
         await executeChunk(buffer, cancellationToken).ConfigureAwait(false);
         buffer.Clear();

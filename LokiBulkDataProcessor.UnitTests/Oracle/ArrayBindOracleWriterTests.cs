@@ -15,7 +15,7 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace LokiBulkDataProcessor.UnitTests.Oracle;
 
-public class ArrayBindOracleWriterTests
+public partial class ArrayBindOracleWriterTests
 {
     private OracleConnection _connection;
 
@@ -93,6 +93,7 @@ public class ArrayBindOracleWriterTests
         command.CommandText.Should().Be("INSERT INTO \"POSTS\" (\"TITLE\", \"BLOGID\") VALUES (:1, :2)");
         command.BindByName.Should().BeFalse();
         command.CommandTimeout.Should().Be(45);
+        command.Connection.Should().BeSameAs(_connection);
         command.Parameters.Count.Should().Be(2);
         command.Parameters[0].OracleDbType.Should().Be(OracleDbType.Varchar2);
         command.Parameters[1].OracleDbType.Should().Be(OracleDbType.Int32);
@@ -144,18 +145,19 @@ public class ArrayBindOracleWriterTests
         Func<Task> action = () => Writer().WriteAsync(reader,
             new BulkWriteTarget("TestDbModels; DROP TABLE Blogs--", new[] { new ColumnMap("Title", "Title") }), CancellationToken.None);
 
-        (await action.Should().ThrowAsync<ArgumentException>()).Which.ParamName.Should().Be("TableName");
-        reader.IsClosed.Should().BeFalse();
-        table.Rows.Count.Should().Be(1);
+        (await action.Should().ThrowAsync<ArgumentException>()).Which.ParamName.Should().Be("destinationTableName");
+        _connection.State.Should().Be(ConnectionState.Closed, "no command was executed on the connection");
     }
 
     [Test]
-    public void DisposeAsync_ShouldNotDisposeTheConnection_WhenTheWriterIsDisposed()
+    public async Task DisposeAsync_ShouldNotDisposeTheConnection_WhenTheWriterIsDisposed()
     {
+        bool connectionDisposed = false;
+        _connection.Disposed += (_, _) => connectionDisposed = true;
         ArrayBindOracleWriter writer = Writer();
 
-        writer.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        await writer.DisposeAsync();
 
-        _connection.Invoking(c => c.CreateCommand()).Should().NotThrow();
+        connectionDisposed.Should().BeFalse("the connection belongs to the pipeline (or the caller), never to the writer");
     }
 }

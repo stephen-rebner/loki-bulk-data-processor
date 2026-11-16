@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Data;
 using System.Runtime.CompilerServices;
 using FluentAssertions;
@@ -92,7 +93,7 @@ public class OracleBulkCopyProviderTests
     }
 
     [Test]
-    public void CreateWriter_ShouldReturnAnArrayBindWriter_WhenTheWriteModeIsArrayBind()
+    public async Task CreateWriter_ShouldReturnAnArrayBindWriter_WhenTheWriteModeIsArrayBind()
     {
         using var connection = new OracleConnection(ConnectionString);
         var context = new BulkWriteContext(connection, null, new BulkWriteOptions(10, 20), NullLoggerFactory.Instance);
@@ -100,7 +101,7 @@ public class OracleBulkCopyProviderTests
         IBulkWriter writer = _provider.CreateWriter(context);
 
         writer.Should().BeOfType<ArrayBindOracleWriter>();
-        writer.Invoking(w => w.DisposeAsync().AsTask().GetAwaiter().GetResult()).Should().NotThrow();
+        await writer.Invoking(w => w.DisposeAsync().AsTask()).Should().NotThrowAsync();
     }
 
     [Test]

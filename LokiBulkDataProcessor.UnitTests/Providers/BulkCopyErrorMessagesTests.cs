@@ -33,4 +33,13 @@ public class BulkCopyErrorMessagesTests
         BulkCopyErrorMessages.BulkCopyFailed(null).Should().Be("Bulk copy to '' failed. See InnerException for details.");
         BulkCopyErrorMessages.BulkCopyFailed(null, null, null).Should().StartWith("Bulk copy to '' failed ( error ).");
     }
+
+    [TestCase(null, "")]
+    [TestCase("Posts", "Posts")]
+    [TestCase("Posts\r\n\u202Eevil", "Posts???evil")]
+    public void Sanitize_ShouldMakeTheNameSafeToEcho_WhenAProviderPassesCallerText(string value, string expected)
+    {
+        BulkCopyErrorMessages.Sanitize(value).Should().Be(expected);
+        BulkCopyErrorMessages.Sanitize(new string('a', 200)).Should().HaveLength(131).And.EndWith("...");
+    }
 }

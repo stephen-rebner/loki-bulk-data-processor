@@ -84,7 +84,7 @@ public class CatalogIdentifierResolverTests
 
         Action action = () => CatalogIdentifierResolver.Resolve(rows, new BulkWriteTarget("Bad\"Name", new[] { new ColumnMap("A", "A") }));
 
-        action.Should().Throw<ArgumentException>().WithMessage("Invalid Oracle identifier returned from the catalogue.*");
+        action.Should().Throw<InvalidOperationException>().WithMessage("The Oracle catalogue returned an object name that cannot be quoted safely.");
     }
 
     [Test]

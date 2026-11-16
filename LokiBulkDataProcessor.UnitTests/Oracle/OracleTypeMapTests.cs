@@ -100,7 +100,6 @@ public class OracleTypeMapTests
     }
 
     [TestCase(typeof(object))]
-    [TestCase(typeof(DateOnly))]
     [TestCase(typeof(Uri))]
     [TestCase(null)]
     public void For_ShouldThrowAMarkedNotSupportedException_WhenTheTypeCannotBeArrayBound(Type type)
@@ -110,5 +109,23 @@ public class OracleTypeMapTests
         var thrown = action.Should().Throw<NotSupportedException>()
             .WithMessage("The source column 'Payload??' has type *, which the Oracle array-bind writer does not support.");
         OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
+    }
+
+    [Test]
+    public void For_ShouldBindDateOnlyAsDateAtMidnight_WhenTheColumnIsDateOnly()
+    {
+        OracleBinding binding = _numberBooleans.For(typeof(DateOnly?), "Day");
+
+        binding.DbType.Should().Be(OracleDbType.Date);
+        binding.Convert(new DateOnly(2026, 11, 16)).Should().Be(new DateTime(2026, 11, 16, 0, 0, 0));
+    }
+
+    [Test]
+    public void For_ShouldBindTimeOnlyAsAnInterval_WhenTheColumnIsTimeOnly()
+    {
+        OracleBinding binding = _numberBooleans.For(typeof(TimeOnly), "At");
+
+        binding.DbType.Should().Be(OracleDbType.IntervalDS);
+        binding.Convert(new TimeOnly(10, 30, 15)).Should().Be(new TimeSpan(10, 30, 15));
     }
 }

@@ -14,10 +14,10 @@ namespace LokiBulkDataProcessor.UnitTests.Oracle;
 
 public class ColumnBufferTests
 {
-    private static OracleBoundColumn[] Columns(OracleTypeMap map, DataTable table) =>
+    internal static OracleBoundColumn[] Columns(OracleTypeMap map, DataTable table) =>
         table.Columns.Cast<DataColumn>().Select(c => new OracleBoundColumn(c.Ordinal, map.For(c.DataType, c.ColumnName))).ToArray();
 
-    private static DataTable Rows(int count)
+    internal static DataTable Rows(int count)
     {
         var table = new DataTable();
         table.Columns.Add("Id", typeof(int));
@@ -28,62 +28,6 @@ public class ColumnBufferTests
         }
 
         return table;
-    }
-
-    [Test]
-    public async Task CopyInChunksAsync_ShouldExecuteChunksOfTheBatchSize_WhenTheRowsDoNotDivideEvenly()
-    {
-        using DataTable table = Rows(10);
-        using DataTableReader reader = table.CreateDataReader();
-        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), ArrayBindOracleWriter.ChunkSize(3));
-        var chunks = new List<object[]>();
-
-        (int rows, int executions) = await ArrayBindOracleWriter.CopyInChunksAsync(reader, buffer,
-            (chunk, _) => { chunks.Add(chunk.ValuesFor(0).ToArray()); return Task.CompletedTask; }, CancellationToken.None);
-
-        rows.Should().Be(10);
-        executions.Should().Be(4);
-        chunks.Select(c => c.Length).Should().Equal(3, 3, 3, 1);
-        chunks.SelectMany(c => c).Should().Equal(Enumerable.Range(1, 10).Cast<object>());
-        buffer.Count.Should().Be(0);
-    }
-
-    [Test]
-    public async Task CopyInChunksAsync_ShouldNotExecute_WhenTheSourceHasNoRows()
-    {
-        using DataTable table = Rows(0);
-        using DataTableReader reader = table.CreateDataReader();
-        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 5);
-        int executions = 0;
-
-        var result = await ArrayBindOracleWriter.CopyInChunksAsync(reader, buffer, (_, _) => { executions++; return Task.CompletedTask; }, CancellationToken.None);
-
-        result.Should().Be((0, 0));
-        executions.Should().Be(0);
-    }
-
-    [Test]
-    public async Task CopyInChunksAsync_ShouldPropagateTheError_WhenAChunkFails()
-    {
-        using DataTable table = Rows(5);
-        using DataTableReader reader = table.CreateDataReader();
-        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 2);
-
-        Func<Task> action = () => ArrayBindOracleWriter.CopyInChunksAsync(reader, buffer,
-            (_, _) => throw new InvalidOperationException("server rejected chunk"), CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("server rejected chunk");
-    }
-
-    [TestCase(0, ArrayBindOracleWriter.DefaultChunkSize)]
-    [TestCase(1, 1)]
-    [TestCase(5000, 5000)]
-    [TestCase(100_000, 100_000)]
-    [TestCase(int.MaxValue, ArrayBindOracleWriter.MaxChunkSize)]
-    public void ChunkSize_ShouldFollowTheBatchSize_WhenItIsWithinBounds(int batchSize, int expected)
-    {
-        ArrayBindOracleWriter.ChunkSize(batchSize).Should().Be(expected);
-        ArrayBindOracleWriter.DefaultChunkSize.Should().Be(5000);
     }
 
     [Test]
@@ -214,30 +158,5 @@ public class ColumnBufferTests
 
         buffer.PayloadBytes.Should().Be(0);
         buffer.IsFull.Should().BeFalse();
-    }
-
-    [Test]
-    public async Task CopyInChunksAsync_ShouldFlushEarly_WhenThePayloadBudgetIsReached()
-    {
-        DataTable table = Rows(5);
-        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 100, maxPayloadBytes: 16);
-        var chunkSizes = new List<int>();
-
-        (int rows, int executions) = await ArrayBindOracleWriter.CopyInChunksAsync(table.CreateDataReader(), buffer,
-            (chunk, _) => { chunkSizes.Add(chunk.Count); return Task.CompletedTask; }, CancellationToken.None);
-
-        chunkSizes.Should().Equal(2, 2, 1);
-        (rows, executions).Should().Be((5, 3));
-    }
-
-    [TestCase(5000, 2, 5000)]
-    [TestCase(100_000, 50, 20_000)]
-    [TestCase(100_000, 1000, 1000)]
-    [TestCase(0, 1000, 1000)]
-    [TestCase(10, 2_000_000, 1)]
-    [TestCase(10, 0, 10)]
-    public void ChunkSize_ShouldStayWithinTheCellBudget_WhenTheTableIsWide(int batchSize, int columnCount, int expected)
-    {
-        ArrayBindOracleWriter.ChunkSize(batchSize, columnCount).Should().Be(expected);
     }
 }
