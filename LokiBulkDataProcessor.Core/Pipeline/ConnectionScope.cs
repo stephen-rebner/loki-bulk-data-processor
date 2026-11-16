@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.Internal;
 using Loki.BulkDataProcessor.Providers;
+using Loki.BulkDataProcessor.Utils.Validation;
 using Microsoft.Extensions.Logging;
 
 namespace Loki.BulkDataProcessor.Pipeline;
@@ -109,10 +110,29 @@ internal sealed class ConnectionScope : IAsyncDisposable
             DbTransaction transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
             return new ConnectionScope(connection, transaction, ownsTransaction: true, logger);
         }
-        catch
+        catch (Exception exception)
         {
             await connection.DisposeAsync().ConfigureAwait(false);   // #13: no leak if Open or BeginTransaction fails
-            throw;
+            throw OpenFailure(provider, exception, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Driver open errors can name the host, port and service (CWE-209), so they are wrapped with a fixed message naming only the
+    /// provider; the driver error is the InnerException (#15). Cancellation surfaces as <see cref="OperationCanceledException"/>.
+    /// </summary>
+    internal static Exception OpenFailure(IBulkCopyProvider provider, Exception exception, CancellationToken cancellationToken)
+    {
+        string providerName = MessageText.Sanitize(provider.Name);
+        if (exception is OperationCanceledException)
+        {
+            return exception;
+        }
+
+        return cancellationToken.IsCancellationRequested
+            ? new OperationCanceledException(
+                $"Opening a connection for provider '{providerName}' was cancelled. See InnerException for details.", exception, cancellationToken)
+            : new InvalidOperationException(
+                $"Could not open a connection or begin a transaction for provider '{providerName}'. See InnerException for details.", exception);
     }
 }

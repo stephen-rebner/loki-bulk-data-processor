@@ -9,6 +9,11 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// applies to each chunk.
 /// </para>
 /// <para>
+/// Unlike SqlBulkCopy, which streams, each chunk is buffered in memory before it is sent. A chunk is also cut short at 1,000,000
+/// values (rows x columns) or about 64 MB of string and binary data, whichever comes first, so a large BatchSize or wide rows
+/// cannot exhaust memory; the rows are still written in the same transaction.
+/// </para>
+/// <para>
 /// Oracle stores an empty string as NULL. Destination names are matched as described on <see cref="OracleIdentifierResolution"/>.
 /// </para>
 /// </remarks>

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.Internal;
 using Loki.BulkDataProcessor.Providers;
+using Loki.BulkDataProcessor.Utils.Validation;
 using Microsoft.Extensions.Logging;
 
 namespace Loki.BulkDataProcessor.Pipeline;
@@ -42,12 +43,26 @@ internal sealed class BulkCopyPipeline(IBulkCopyProvider provider, ILoggerFactor
         {
             await writer.WriteAsync(source, target, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw Cancelled(exception, target, cancellationToken);
+            }
+
             ThrowTranslated(exception, target);
             throw;
         }
     }
+
+    /// <summary>
+    /// Drivers report a cancelled command in their own way (ODP.NET: ORA-01013; SqlClient: "Operation cancelled by user"), with
+    /// driver text that may carry details. Every provider surfaces it the same way: an <see cref="OperationCanceledException"/>
+    /// with a fixed, data-free message and the driver error as InnerException (#15).
+    /// </summary>
+    private static OperationCanceledException Cancelled(Exception original, BulkWriteTarget target, CancellationToken cancellationToken) =>
+        new($"The bulk copy to '{MessageText.Sanitize(target.TableName)}' was cancelled. See InnerException for details.",
+            original, cancellationToken);
 
     /// <summary>Throws the provider's translation, guaranteeing it carries the original as InnerException (#15).
     /// Returns (so the caller rethrows the original) when the provider returned null or the same exception.</summary>

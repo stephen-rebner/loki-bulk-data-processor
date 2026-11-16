@@ -43,6 +43,16 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
     /// <summary>BatchSize 0 means <see cref="DefaultChunkSize"/>; larger values are capped at <see cref="MaxChunkSize"/>.</summary>
     internal static int ChunkSize(int batchSize) => batchSize <= 0 ? DefaultChunkSize : Math.Min(batchSize, MaxChunkSize);
 
+    /// <summary>
+    /// Upper bound on buffered values (rows x columns) per chunk: the buffer allocates one slot per value up front, so a wide table
+    /// with a large BatchSize is limited to 1,000,000 slots (about 8 MB of references) rather than up to 100 million.
+    /// </summary>
+    internal const int MaxCellsPerChunk = 1_000_000;
+
+    /// <summary><see cref="ChunkSize(int)"/>, further limited so rows x <paramref name="columnCount"/> stays within <see cref="MaxCellsPerChunk"/>.</summary>
+    internal static int ChunkSize(int batchSize, int columnCount) =>
+        Math.Min(ChunkSize(batchSize), Math.Max(1, MaxCellsPerChunk / Math.Max(1, columnCount)));
+
     /// <summary>Finds each mapped source column in the reader and picks its binding. Fails before any SQL runs.</summary>
     internal OracleBoundColumn[] BindColumns(IDataReader source, OracleResolvedTarget resolved)
     {
@@ -76,7 +86,7 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
 
     private Task<(int Rows, int Executions)> CopyRowsAsync(IDataReader source, OracleCommand command,
         IReadOnlyList<OracleBoundColumn> columns, CancellationToken cancellationToken) =>
-        CopyInChunksAsync(source, new ColumnBuffer(columns, ChunkSize(options.BatchSize)),
+        CopyInChunksAsync(source, new ColumnBuffer(columns, ChunkSize(options.BatchSize, columns.Count)),
             (chunk, token) => ExecuteChunkAsync(command, chunk, token), cancellationToken);
 
     /// <summary>Reads every row into the buffer and hands each full (and the final partial) chunk to <paramref name="executeChunk"/>.</summary>

@@ -229,24 +229,51 @@ public class BulkCopyPipelineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ShouldDisposeTheConnection_WhenOpenThrows()
+    public async Task ExecuteAsync_ShouldDisposeTheConnectionAndHideTheDriverText_WhenOpenThrows()
     {
-        _provider.Connection.OpenException = new InvalidOperationException("cannot open");
+        var driverError = new InvalidOperationException("cannot open db-host-01:1521/SECRETSERVICE");
+        _provider.Connection.OpenException = driverError;
 
-        await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>().WithMessage("cannot open");
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Could not open a connection or begin a transaction for provider 'Fake'. See InnerException for details.");
 
+        thrown.Which.InnerException.Should().BeSameAs(driverError);
         _provider.Connection.DisposeCount.Should().Be(1);
         _provider.Mock.Verify(p => p.CreateWriter(It.IsAny<BulkWriteContext>()), Times.Never);
     }
 
     [Test]
-    public async Task ExecuteAsync_ShouldDisposeTheConnection_WhenBeginTransactionThrows()
+    public async Task ExecuteAsync_ShouldDisposeTheConnectionAndHideTheDriverText_WhenBeginTransactionThrows()
     {
-        _provider.Connection.BeginTransactionException = new InvalidOperationException("cannot begin");
+        var driverError = new InvalidOperationException("cannot begin on db-host-01");
+        _provider.Connection.BeginTransactionException = driverError;
 
-        await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>().WithMessage("cannot begin");
+        var thrown = await ((Func<Task>)ExecuteOwnAsync).Should().ThrowAsync<InvalidOperationException>();
 
+        thrown.Which.Message.Should().NotContain("db-host-01");
+        thrown.Which.InnerException.Should().BeSameAs(driverError);
         _provider.Connection.DisposeCount.Should().Be(1);
+    }
+
+    [Test]
+    public void OpenFailure_ShouldReturnOperationCanceledWithTheDriverErrorAsInner_WhenTheTokenWasCancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var driverError = new InvalidOperationException("ORA-01013: user requested cancel of current operation");
+        cancellation.Cancel();
+
+        Exception exception = ConnectionScope.OpenFailure(_provider.Mock.Object, driverError, cancellation.Token);
+
+        exception.Should().BeOfType<OperationCanceledException>().Which.InnerException.Should().BeSameAs(driverError);
+        exception.Message.Should().NotContain("ORA-01013");
+    }
+
+    [Test]
+    public void OpenFailure_ShouldReturnTheSameException_WhenItIsAlreadyAnOperationCanceledException()
+    {
+        var cancelled = new OperationCanceledException();
+
+        ConnectionScope.OpenFailure(_provider.Mock.Object, cancelled, CancellationToken.None).Should().BeSameAs(cancelled);
     }
 
     [Test]
@@ -344,20 +371,24 @@ public class BulkCopyPipelineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ShouldNotTranslate_WhenTheTokenIsCancelledAndTheDriverThrowsSomethingElse()
+    public async Task ExecuteAsync_ShouldThrowOperationCanceledWithTheDriverErrorAsInner_WhenTheTokenIsCancelledAndTheDriverThrowsSomethingElse()
     {
         using var cancellation = new CancellationTokenSource();
+        var driverError = new InvalidOperationException("ORA-01013: user requested cancel of current operation (row 'secret')");
         _provider.Writer.Setup(w => w.WriteAsync(It.IsAny<IDataReader>(), It.IsAny<BulkWriteTarget>(), It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 cancellation.Cancel();
-                return Task.FromException(new InvalidOperationException("Operation cancelled by user."));
+                return Task.FromException(driverError);
             });
 
-        await ((Func<Task>)(() => ExecuteOwnAsync(cancellation.Token))).Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Operation cancelled by user.");
+        var thrown = await ((Func<Task>)(() => ExecuteOwnAsync(cancellation.Token))).Should().ThrowAsync<OperationCanceledException>()
+            .WithMessage($"The bulk copy to '{Target.TableName}' was cancelled. See InnerException for details.");
 
+        thrown.Which.InnerException.Should().BeSameAs(driverError);
+        thrown.Which.CancellationToken.Should().Be(cancellation.Token);
         _provider.Mock.Verify(p => p.TranslateException(It.IsAny<Exception>(), It.IsAny<BulkWriteTarget>()), Times.Never);
+        _provider.Connection.LastTransaction.RollbackCount.Should().Be(1);
     }
 
     [Test]

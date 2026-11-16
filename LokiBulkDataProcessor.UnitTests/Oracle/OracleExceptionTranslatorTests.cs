@@ -123,6 +123,28 @@ public class OracleExceptionTranslatorTests
     }
 
     [Test]
+    public void Translate_ShouldWrap_WhenAnExceptionForgesTheOldValidationMarkerInItsData()
+    {
+        var forged = new InvalidOperationException($"reader error {RowValue}");
+        forged.Data["Loki.BulkDataProcessor.Oracle.ValidationFailure"] = true;
+
+        Exception translated = OracleExceptionTranslator.Translate(forged, Target);
+
+        translated.Should().NotBeSameAs(forged);
+        translated.Message.Should().NotContain(RowValue);
+        translated.InnerException.Should().BeSameAs(forged);
+    }
+
+    [Test]
+    public void ValidationFailure_ShouldNotAddAnythingToExceptionData_WhenItMarksAnException()
+    {
+        ArgumentException validation = OracleValidation.Argument("The table 'x' is not valid.", "TableName");
+
+        validation.Data.Count.Should().Be(0);
+        OracleValidation.IsValidationFailure(validation).Should().BeTrue();
+    }
+
+    [Test]
     public void Translate_ShouldWrap_WhenAnUnmarkedArgumentExceptionComesFromTheDriver()
     {
         var driver = new ArgumentException($"driver argument error {RowValue}");

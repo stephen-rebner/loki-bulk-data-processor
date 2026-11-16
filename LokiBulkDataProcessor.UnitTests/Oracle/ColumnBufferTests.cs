@@ -181,4 +181,63 @@ public class ColumnBufferTests
 
         action.Should().Throw<ArgumentOutOfRangeException>();
     }
+
+    [Test]
+    public void IsFull_ShouldBeTrue_WhenTheStringPayloadReachesTheByteBudgetBeforeTheRowCapacity()
+    {
+        DataTable table = Rows(3);   // "RowN" = 4 chars = 8 bytes per row
+        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 100, maxPayloadBytes: 16);
+        using DataTableReader reader = table.CreateDataReader();
+
+        reader.Read();
+        buffer.AddRow(reader);
+        buffer.IsFull.Should().BeFalse();
+        reader.Read();
+        buffer.AddRow(reader);
+
+        buffer.IsFull.Should().BeTrue();
+        buffer.Count.Should().Be(2);
+        buffer.PayloadBytes.Should().Be(16);
+        buffer.ValuesFor(1).Should().Equal("Row1", "Row2");
+    }
+
+    [Test]
+    public void Clear_ShouldResetThePayloadBytes_WhenTheChunkIsFlushed()
+    {
+        DataTable table = Rows(1);
+        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 5, maxPayloadBytes: 8);
+        using DataTableReader reader = table.CreateDataReader();
+        reader.Read();
+        buffer.AddRow(reader);
+
+        buffer.Clear();
+
+        buffer.PayloadBytes.Should().Be(0);
+        buffer.IsFull.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task CopyInChunksAsync_ShouldFlushEarly_WhenThePayloadBudgetIsReached()
+    {
+        DataTable table = Rows(5);
+        var buffer = new ColumnBuffer(Columns(new OracleTypeMap(OracleBooleanBinding.Number), table), 100, maxPayloadBytes: 16);
+        var chunkSizes = new List<int>();
+
+        (int rows, int executions) = await ArrayBindOracleWriter.CopyInChunksAsync(table.CreateDataReader(), buffer,
+            (chunk, _) => { chunkSizes.Add(chunk.Count); return Task.CompletedTask; }, CancellationToken.None);
+
+        chunkSizes.Should().Equal(2, 2, 1);
+        (rows, executions).Should().Be((5, 3));
+    }
+
+    [TestCase(5000, 2, 5000)]
+    [TestCase(100_000, 50, 20_000)]
+    [TestCase(100_000, 1000, 1000)]
+    [TestCase(0, 1000, 1000)]
+    [TestCase(10, 2_000_000, 1)]
+    [TestCase(10, 0, 10)]
+    public void ChunkSize_ShouldStayWithinTheCellBudget_WhenTheTableIsWide(int batchSize, int columnCount, int expected)
+    {
+        ArrayBindOracleWriter.ChunkSize(batchSize, columnCount).Should().Be(expected);
+    }
 }
