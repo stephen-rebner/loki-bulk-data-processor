@@ -1,0 +1,94 @@
+# Requests for every endpoint of Loki.Samples.WebApi (Visual Studio, Rider, or VS Code with the REST Client extension).
+# Start the databases and the API first (see samples/README.md). {{engine}} is sqlserver or oracle.
+
+@baseUrl = http://localhost:5080
+@engine = sqlserver
+
+### Registered Loki providers, and which engines have a connection string
+GET {{baseUrl}}/api/engines
+
+### Row counts of the sample tables
+GET {{baseUrl}}/api/{{engine}}/counts
+
+### Models: IEnumerable<CustomerImportRow> with a ModelMapping (FullName -> Name, ...)
+POST {{baseUrl}}/api/{{engine}}/customers
+Content-Type: application/json
+
+[
+  { "name": "Ada Lovelace", "email": "ada@example.com" },
+  { "name": "Alan Turing", "email": null }
+]
+
+### DataTable: TableName "ProductImport" selects the ProductImportMapping DataMapping
+POST {{baseUrl}}/api/{{engine}}/products/datatable?count=5000
+
+### IDataReader: SaveAsync(reader, "Products", sourceName: "ProductImport")
+POST {{baseUrl}}/api/{{engine}}/products/reader?count=5000
+
+### JSON upload: SaveAsync(stream, "Products"). The payload's tableName is ignored; RequireDataMappingForJson limits the columns.
+POST {{baseUrl}}/api/{{engine}}/json/products
+Content-Type: application/json
+
+{
+  "tableName": "Orders",
+  "columns": [
+    { "name": "Sku", "type": "string" },
+    { "name": "Name", "type": "string" },
+    { "name": "Price", "type": "decimal" },
+    { "name": "NotMapped", "type": "string" }
+  ],
+  "data": [
+    { "Sku": "JSON-1", "Name": "Desk lamp", "Price": 24.99, "NotMapped": "never copied" },
+    { "Sku": "JSON-2", "Name": "Notebook", "Price": 3.5, "NotMapped": null }
+  ]
+}
+
+### JSON upload into Customers
+POST {{baseUrl}}/api/{{engine}}/json/customers
+Content-Type: application/json
+
+{
+  "tableName": "Customers",
+  "columns": [
+    { "name": "Name", "type": "string" },
+    { "name": "Email", "type": "string" },
+    { "name": "CreatedOn", "type": "datetime" }
+  ],
+  "data": [
+    { "Name": "Grace Hopper", "Email": "grace@example.com", "CreatedOn": "2026-11-22T10:00:00Z" }
+  ]
+}
+
+### JSON upload into a table that is not on the allow-list: 404
+POST {{baseUrl}}/api/{{engine}}/json/orders
+Content-Type: application/json
+
+{ "tableName": "Orders", "columns": [], "data": [] }
+
+### Send the JSON upload again: the SKUs already exist, 409 and nothing saved
+POST {{baseUrl}}/api/{{engine}}/json/products
+Content-Type: application/json
+
+{
+  "tableName": "Products",
+  "columns": [ { "name": "Sku", "type": "string" }, { "name": "Name", "type": "string" }, { "name": "Price", "type": "decimal" } ],
+  "data": [ { "Sku": "JSON-1", "Name": "Desk lamp", "Price": 24.99 } ]
+}
+
+### SQL Server: EF Core and Loki in one caller-owned transaction, committed by the caller
+POST {{baseUrl}}/api/sqlserver/customers-with-orders
+Content-Type: application/json
+
+{ "name": "Margaret Hamilton", "email": "margaret@example.com", "orderCount": 2500, "simulateFailure": false }
+
+### SQL Server: the same, failing after Loki's save: the caller rolls back, neither the customer nor the orders are saved (500)
+POST {{baseUrl}}/api/sqlserver/customers-with-orders
+Content-Type: application/json
+
+{ "name": "Rolled back", "email": null, "orderCount": 2500, "simulateFailure": true }
+
+### Oracle: direct-path load into the staging table, then INSERT ... SELECT into Products
+POST {{baseUrl}}/api/oracle/products/staging-import?count=20000
+
+### Oracle: a duplicate SKU loads into staging, but the move into Products fails (409) and the batch is discarded
+POST {{baseUrl}}/api/oracle/products/staging-import?count=100&includeDuplicate=true

@@ -10,7 +10,7 @@ session. The owner actions (reserve the NuGet IDs, merge, tag, publish) are list
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Samples project (`samples/`) | **Next** (planned below, decisions made; to be done in a fresh session without further input) |
+| 1 | Samples project (`samples/`) | **Implemented** on a branch from `release/9.0` (see "Implementation record" below); `code-review` Warnings and most Suggestions fixed; PR open into `release/9.0` (not merged) |
 | 2 | NuGet publish workflow | After samples (notes below) |
 | 3 | `[Obsolete]` on the unused `IAsPrimaryKey` (remove in 10.0) | 9.x follow-up |
 | 4 | Optional allow-list option for Oracle direct path (`OracleProviderOptions`, additive) | 9.x follow-up, deferred in step 8 |
@@ -59,6 +59,48 @@ repository as the reference example (the README "Documentation" section links th
 3. Include the benchmark console app now.
 4. Keep the old 8.x examples repository as it is (outside this repo); the README labels it as 8.x and links the new `samples/`.
 5. Review: `code-review` only (no security review for the samples), then fix its Critical findings and Warnings before the PR.
+
+**Implementation record** (what the implementing session chose or changed; see `samples/README.md` for usage)
+- Projects: `Loki.Samples.WebApi`, `Loki.Samples.WebApi.Tests` (NUnit, no database: engine choice, allow-list, error mapping; kept
+  out of `LokiBulkDataProcessor.UnitTests` so the library tests never reference ASP.NET Core) and `Loki.Samples.Benchmark`, in a
+  `samples` solution folder of `LokiBulkDataProcessor.sln` (Any CPU only). Nullable and implicit usings are on in the samples
+  only (new code; the libraries are unchanged).
+- Packages: EF Core 10.0.15 (latest 10.x patch, newer than the integration tests' 10.0.0; no advisories, so no transitive pin is
+  needed), `Microsoft.Extensions.Hosting` 10.0.15, `Oracle.EntityFrameworkCore` 10.23.26400 (EF Core 10, same ODP.NET as the
+  provider), `dotnet-ef` 10.0.15 as a local tool (`samples/dotnet-tools.json`). No OpenAPI package: a `.http` file instead.
+- Connection strings: blank in `appsettings.json`; the docker-compose values (documented local-development-only passwords) in
+  `appsettings.Development.json`; user secrets or `ConnectionStrings__*` environment variables override them.
+- Schema: SQL Server by the WebApi's EF Core migration (`Samples:ApplyMigrationsOnStartup`, Development only) and, for the
+  benchmark, `EnsureCreated` on its own database `LokiSamplesBenchmark`; Oracle by `samples/db/oracle/init.sql`, mounted into the
+  gvenzl init directory (it runs as SYSDBA in the CDB root, so it switches to FREEPDB1 and the LOKI_SAMPLES schema).
+- Staging import: the direct-path load goes into `STG_PRODUCTS` (no keys, indexes, foreign keys or triggers; a `BatchId` per
+  import), the move is `INSERT ... SELECT` + `DELETE ... WHERE BatchId = :batchId` in one transaction (DELETE, not TRUNCATE: it is
+  per batch and transactional; periodic `TRUNCATE ... DROP ALL STORAGE` while idle).
+- Benchmark on Oracle uses EF Core's Oracle provider (supported on EF Core 10), so no ADO.NET row-by-row baseline was needed.
+- CI (`unit` job): builds the solution in Release, runs the samples' tests, validates `samples/docker-compose.yml` and checks that it
+  uses the same images as `SqlServerTestDatabase.Image` and `OracleTestDatabase.Image`. After review the three sample projects
+  were added to the vulnerable-package gate (no advisories today).
+- Code review (no Critical, 6 Warnings) fixed: the benchmark checks that `dbo.BenchmarkRows` exists after `EnsureCreated` (a no-op
+  in a database that already has tables) and needs its own database; Loki's `Timeout = 0` in the benchmark (its timeout covers
+  the whole SqlBulkCopy, EF Core's is per batch); the benchmark's own user secrets are documented; the exception handler writes
+  the problem itself when no `IProblemDetailsWriter` accepts it, and `Microsoft.EntityFrameworkCore.Update` /
+  `.Database.Command` are silenced (they log the exception with its driver message). Also: migrations at startup only warn on
+  failure (Oracle-only runs work), commits use `CancellationToken.None`, the staging docs say that a direct-path load locks
+  `STG_PRODUCTS` exclusively (BatchId separates data, not concurrency; a load waiting on a move cannot be cancelled or bounded),
+  and Loki's `MaxJsonPayloadBytes` overflow is documented as 400 (413 comes from the endpoint's request size limit).
+- **Verified end to end** (Docker, both engines): `docker compose up -d --wait` is healthy in about 17 s; gvenzl runs `init.sql`
+  as SYSDBA in the CDB root (hence `ALTER SESSION SET CONTAINER = FREEPDB1` and `CURRENT_SCHEMA`) and its `healthcheck.sh` stays
+  unhealthy until the init scripts are done, so `--wait` covers the schema. 44/44 endpoint checks passed on SQL Server and Oracle:
+  every input shape; JSON allow-list (404), malformed/invalid JSON (400), a value of the wrong type (400: Loki surfaces it as
+  `InvalidOperationException` with an inner `FormatException`, not a bare `FormatException` as the README's JSON section says), a
+  payload missing a mapped column (400: SQL Server reports `ColumnMappingMismatch`, Oracle `SourceColumnNotFound`), 13 MB body
+  (413), duplicate keys (409 via SQL error 2627 and ORA-00001 inside ORA-24381); the EF Core transaction (commit, and a simulated
+  failure that leaves no customer or orders); the staging import (20,000 rows moved, a duplicate SKU gives 409 and the batch
+  is removed from staging, unique index still VALID). Logs: no passwords, no row values. Benchmark `--engine all` passed its
+  `COUNT(*)` checks (10,000 rows, median: SQL Server Loki 74 ms vs EF Core 947 ms, Oracle 80 ms vs 369 ms; local Docker).
+- Open (library, not samples): the README's JSON section claims a bare `FormatException`, and the two providers word a missing
+  mapped source column differently; worth a README fix and a contract test.
+- Before publishing: the main README links `tree/master/samples`; those links 404 until the samples reach `master`.
 
 ## 2. NuGet publish workflow (after samples)
 

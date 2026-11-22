@@ -26,6 +26,23 @@ jobs:
         dotnet-version: 10.0.x
     - name: Unit tests
       run: dotnet test LokiBulkDataProcessor.UnitTests -c Release --verbosity normal
+    - name: Build the solution, including the samples, and run the samples' tests
+      # samples/ is in the solution and references the libraries' code, so an API change that breaks a sample fails here.
+      # The samples are never run against a database in CI.
+      run: |
+        dotnet build LokiBulkDataProcessor.sln -c Release
+        dotnet test samples/Loki.Samples.WebApi.Tests -c Release --no-build --verbosity normal
+    - name: Samples docker-compose file is valid and uses the integration tests' images
+      run: |
+        docker compose -f samples/docker-compose.yml config --quiet
+        sqlserver=$(grep -oP '"\Kmcr\.microsoft\.com/mssql/server:[^"]+' LokiBulkDataProcessor.IntegrationTests/SqlServer/SqlServerTestDatabase.cs || true)
+        oracle=$(grep -oP 'const string Image = "\K[^"]+' LokiBulkDataProcessor.Oracle.IntegrationTests/OracleTestDatabase.cs || true)
+        for image in "$sqlserver" "$oracle"; do
+          if [[ -z "$image" ]] || ! grep -qF "image: $image" samples/docker-compose.yml; then
+            echo "::error::samples/docker-compose.yml must use the integration tests' image '$image'"
+            exit 1
+          fi
+        done
     - name: Libraries have no test-only packages in their dependency graph (#17)
       # Direct and transitive: Testcontainers, NUnit, Moq, FluentAssertions, Microsoft.NET.Test.Sdk and coverlet must never
       # flow to consumers. The pack job checks the packed nuspecs as well.
@@ -38,12 +55,14 @@ jobs:
             exit 1
           fi
         done
-    - name: Libraries have no known vulnerable packages, direct or transitive
+    - name: Libraries and samples have no known vulnerable packages, direct or transitive
       # Fails on any advisory NuGet reports for a package the libraries ship with (e.g. the Oracle driver's transitive
-      # 8.0.x System.* packages), so a new advisory is caught on the next build. Test projects are not checked here.
+      # 8.0.x System.* packages), so a new advisory is caught on the next build. The samples are checked too, because people
+      # copy them; the library test projects are not checked here.
       run: |
         failed=0
-        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor LokiBulkDataProcessor.Oracle; do
+        for p in LokiBulkDataProcessor.Core LokiBulkDataProcessor LokiBulkDataProcessor.Oracle \
+                 samples/Loki.Samples.WebApi samples/Loki.Samples.WebApi.Tests samples/Loki.Samples.Benchmark; do
           dotnet list $p package --vulnerable --include-transitive > vulnerable.txt
           cat vulnerable.txt
           if grep -q "has the following vulnerable packages" vulnerable.txt; then

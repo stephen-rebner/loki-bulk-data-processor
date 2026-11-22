@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- A sample, not a package: it builds against the libraries' current code (ProjectReference) and is never packed. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Loki.Samples.WebApi</RootNamespace>
+    <!-- `dotnet user-secrets set "ConnectionStrings:SqlServer" "..."` (Development only). -->
+    <UserSecretsId>loki-samples-webapi</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.15" />
+    <!-- Design-time only (dotnet ef migrations); never flows to the app's runtime dependencies. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\LokiBulkDataProcessor\LokiBulkDataProcessor.csproj" />
+    <ProjectReference Include="..\..\LokiBulkDataProcessor.Oracle\LokiBulkDataProcessor.Oracle.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Loki.Samples.WebApi.Tests" />
+  </ItemGroup>
+</Project>

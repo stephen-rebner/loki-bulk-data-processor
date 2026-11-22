@@ -24,3 +24,7 @@ LokiBulkDataProcessor.sln.DotSettings.user
 /LokiBulkDataProcessor.Oracle/obj
 /LokiBulkDataProcessor.Oracle.IntegrationTests/bin
 /LokiBulkDataProcessor.Oracle.IntegrationTests/obj
+/samples/*/bin
+/samples/*/obj
+# Local overrides of the docker-compose passwords (see samples/.env.example)
+/samples/.env

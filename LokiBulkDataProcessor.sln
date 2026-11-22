@@ -23,6 +23,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LokiBulkDataProcessor.Oracl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LokiBulkDataProcessor.Oracle.IntegrationTests", "LokiBulkDataProcessor.Oracle.IntegrationTests\LokiBulkDataProcessor.Oracle.IntegrationTests.csproj", "{B3E1C7A2-5D4F-4E8B-9A61-7C2D0F3E4A91}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{5D20AA90-6969-D8BD-9DCD-8634F4692FDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Loki.Samples.WebApi", "samples\Loki.Samples.WebApi\Loki.Samples.WebApi.csproj", "{80CA73F7-F9E9-4E02-B801-B761EB39F731}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Loki.Samples.WebApi.Tests", "samples\Loki.Samples.WebApi.Tests\Loki.Samples.WebApi.Tests.csproj", "{EC377C4D-56D0-45BC-8AF8-F2133026DA70}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Loki.Samples.Benchmark", "samples\Loki.Samples.Benchmark\Loki.Samples.Benchmark.csproj", "{900690D8-C7C2-495C-B885-3B2203FBD3EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,9 +65,26 @@ Global
 		{B3E1C7A2-5D4F-4E8B-9A61-7C2D0F3E4A91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3E1C7A2-5D4F-4E8B-9A61-7C2D0F3E4A91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3E1C7A2-5D4F-4E8B-9A61-7C2D0F3E4A91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80CA73F7-F9E9-4E02-B801-B761EB39F731}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80CA73F7-F9E9-4E02-B801-B761EB39F731}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80CA73F7-F9E9-4E02-B801-B761EB39F731}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80CA73F7-F9E9-4E02-B801-B761EB39F731}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC377C4D-56D0-45BC-8AF8-F2133026DA70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC377C4D-56D0-45BC-8AF8-F2133026DA70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC377C4D-56D0-45BC-8AF8-F2133026DA70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC377C4D-56D0-45BC-8AF8-F2133026DA70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{900690D8-C7C2-495C-B885-3B2203FBD3EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{900690D8-C7C2-495C-B885-3B2203FBD3EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{900690D8-C7C2-495C-B885-3B2203FBD3EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{900690D8-C7C2-495C-B885-3B2203FBD3EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{80CA73F7-F9E9-4E02-B801-B761EB39F731} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{EC377C4D-56D0-45BC-8AF8-F2133026DA70} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{900690D8-C7C2-495C-B885-3B2203FBD3EE} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1E99E977-6228-44DB-93C5-CEF5A1DD5D6E}
