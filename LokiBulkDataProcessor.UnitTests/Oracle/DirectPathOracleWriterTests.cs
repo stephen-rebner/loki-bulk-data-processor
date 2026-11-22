@@ -9,6 +9,8 @@ using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 using Loki.BulkDataProcessor.Oracle.Internal.Types;
 using Loki.BulkDataProcessor.Oracle.Internal.Writers;
 using Loki.BulkDataProcessor.Providers;
+using LokiBulkDataProcessor.UnitTests.TestDoubles;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using Oracle.ManagedDataAccess.Client;
@@ -29,9 +31,9 @@ public class DirectPathOracleWriterTests
     [TearDown]
     public void TearDown() => _connection.Dispose();
 
-    private DirectPathOracleWriter Writer(IOracleIdentifierResolver resolver = null, int batchSize = 0, int timeout = 30) =>
+    private DirectPathOracleWriter Writer(IOracleIdentifierResolver resolver = null, int batchSize = 0, int timeout = 30, ILogger logger = null) =>
         new(_connection, new BulkWriteOptions(batchSize, timeout), resolver ?? new UnquotedIdentifierResolver(), TypeMap, OracleProvider.Name,
-            NullLogger.Instance);
+            logger ?? NullLogger.Instance);
 
     private static readonly OracleTypeMap TypeMap = new(OracleBooleanBinding.Number);
 
@@ -158,6 +160,22 @@ public class DirectPathOracleWriterTests
         await Writer().Invoking(w => w.WriteAsync(null, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()), CancellationToken.None))
             .Should().ThrowAsync<ArgumentNullException>();
         await Writer().Invoking(w => w.WriteAsync(reader, null, CancellationToken.None)).Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Test]
+    public async Task WriteAsync_ShouldLogTheSanitisedTableAndProviderAtInformation_WhenALoadStarts()
+    {
+        using var loggerFactory = new RecordingLoggerFactory();
+        using DataTable table = PostsTable();
+        using DataTableReader reader = table.CreateDataReader();
+        DirectPathOracleWriter writer = Writer(logger: loggerFactory.CreateLogger("test"));
+
+        Func<Task> action = () => writer.WriteAsync(reader, new BulkWriteTarget("Posts\r\nforged", new[] { new ColumnMap("Title", "Title") }),
+            CancellationToken.None);
+
+        await action.Should().ThrowAsync<ArgumentException>("the resolver rejects the name after the entry is logged");
+        loggerFactory.Entries.Should().ContainSingle(entry => entry.Level == LogLevel.Information)
+            .Which.Message.Should().Be("Direct-path load (staging tables only) to Posts??forged via Oracle");
     }
 
     [TestCase(0, 5000)]
