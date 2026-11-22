@@ -10,7 +10,7 @@ session. The owner actions (reserve the NuGet IDs, merge, tag, publish) are list
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Samples project (`samples/`) | **Implemented** on a branch from `release/9.0` (see "Implementation record" below); code review and PR next |
+| 1 | Samples project (`samples/`) | **Implemented** on a branch from `release/9.0` (see "Implementation record" below); `code-review` Warnings and most Suggestions fixed; PR open into `release/9.0` (not merged) |
 | 2 | NuGet publish workflow | After samples (notes below) |
 | 3 | `[Obsolete]` on the unused `IAsPrimaryKey` (remove in 10.0) | 9.x follow-up |
 | 4 | Optional allow-list option for Oracle direct path (`OracleProviderOptions`, additive) | 9.x follow-up, deferred in step 8 |
