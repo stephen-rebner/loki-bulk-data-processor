@@ -13,16 +13,21 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Writers;
 
 /// <summary>
 /// <see cref="OracleWriteMode.DirectPath"/> (staging tables only): one <c>OracleBulkCopy</c> direct-path load per write, on the context's
-/// connection, followed by <see cref="UnusableIndexCheck"/>. The load joins the connection's active transaction implicitly (OracleBulkCopy
-/// has no transaction parameter), and the writer never uses <c>UseInternalTransaction</c> or <c>EnforceIndexChecks</c> (the spike showed
-/// the latter hanging past its timeout). A failed load leaves none of its rows behind. The writer never commits, rolls back or disposes
-/// the connection or transaction.
+/// connection. The load joins the connection's active transaction implicitly (OracleBulkCopy has no transaction parameter), and the writer
+/// never uses <c>UseInternalTransaction</c> or <c>EnforceIndexChecks</c> (the spike showed the latter hanging past its timeout). A failed
+/// load leaves none of its rows behind. The writer never commits, rolls back or disposes the connection or transaction.
 /// </summary>
 /// <remarks>
 /// <para>
 /// INVARIANT: the pipeline (<c>ConnectionScope</c>) always gives the writer a connection with an active transaction, Loki's own or the
-/// caller's. Without one, <c>WriteToServer</c> would commit the load itself (autocommit), and the unusable-index check below could no
-/// longer stop a load with duplicate keys from being committed.
+/// caller's. Without one, <c>WriteToServer</c> would commit the load itself (autocommit) and Loki could not roll it back;
+/// <c>OracleBulkCopyProvider.CreateWriter</c> enforces it in release builds too.
+/// </para>
+/// <para>
+/// No post-load check of the indexes (step 8 security re-review, verified on Oracle 23.26): inside the transaction the catalogue still
+/// reports a duplicate-key index as VALID (UNUSABLE is recorded only at commit), and touching the index or the table to find out makes a
+/// later rollback unsafe: the next direct-path load into the table can then return the rolled-back rows instead of its own. So the
+/// writer reads nothing from the destination after the load; the duplicate-key hazard is documented on <see cref="OracleWriteMode.DirectPath"/>.
 /// </para>
 /// <para>
 /// ODP.NET has no asynchronous direct-path API: <c>WriteToServer</c> blocks the calling thread, and the token is checked only up to
@@ -47,9 +52,7 @@ internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWr
             .ConfigureAwait(false);
         DirectPathLoad load = Plan(source, resolved, options, typeMap);
         cancellationToken.ThrowIfCancellationRequested();   // last cancellation point: WriteToServer is synchronous
-        Load(source, load);
-        await UnusableIndexCheck.ThrowIfAnyUnusableAsync(connection, resolved, target.TableName, options.TimeoutSeconds, cancellationToken)
-            .ConfigureAwait(false);
+        Load(source, load);   // nothing reads the table or its indexes afterwards in this transaction: see the remarks
         logger.LogDebug("Direct-path load of {ColumnCount} columns completed", load.Columns.Count);
     }
 

@@ -55,10 +55,23 @@ internal sealed class OracleBulkCopyProvider : IBulkCopyProvider
         var connection = (OracleConnection)context.Connection;
         Debug.Assert(context.Transaction is null || ReferenceEquals(context.Transaction.Connection, context.Connection),
             "The pipeline always passes the transaction of the context's own connection.");
+        ThrowIfDirectPathWithoutTransaction(context);
         return Options.WriteMode == OracleWriteMode.DirectPath
             ? new DirectPathOracleWriter(connection, context.Options, _resolver, _typeMap, Name, loggerFactory.CreateLogger<DirectPathOracleWriter>())
             : new ArrayBindOracleWriter(connection, context.Transaction as OracleTransaction, context.Options, _resolver, _typeMap,
                 loggerFactory.CreateLogger<ArrayBindOracleWriter>());
+    }
+
+    internal const string DirectPathNeedsTransactionMessage =
+        "A direct-path load needs an active transaction (without one OracleBulkCopy commits the load itself, so it could not be rolled back).";
+
+    /// <summary>The pipeline always passes a transaction; this guards the invariant in release builds too (see DirectPathOracleWriter).</summary>
+    private void ThrowIfDirectPathWithoutTransaction(BulkWriteContext context)
+    {
+        if (Options.WriteMode == OracleWriteMode.DirectPath && context.Transaction is null)
+        {
+            throw OracleValidation.InvalidOperation(DirectPathNeedsTransactionMessage);
+        }
     }
 
     public Exception TranslateException(Exception exception, BulkWriteTarget target) =>

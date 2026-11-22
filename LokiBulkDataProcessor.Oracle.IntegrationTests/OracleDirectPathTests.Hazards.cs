@@ -11,9 +11,9 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 
 /// <summary>
 /// The documented direct-path hazards, characterised on the real database: tables with triggers are refused (ORA-26086), foreign keys
-/// are not enforced, and a load with duplicate primary keys fails the save (Loki's unusable-index check) so that it is rolled back, which
-/// leaves the index VALID. Only a caller who commits anyway gets an UNUSABLE index, after which conventional inserts and deletes fail
-/// with ORA-01502 and direct-path loads with ORA-26028. The fixture's reset makes the index VALID again, so no test depends on another's order.
+/// are not enforced, and duplicate primary keys are loaded without an error and leave the index UNUSABLE once committed (a rollback without
+/// reading the table leaves it VALID), after which conventional inserts and deletes fail with ORA-01502 and direct-path loads with
+/// ORA-26028. The fixture's reset makes the index VALID again, so no test depends on another's order.
 /// </summary>
 public sealed partial class OracleDirectPathTests
 {
@@ -24,10 +24,6 @@ public sealed partial class OracleDirectPathTests
     private const string SelectKeyedRowById = "SELECT Name FROM KeyedRows WHERE Id = :id";
 
     private const string UpdateKeyedRowNames = "UPDATE KeyedRows SET Name = :name";
-
-    private const string UnusableIndexMessage =
-        "The direct-path load into 'KeyedRows' left a unique index of the table UNUSABLE (typically because the rows contained duplicate*" +
-        "Rolling back restores the index.";
 
     private const string DeleteKeyedRowByName = "DELETE FROM KeyedRows WHERE Name = :name";
 
@@ -71,37 +67,36 @@ public sealed partial class OracleDirectPathTests
     }
 
     /// <summary>
-    /// Step 8 review finding: inside the loading transaction the catalogue still reports the index VALID (Oracle marks it UNUSABLE at
-    /// commit), but touching it fails with ORA-01502, which Loki's check turns into a marked error; Loki's rollback leaves the index VALID.
+    /// Characterisation of the hazard: the save succeeds with both duplicates and, once committed, PK_KEYEDROWS is UNUSABLE. (Step 8
+    /// re-review: Loki cannot detect it safely inside the transaction, see DirectPathOracleWriter.)
     /// </summary>
     [TestCase(OracleProvider.Name)]
     [TestCase(CatalogProvider)]
-    public async Task SaveAsync_ShouldFailAndRollBackLeavingTheIndexValid_WhenAPrimaryKeyIsDuplicated(string providerName)
+    public async Task SaveAsync_ShouldLoadDuplicateKeysAndLeaveTheIndexUnusable_WhenAPrimaryKeyIsDuplicated(string providerName)
     {
-        Func<Task> action = () => Processor(providerName).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await Processor(providerName).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
 
-        (await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage)).Which.InnerException
-            .Should().BeNull("Loki's own validation error is not translated");
+        (await ReadKeyedRowNamesAsync()).Should().BeEquivalentTo("first", "duplicate");
+        (await KeyedRowsIndexStatusAsync()).Should().Equal("UNUSABLE");
+    }
+
+    /// <summary>Verified: rolling back a duplicate-key load (without reading the table first) leaves the index VALID and no rows.</summary>
+    [Test]
+    public async Task SaveAsync_ShouldLeaveTheIndexValid_WhenTheCallerRollsBackADuplicateKeyLoad()
+    {
+        await using (OracleConnection connection = await _database.OpenConnectionAsync())
+        await using (OracleTransaction transaction = connection.BeginTransaction())
+        {
+            await Processor(transaction).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+            transaction.Rollback();
+        }
+
         (await ReadKeyedRowNamesAsync()).Should().BeEmpty();
         (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
         await Processor(ArrayBindProvider).SaveAsync(KeyedRows((1, "after rollback")), "KeyedRows");
     }
 
-    [Test]
-    public async Task SaveAsync_ShouldLeaveTheIndexValid_WhenTheCallerRollsBackAfterTheDuplicateKeyFailure()
-    {
-        await using OracleConnection connection = await _database.OpenConnectionAsync();
-        await using OracleTransaction transaction = connection.BeginTransaction();
-
-        Func<Task> action = () => Processor(transaction).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
-
-        await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage);
-        transaction.Rollback();
-        (await ReadKeyedRowNamesAsync()).Should().BeEmpty();
-        (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
-    }
-
-    /// <summary>The control for the check: unique keys load, also next to existing rows, and the index stays VALID.</summary>
+    /// <summary>The control: unique keys load, also next to existing rows, and the index stays VALID.</summary>
     [Test]
     public async Task SaveAsync_ShouldLoadTheRows_WhenThePrimaryKeysAreUnique()
     {
@@ -114,11 +109,11 @@ public sealed partial class OracleDirectPathTests
     }
 
     /// <summary>
-    /// A caller who commits after the failure gets the UNUSABLE index: a conventional (array-bind) save then fails with the translated
-    /// ORA-01502, while queries and an UPDATE of a non-key column still work (W3).
+    /// After a committed duplicate-key load a conventional (array-bind) save fails with the translated ORA-01502, while queries and an
+    /// UPDATE of a non-key column still work (W3).
     /// </summary>
     [Test]
-    public async Task SaveAsync_ShouldThrowTheOra01502Message_WhenTheCallerCommittedADuplicateKeyLoad()
+    public async Task SaveAsync_ShouldThrowTheOra01502Message_WhenADuplicateKeyLoadWasCommitted()
     {
         await CommitADuplicateKeyLoadAsync();
 
@@ -183,18 +178,8 @@ public sealed partial class OracleDirectPathTests
         await Processor(ArrayBindProvider).SaveAsync(KeyedRows((1, "after reset")), "KeyedRows");
     }
 
-    /// <summary>
-    /// What a caller gets by ignoring the failure: the duplicate-key load is committed in the caller's transaction, so Oracle marks the
-    /// primary key index UNUSABLE.
-    /// </summary>
-    private async Task CommitADuplicateKeyLoadAsync()
-    {
-        await using OracleConnection connection = await _database.OpenConnectionAsync();
-        await using OracleTransaction transaction = connection.BeginTransaction();
-        Func<Task> action = () => Processor(transaction).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
-        await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage);
-        transaction.Commit();
-    }
+    /// <summary>A duplicate-key load committed by Loki's own transaction, which leaves PK_KEYEDROWS UNUSABLE.</summary>
+    private Task CommitADuplicateKeyLoadAsync() => Processor().SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
 
     private Task<IReadOnlyList<string>> ReadKeyedRowNamesAsync() =>
         _database.QueryAsync(OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0));

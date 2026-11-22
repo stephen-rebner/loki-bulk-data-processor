@@ -34,8 +34,8 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// <see cref="IBulkProcessor.Transaction"/>, and until that transaction ends other sessions' queries on the table wait, so commit right
 /// after the save. Only one load is allowed per transaction (ORA-39822); the transaction stays usable for other statements (not for
 /// another direct-path load). A failed load leaves none of its rows. Foreign keys are not enforced, tables with triggers are refused
-/// (ORA-26086), and a load with duplicate keys fails the save so that it can be rolled back (committing it would leave the index UNUSABLE):
-/// see <see cref="OracleWriteMode.DirectPath"/>.
+/// (ORA-26086), duplicate keys are not detected (the index becomes UNUSABLE at commit), and reading the loaded table before a rollback can
+/// corrupt the next load's results: see <see cref="OracleWriteMode.DirectPath"/>.
 /// </para>
 /// <para>
 /// Oracle stores an empty string as NULL. Destination names are matched as described on <see cref="OracleIdentifierResolution"/>.

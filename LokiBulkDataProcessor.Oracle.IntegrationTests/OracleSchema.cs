@@ -63,6 +63,8 @@ internal static class OracleSchema
             LongColumn NUMBER(19))
         """,
         "CREATE TABLE KeyedRows (Id NUMBER(10) CONSTRAINT PK_KeyedRows PRIMARY KEY, Name VARCHAR2(100))",
+        // A DEFERRABLE primary key is backed by a NONUNIQUE index (step 8 security re-review: duplicates disable it at commit).
+        "CREATE TABLE DeferrableKeyedRows (Id NUMBER(10) CONSTRAINT PK_DeferrableKeyedRows PRIMARY KEY DEFERRABLE, Name VARCHAR2(100))",
         """
         CREATE TABLE TriggeredRows (
             Id NUMBER(10) GENERATED ALWAYS AS IDENTITY CONSTRAINT PK_TriggeredRows PRIMARY KEY,
@@ -82,16 +84,22 @@ internal static class OracleSchema
         """
     };
 
-    /// <summary>Empties every table and restarts the contract identities. Run after <c>OracleConnection.ClearAllPools()</c>.</summary>
+    /// <summary>
+    /// Empties every table and restarts the contract identities. Run after <c>OracleConnection.ClearAllPools()</c>. <c>DROP ALL STORAGE</c>:
+    /// after a direct-path load was read and rolled back, a plain TRUNCATE leaves stale blocks that the next direct-path load returns
+    /// (step 8 security re-review); dropping the storage clears them, and also makes an UNUSABLE index VALID again.
+    /// </summary>
     public static readonly string[] ResetStatements =
     {
-        "TRUNCATE TABLE Posts",
+        "TRUNCATE TABLE Posts DROP ALL STORAGE",
         "DELETE FROM Blogs",
-        "TRUNCATE TABLE TestDbModels",
-        "TRUNCATE TABLE OracleTypes",
-        "TRUNCATE TABLE KeyedRows",
-        "TRUNCATE TABLE TriggeredRows",
-        """TRUNCATE TABLE "MixedCase" """,
+        "TRUNCATE TABLE TestDbModels DROP ALL STORAGE",
+        "TRUNCATE TABLE OracleTypes DROP ALL STORAGE",
+        "TRUNCATE TABLE KeyedRows DROP ALL STORAGE",
+        "TRUNCATE TABLE DeferrableKeyedRows DROP ALL STORAGE",
+        "ALTER TABLE DeferrableKeyedRows MODIFY CONSTRAINT PK_DeferrableKeyedRows ENABLE VALIDATE",   // a committed duplicate load disables it
+        "TRUNCATE TABLE TriggeredRows DROP ALL STORAGE",
+        """TRUNCATE TABLE "MixedCase" DROP ALL STORAGE""",
         "ALTER TABLE Blogs MODIFY Id GENERATED ALWAYS AS IDENTITY (START WITH 1)",
         "ALTER TABLE Posts MODIFY Id GENERATED ALWAYS AS IDENTITY (START WITH 1)",
         "ALTER TABLE TestDbModels MODIFY Id GENERATED ALWAYS AS IDENTITY (START WITH 1)"
@@ -114,6 +122,13 @@ internal static class OracleSchema
     public const string SelectKeyedRowNames = "SELECT Name FROM KeyedRows ORDER BY Id";
 
     public const string IndexStatus = "SELECT STATUS FROM USER_INDEXES WHERE INDEX_NAME = :indexName";
+
+    public const string DeferrableKeyedRowsPrimaryKey = "PK_DEFERRABLEKEYEDROWS";
+
+    public const string SelectDeferrableKeyedRowNames = "SELECT Name FROM DeferrableKeyedRows ORDER BY Id";
+
+
+
 
     public const string SelectTriggeredRows = "SELECT Name, Stamp FROM TriggeredRows ORDER BY Id";
 

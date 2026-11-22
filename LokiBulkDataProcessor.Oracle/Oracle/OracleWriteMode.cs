@@ -17,12 +17,14 @@ public enum OracleWriteMode
     /// <item>OTHER SESSIONS ARE BLOCKED: until the transaction that ran the load ends, other sessions' queries on the loaded table wait
     /// (library cache lock). Commit (or roll back) right after the save; with Loki's own transaction this lasts only for the save.</item>
     /// <item>FOREIGN KEYS ARE NOT ENFORCED: orphan rows are loaded and the constraint still reports itself as validated.</item>
-    /// <item>Duplicate primary or unique keys make Oracle mark the index UNUSABLE when the transaction commits. Loki checks the table's
-    /// unique indexes after the load and fails the save with an <see cref="System.InvalidOperationException"/> instead, so Loki's own
-    /// transaction is rolled back (which leaves the index VALID). In your <see cref="IBulkProcessor.Transaction"/> you must roll back
-    /// yourself: committing leaves the index UNUSABLE, so later inserts and deletes fail with ORA-01502 and later direct-path loads with
-    /// ORA-26028 (queries and updates of other columns still work) until it is repaired; see the README section on repairing an UNUSABLE
-    /// index. An index that was already UNUSABLE before the save also fails the check.</item>
+    /// <item>DUPLICATE KEYS ARE NOT DETECTED: the save succeeds, and when the transaction commits Oracle marks the primary or unique key
+    /// index UNUSABLE, so later inserts and deletes fail with ORA-01502 and later direct-path loads with ORA-26028 (queries and updates of
+    /// other columns still work) until it is repaired; see the README section on repairing an UNUSABLE index. A DEFERRABLE primary or unique
+    /// key is worse: the duplicates are kept and the constraint is silently DISABLED. Load only rows whose keys you know to be unique. Any
+    /// index that is already UNUSABLE makes the load fail with ORA-26028.</item>
+    /// <item>Do not query the loaded table in the same transaction and then roll back: on Oracle 23.26 the next direct-path load into the
+    /// table then returned the rolled-back rows instead of its own. Rolling back without reading it was safe. If it happened, empty the
+    /// table with <c>TRUNCATE TABLE ... DROP ALL STORAGE</c> (a plain TRUNCATE is not enough) before the next load.</item>
     /// <item>Tables with triggers are refused (ORA-26086).</item>
     /// <item>Only ONE load per transaction (ORA-39822): a second save in the same <see cref="IBulkProcessor.Transaction"/> fails, also
     /// into another table and also after a failed load, so commit (or roll back) between loads. The transaction stays usable for other
