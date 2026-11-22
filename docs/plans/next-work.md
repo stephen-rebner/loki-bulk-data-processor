@@ -10,7 +10,7 @@ session. The owner actions (reserve the NuGet IDs, merge, tag, publish) are list
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Samples project (`samples/`) | **Next** (planned below; to be done in a fresh session) |
+| 1 | Samples project (`samples/`) | **Next** (planned below, decisions made; to be done in a fresh session without further input) |
 | 2 | NuGet publish workflow | After samples (notes below) |
 | 3 | `[Obsolete]` on the unused `IAsPrimaryKey` (remove in 10.0) | 9.x follow-up |
 | 4 | Optional allow-list option for Oracle direct path (`OracleProviderOptions`, additive) | 9.x follow-up, deferred in step 8 |
@@ -22,9 +22,7 @@ it. It replaces the 8.x [`loki-bulk-data-processor-examples`](https://github.com
 repository as the reference example (the README "Documentation" section links that repo as 8.x).
 
 **Where and how**
-- A `samples/` folder in this repository, on a branch cut from `release/9.0` (ask the maintainer whether to target
-  `release/9.0` or `master` if the release has been merged by then). Use `/implement` (dotnet-senior → code-review →
-  security-review), as for the release steps.
+- A `samples/` folder in this repository, on a branch cut from `release/9.0` (PR target per the decisions below). Implement with `dotnet-senior`, then review with `code-review`.
 - Reference the libraries with **`ProjectReference`** (not the NuGet packages), so the samples always build against the current
   code. Mark every sample project `IsPackable=false`, and make sure `build/pack.sh` still finds exactly three packages.
 - Add the sample projects to `LokiBulkDataProcessor.sln` (Any CPU only, like the others), or to a separate `samples/Samples.sln`
@@ -35,7 +33,7 @@ repository as the reference example (the README "Documentation" section links th
 - Keep the CLAUDE.md conventions (internal by default, short methods, `Member_Should..._When...` test names if samples get tests),
   and keep every sample correct against the README. If a sample duplicates a README snippet, consider pointing the README at it.
 
-**Proposed content** (agreed in outline; refine in the session)
+**Content** (agreed; the implementing session may refine details and records what it changed)
 - `samples/Loki.Samples.WebApi`: a minimal ASP.NET Core API.
   - Registration: `AddLokiBulkDataProcessor(o => o.AddMappingsFrom(...)).AddSqlServer().AddOracle()`, plus a separately named
     direct-path registration (`AddOracle(o => o.WriteMode = OracleWriteMode.DirectPath, name: "Oracle.DirectPath")`).
@@ -52,13 +50,15 @@ repository as the reference example (the README "Documentation" section links th
   `SqlServerTestDatabase.Image` and `OracleTestDatabase.Image`, and give the schema setup (EF migrations for SQL Server, a constant
   DDL script for Oracle).
 - `samples/README.md`: how to start the databases and run each sample; link it from the main README's "Documentation" section,
-  and relabel/retire the 8.x examples-repo link (ask the maintainer whether to archive that repository).
+  and keep the 8.x examples-repo link labelled as 8.x (decision 4).
 
-**Open questions for the maintainer** (ask at the start of the session)
-1. Separate `Samples.sln` or the main solution?
-2. Target branch (`release/9.0` before the merge, or `master` after it)?
-3. Include the benchmark console app now, or later?
-4. Archive the old examples repository, or keep it for 8.x?
+**Decisions (made by the maintainer; do not ask, just build)**
+1. Add the sample projects to the main `LokiBulkDataProcessor.sln`, so `dotnet build` and CI build them with everything else.
+2. Work on a new branch cut from `release/9.0` and open the PR into `release/9.0` (or into `master` if `release/9.0` has been
+   merged by then: check `git log origin/master`).
+3. Include the benchmark console app now.
+4. Keep the old 8.x examples repository as it is (outside this repo); the README labels it as 8.x and links the new `samples/`.
+5. Review: `code-review` only (no security review for the samples), then fix its Critical findings and Warnings before the PR.
 
 ## 2. NuGet publish workflow (after samples)
 
