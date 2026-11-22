@@ -21,8 +21,8 @@ namespace LokiBulkDataProcessor.IntegrationTests.Contract;
 /// </summary>
 /// <remarks>
 /// <para>The schema every provider must create: <c>Blogs(Id identity PK, Url)</c>, <c>Posts(Id identity PK, BlogId FK → Blogs,
-/// Title, Content)</c> and <c>TestDbModels(Id identity PK, StringColumn, BoolColumn, DateColumn, NullableBoolColumn,
-/// NullableDateColumn)</c>.</para>
+/// Title, Content)</c> and <c>TestDbModels(Id identity PK, StringColumn, BoolColumn, DateColumn, NullableBoolColumn DEFAULT 1 (true),
+/// NullableDateColumn)</c>. The DEFAULT lets the KeepNulls test tell an explicit null from a defaulted value.</para>
 /// <para><b>The contract never writes identity columns.</b> No model mapping, DataTable, reader or JSON payload in it
 /// carries Blogs.Id, Posts.Id or TestDbModels.Id; blogs are inserted through <see cref="InsertBlogAsync"/>, which returns the
 /// generated Id. Ids are never compared and no assertion depends on row order, so the suite behaves the same whether a
@@ -75,6 +75,27 @@ public abstract partial class BulkProcessorContractTests
 
     /// <summary>Every row of TestDbModels, in any order (the contract never depends on row order).</summary>
     protected abstract Task<IReadOnlyList<TestDbModel>> ReadTestDbModelsAsync();
+
+    /// <summary>
+    /// The secret parts of <see cref="ConnectionString"/> (at least the password) that must never appear in a log entry, an exception
+    /// message, an exception's <c>ToString()</c> or the processor's <c>ToString()</c>. Every value must be non-empty.
+    /// </summary>
+    protected abstract IReadOnlyCollection<string> ConnectionStringSecrets { get; }
+
+    /// <summary>Returns <paramref name="connectionString"/> with its password replaced by <paramref name="password"/> (a login that fails).</summary>
+    protected abstract string WithPassword(string connectionString, string password);
+
+    /// <summary>
+    /// Returns <paramref name="connectionString"/> pointing at <paramref name="host"/>:<paramref name="port"/>, where nothing listens,
+    /// with a connect timeout of a few seconds so the failure is quick.
+    /// </summary>
+    protected abstract string WithServer(string connectionString, string host, int port);
+
+    /// <summary>
+    /// Takes an exclusive lock on TestDbModels inside <paramref name="transaction"/> (on its connection), so that any other session's
+    /// INSERT into TestDbModels waits until the transaction ends. Used to make a save block, for the timeout and cancellation tests.
+    /// </summary>
+    protected abstract Task LockTestDbModelsTableAsync(DbTransaction transaction);
 
     /// <summary>Returns <paramref name="connectionString"/> with the pool limited to <paramref name="maxPoolSize"/>
     /// connections (and, ideally, a short connect timeout so a leak fails fast).</summary>

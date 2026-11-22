@@ -6,7 +6,19 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// Rows are written with a conventional-path, array-bound <c>INSERT</c> in chunks of <see cref="IBulkProcessor.BatchSize"/>
 /// rows (0 means 5000), inside Loki's own transaction or the caller's <see cref="IBulkProcessor.Transaction"/>. Primary,
 /// unique, foreign key and check constraints are enforced and INSERT triggers fire. <see cref="IBulkProcessor.Timeout"/>
-/// applies to each chunk.
+/// applies to each chunk; an expired Timeout throws an <see cref="System.InvalidOperationException"/> (ORA-01013) with the driver
+/// error as InnerException, and a cancelled token throws an <see cref="System.OperationCanceledException"/>.
+/// </para>
+/// <para>
+/// Each chunk is all-or-nothing, like a SqlBulkCopy batch: Loki sets a savepoint before every chunk and, if any row of the chunk fails,
+/// rolls back to it (ODP.NET would otherwise keep the chunk's valid rows). Rolling back to that savepoint never ends your transaction.
+/// Chunks that succeeded before the failure stay in your <see cref="IBulkProcessor.Transaction"/>, so roll back your transaction after a
+/// failed save unless you mean to keep them. With Loki's own transaction the whole save is rolled back.
+/// </para>
+/// <para>
+/// ODP.NET delivers a timeout or cancellation to the server as a break. When out-of-band breaks are disabled (<c>DISABLE_OOB=ON</c>
+/// in the server's or client's <c>sqlnet.ora</c>, common in containers, for example the gvenzl/oracle-free images), the server acts on it
+/// only when the current call returns: a chunk that waits on a lock held by another session is not interrupted until that lock is released.
 /// </para>
 /// <para>
 /// Unlike SqlBulkCopy, which streams, each chunk is buffered in memory before it is sent. A chunk is also cut short at 1,000,000
@@ -21,10 +33,11 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// on both.
 /// </para>
 /// <para>
-/// Strings are bound as <c>VARCHAR2</c> in the database character set, so each value must fit Oracle's VARCHAR2 bind limit: 4000 bytes,
-/// or 32767 with <c>MAX_STRING_SIZE = EXTENDED</c>. That also applies to <c>CLOB</c> columns: longer values are not supported
-/// (ORA-01461). <c>NVARCHAR2</c> columns work, but characters outside the database character set may be replaced when it is not
-/// AL32UTF8. <c>byte[]</c> binds as <c>RAW</c> (BLOB is not supported); <c>DateOnly</c> binds as <c>DATE</c> and <c>TimeOnly</c> as
+/// Strings are bound as <c>VARCHAR2</c> in the database character set, so a value for a <c>VARCHAR2</c> column must fit the column
+/// (ORA-12899 otherwise). <c>CLOB</c> columns accepted longer values (tested up to 100,000 characters on Oracle Database 23.26 with
+/// <c>MAX_STRING_SIZE = STANDARD</c>); an older server may reject a value over the VARCHAR2 bind limit (4000 bytes, or 32767 with
+/// <c>MAX_STRING_SIZE = EXTENDED</c>) with ORA-01461. <c>NVARCHAR2</c> columns work, but characters outside the database character
+/// set may be replaced when it is not AL32UTF8. <c>byte[]</c> binds as <c>RAW</c> (BLOB is not supported); <c>DateOnly</c> binds as <c>DATE</c> and <c>TimeOnly</c> as
 /// <c>INTERVAL DAY TO SECOND</c>.
 /// </para>
 /// </remarks>

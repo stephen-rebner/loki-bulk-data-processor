@@ -68,6 +68,53 @@ public class OracleExceptionTranslatorTests
     }
 
     [Test]
+    public void Translate_ShouldReturnTheTimeoutMessage_WhenACommandTimeoutWrapsTheDriversCancellation()
+    {
+        OracleException oracle = NewOracleException(1013, "ORA-01013: user requested cancel of current operation");
+        var original = new OracleCommandTimeoutException(new OperationCanceledException("ORA-01013", oracle));
+
+        Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
+
+        translated.Should().BeOfType<InvalidOperationException>().Which.Message.Should()
+            .Be($"Bulk copy to 'Posts' failed (Oracle error ORA-01013). See InnerException for details. {OracleExceptionTranslator.TimeoutHint}");
+        translated.InnerException.Should().BeSameAs(original);
+    }
+
+    [Test]
+    public void Translate_ShouldTreatLokisCommandTimeoutAsOra01013_WhenItCarriesNoOracleException()
+    {
+        var original = new OracleCommandTimeoutException(new OperationCanceledException());
+
+        Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
+
+        translated.Message.Should().Contain("(Oracle error ORA-01013)").And.Contain(OracleExceptionTranslator.TimeoutHint);
+        translated.InnerException.Should().BeSameAs(original);
+    }
+
+    [Test]
+    public void Translate_ShouldUseTheGenericFixedMessage_WhenAnotherTimeoutExceptionCarriesNoOracleException()
+    {
+        var original = new TimeoutException("some other component timed out");
+
+        Exception translated = OracleExceptionTranslator.Translate(original, new BulkWriteTarget("Posts", Array.Empty<ColumnMap>()));
+
+        translated.Should().BeOfType<InvalidOperationException>().Which.Message.Should()
+            .Be(BulkCopyErrorMessages.BulkCopyFailed("Posts"), "only Loki's own command timeout is reported as ORA-01013");
+        translated.InnerException.Should().BeSameAs(original);
+    }
+
+    [TestCase(24381, new[] { 24381, 1 }, 1, Description = "a duplicate key on a later row of a multi-row array bind")]
+    [TestCase(24381, new[] { 24381, 2291, 1 }, 2291, Description = "the first row error wins")]
+    [TestCase(24381, new[] { 24381 }, 24381, Description = "no row error behind the envelope")]
+    [TestCase(24381, new int[0], 24381)]
+    [TestCase(942, new[] { 942 }, 942)]
+    [TestCase(1, new[] { 24381 }, 1, Description = "only the envelope number is unwrapped")]
+    public void EffectiveNumber_ShouldReportTheFirstRowError_WhenTheErrorIsTheArrayDmlEnvelope(int number, int[] errorNumbers, int expected)
+    {
+        OracleExceptionTranslator.EffectiveNumber(number, errorNumbers).Should().Be(expected);
+    }
+
+    [Test]
     public void Translate_ShouldFindTheOracleExceptionInTheInnerChain_WhenTheDriverWrapsIt()
     {
         OracleException oracle = NewOracleException(1, "ORA-00001: unique constraint violated");
@@ -86,6 +133,7 @@ public class OracleExceptionTranslatorTests
     [TestCase(2291, "Bulk copy to 'T' failed (Oracle error ORA-02291). See InnerException for details.")]
     [TestCase(1, "Bulk copy to 'T' failed (Oracle error ORA-00001). See InnerException for details.")]
     [TestCase(1502, "Bulk copy to 'T' failed (Oracle error ORA-01502). See InnerException for details.")]
+    [TestCase(1013, "Bulk copy to 'T' failed (Oracle error ORA-01013). See InnerException for details. The command did not complete within IBulkProcessor.Timeout*")]
     public void FromNumber_ShouldMapEachOraCodeToAFixedMessage_WhenGivenAnErrorNumber(int number, string expectedPattern)
     {
         var inner = new Exception($"driver text {RowValue}");

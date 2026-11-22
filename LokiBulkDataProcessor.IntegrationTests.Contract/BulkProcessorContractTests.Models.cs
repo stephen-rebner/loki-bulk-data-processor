@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using LokiBulkDataProcessor.IntegrationTests.Contract.TestModels;
@@ -66,6 +68,32 @@ public abstract partial class BulkProcessorContractTests
 
         (await ReadTestDbModelsAsync()).Should().HaveCount(2).And.OnlyContain(model =>
             model.StringColumn == null && model.NullableBoolColumn == null && model.NullableDateColumn == null);
+    }
+
+    /// <summary>KeepNulls: NullableBoolColumn has <c>DEFAULT 1</c>, so a provider that let the default win would read back true.</summary>
+    [Test]
+    public async Task SaveAsync_ShouldKeepAnExplicitNull_WhenTheNullableColumnHasADefault()
+    {
+        TestDbModel withNull = ContractRows.FullTestDbModel("explicit null", ContractRows.Date1, true, nullableFlag: null, nullableDate: null);
+        using DataTable tableWithNull = ContractRows.TestDbModelsDataTable(withNull);
+
+        await BulkProcessor.SaveAsync(new[] { withNull }, TestDbModelsTable);
+        await BulkProcessor.SaveAsync(tableWithNull, TestDbModelsTable);
+
+        (await ReadTestDbModelsAsync()).Should().HaveCount(2).And.OnlyContain(model => model.NullableBoolColumn == null,
+            "an explicit null must be kept, not replaced by the column's DEFAULT");
+    }
+
+    /// <summary>Control for the KeepNulls test: proves the DEFAULT exists, so that test cannot pass vacuously.</summary>
+    [Test]
+    public async Task SaveAsync_ShouldApplyTheColumnDefault_WhenTheSourceDoesNotHaveTheColumn()
+    {
+        using DataTable withoutNullableBool = ContractRows.TestDbModelsDataTable(ContractRows.TestDbModel("defaulted"));
+        withoutNullableBool.Columns.Remove("NullableBoolColumn");
+
+        await NewProcessorWithoutMappings().SaveAsync(withoutNullableBool, TestDbModelsTable);
+
+        (await ReadTestDbModelsAsync()).Single().NullableBoolColumn.Should().BeTrue("NullableBoolColumn has DEFAULT 1 (true)");
     }
 
     [Test]
