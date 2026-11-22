@@ -13,28 +13,17 @@ public sealed class OracleProviderOptions
     public OracleIdentifierResolution IdentifierResolution { get; set; } = OracleIdentifierResolution.Unquoted;
 
     /// <summary>How <see cref="bool"/> values are bound. Default <see cref="OracleBooleanBinding.Number"/>. Applies to
-    /// <see cref="OracleWriteMode.ArrayBind"/>.</summary>
+    /// <see cref="OracleWriteMode.ArrayBind"/> only: with <see cref="OracleWriteMode.DirectPath"/> ODP.NET converts the values itself.</summary>
     public OracleBooleanBinding BooleanBinding { get; set; } = OracleBooleanBinding.Number;
 
     /// <summary>Checks every value and returns an independent copy, so later changes to this object do not leak into the provider.</summary>
     /// <exception cref="ArgumentOutOfRangeException">A property holds a value that is not defined by its enum.</exception>
-    /// <exception cref="NotSupportedException"><see cref="OracleWriteMode.DirectPath"/> is selected; it is not available in this build yet.</exception>
     internal OracleProviderOptions Validated()
     {
         ThrowIfUndefined(WriteMode, nameof(WriteMode));
         ThrowIfUndefined(IdentifierResolution, nameof(IdentifierResolution));
         ThrowIfUndefined(BooleanBinding, nameof(BooleanBinding));
-        ThrowIfDirectPath();
         return new OracleProviderOptions { WriteMode = WriteMode, IdentifierResolution = IdentifierResolution, BooleanBinding = BooleanBinding };
-    }
-
-    private void ThrowIfDirectPath()
-    {
-        if (WriteMode == OracleWriteMode.DirectPath)
-        {
-            throw new NotSupportedException(
-                "OracleWriteMode.DirectPath is not available in this build of LokiBulkDataProcessor.Oracle yet. Use OracleWriteMode.ArrayBind (the default).");
-        }
     }
 
     private static void ThrowIfUndefined<TEnum>(TEnum value, string propertyName) where TEnum : struct, Enum

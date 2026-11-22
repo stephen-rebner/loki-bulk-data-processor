@@ -71,10 +71,14 @@ public class OracleProviderOptionsTests
     }
 
     [Test]
-    public void Validated_ShouldThrowNotSupported_WhenDirectPathIsSelectedBeforeItIsAvailable()
+    public void Validated_ShouldKeepDirectPath_WhenDirectPathIsSelected()
     {
-        Action action = () => new OracleProviderOptions { WriteMode = OracleWriteMode.DirectPath }.Validated();
+        var options = new OracleProviderOptions { WriteMode = OracleWriteMode.DirectPath, IdentifierResolution = OracleIdentifierResolution.CatalogLookup };
 
-        action.Should().Throw<NotSupportedException>().WithMessage("OracleWriteMode.DirectPath is not available*Use OracleWriteMode.ArrayBind*");
+        OracleProviderOptions validated = options.Validated();
+
+        validated.Should().NotBeSameAs(options);
+        validated.WriteMode.Should().Be(OracleWriteMode.DirectPath);
+        validated.IdentifierResolution.Should().Be(OracleIdentifierResolution.CatalogLookup);
     }
 }

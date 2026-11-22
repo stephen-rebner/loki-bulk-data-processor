@@ -74,14 +74,10 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
     /// <summary>Finds each mapped source column in the reader and picks its binding. Fails before any SQL runs.</summary>
     internal OracleBoundColumn[] BindColumns(IDataReader source, OracleResolvedTarget resolved)
     {
-        if (resolved.Columns.Count == 0)
-        {
-            throw OracleValidation.InvalidOperation("There are no columns to copy: the source has no columns or every column was unmapped.");
-        }
-
+        SourceColumns.ThrowIfEmpty(resolved);
         return resolved.Columns.Select(column =>
         {
-            int ordinal = SourceOrdinal(source, column.SourceColumn);
+            int ordinal = SourceColumns.Ordinal(source, column.SourceColumn);
             return new OracleBoundColumn(ordinal, typeMap.For(source.GetFieldType(ordinal), column.SourceColumn));
         }).ToArray();
     }
@@ -193,20 +189,5 @@ internal sealed class ArrayBindOracleWriter(OracleConnection connection, OracleT
         {
             command.Parameters[i].Value = chunk.ValuesFor(i);
         }
-    }
-
-    private static int SourceOrdinal(IDataReader source, string column)
-    {
-        int ordinal;
-        try
-        {
-            ordinal = source.GetOrdinal(column);
-        }
-        catch (Exception exception) when (exception is IndexOutOfRangeException or ArgumentException)
-        {
-            ordinal = -1;
-        }
-
-        return ordinal >= 0 ? ordinal : throw OracleValidation.InvalidOperation(BulkCopyErrorMessages.SourceColumnNotFound(column));
     }
 }
