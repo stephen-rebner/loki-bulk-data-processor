@@ -11,6 +11,7 @@ using Loki.BulkDataProcessor.Oracle.Internal;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 using Loki.BulkDataProcessor.Oracle.Internal.Writers;
 using Loki.BulkDataProcessor.Providers;
+using LokiBulkDataProcessor.UnitTests.TestDoubles;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -102,6 +103,35 @@ public class OracleBulkCopyProviderTests
 
         writer.Should().BeOfType<ArrayBindOracleWriter>();
         await writer.Invoking(w => w.DisposeAsync().AsTask()).Should().NotThrowAsync();
+    }
+
+    [Test]
+    public async Task CreateWriter_ShouldReturnADirectPathWriter_WhenTheWriteModeIsDirectPath()
+    {
+        var provider = new OracleBulkCopyProvider(OracleProvider.Name, new OracleProviderOptions { WriteMode = OracleWriteMode.DirectPath }.Validated());
+        using var connection = new OracleConnection(ConnectionString);
+        using var transaction = new FakeDbTransaction(connection);
+        var context = new BulkWriteContext(connection, transaction, new BulkWriteOptions(10, 20), NullLoggerFactory.Instance);
+
+        IBulkWriter writer = provider.CreateWriter(context);
+
+        writer.Should().BeOfType<DirectPathOracleWriter>();
+        await writer.Invoking(w => w.DisposeAsync().AsTask()).Should().NotThrowAsync();
+        connection.State.Should().Be(ConnectionState.Closed, "creating a writer opens nothing");
+    }
+
+    /// <summary>Security re-review (Info): without a transaction OracleBulkCopy would commit the load before the unusable-index check.</summary>
+    [Test]
+    public void CreateWriter_ShouldThrowAMarkedInvalidOperation_WhenTheWriteModeIsDirectPathAndThereIsNoTransaction()
+    {
+        var provider = new OracleBulkCopyProvider(OracleProvider.Name, new OracleProviderOptions { WriteMode = OracleWriteMode.DirectPath }.Validated());
+        using var connection = new OracleConnection(ConnectionString);
+        var context = new BulkWriteContext(connection, null, new BulkWriteOptions(10, 20), NullLoggerFactory.Instance);
+
+        Action action = () => provider.CreateWriter(context);
+
+        action.Should().Throw<InvalidOperationException>().WithMessage(OracleBulkCopyProvider.DirectPathNeedsTransactionMessage)
+            .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
     }
 
     [Test]

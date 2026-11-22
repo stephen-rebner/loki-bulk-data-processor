@@ -28,8 +28,24 @@ internal static class OracleExceptionTranslator
     internal const string TimeoutHint =
         """The command did not complete within IBulkProcessor.Timeout and was cancelled by the driver; raise the Timeout (0 means no limit) or check for locks held by other sessions.""";
 
+    /// <summary>
+    /// ORA-01502 / ORA-26028. Short and data-free on purpose: the repair (which rows, constraints, child foreign keys) needs care, so it
+    /// lives in the README, not in an exception message.
+    /// </summary>
+    internal const string UnusableIndexHint =
+        """An index of the destination table is UNUSABLE (often after a direct-path load inserted duplicate keys); see the README section on repairing an UNUSABLE index.""";
+
+    internal const string DirectPathTriggerHint =
+        """Direct-path loads do not support tables with triggers; use OracleWriteMode.ArrayBind for this table.""";
+
+    internal const string DirectPathOncePerTransactionHint =
+        """Only one direct-path load is allowed per Oracle transaction, also after a failed load and also into another table; commit or roll back between saves, or use OracleWriteMode.ArrayBind.""";
+
     /// <summary>ORA-01013 (user requested cancel): the driver's report of an expired command timeout.</summary>
     internal const int CommandCancelled = 1013;
+
+    /// <summary>ORA-50057 ("Bulk copy operation timed out"): ODP.NET's report of an expired <c>OracleBulkCopy.BulkCopyTimeout</c>.</summary>
+    internal const int BulkCopyTimedOut = 50057;
 
     /// <summary>
     /// ORA-24381 ("error(s) in array DML"): the envelope ODP.NET raises when a row of a multi-row array-bound execution fails. The
@@ -82,7 +98,10 @@ internal static class OracleExceptionTranslator
             942 or 39826 => new InvalidOperationException(
                 $"{Failed(tableName, number)} The table does not exist or is not visible to the connected user.{hint}", inner),
             1461 => new InvalidOperationException($"{Failed(tableName, number)} {LongStringHint}", inner),
-            CommandCancelled => new InvalidOperationException($"{Failed(tableName, number)} {TimeoutHint}", inner),
+            1502 or 26028 => new InvalidOperationException($"{Failed(tableName, number)} {UnusableIndexHint}", inner),
+            26086 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathTriggerHint}", inner),
+            39822 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathOncePerTransactionHint}", inner),
+            CommandCancelled or BulkCopyTimedOut => new InvalidOperationException($"{Failed(tableName, number)} {TimeoutHint}", inner),
             _ => new InvalidOperationException(Failed(tableName, number), inner)
         };
     }

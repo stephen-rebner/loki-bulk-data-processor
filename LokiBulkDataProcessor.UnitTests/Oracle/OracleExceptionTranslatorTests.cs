@@ -132,8 +132,18 @@ public class OracleExceptionTranslatorTests
     [TestCase(2373, BulkCopyErrorMessages.ColumnMappingMismatch + " (Oracle error ORA-02373) Unquoted Oracle names*")]
     [TestCase(2291, "Bulk copy to 'T' failed (Oracle error ORA-02291). See InnerException for details.")]
     [TestCase(1, "Bulk copy to 'T' failed (Oracle error ORA-00001). See InnerException for details.")]
-    [TestCase(1502, "Bulk copy to 'T' failed (Oracle error ORA-01502). See InnerException for details.")]
-    [TestCase(1013, "Bulk copy to 'T' failed (Oracle error ORA-01013). See InnerException for details. The command did not complete within IBulkProcessor.Timeout*")]
+    [TestCase(1502, "Bulk copy to 'T' failed (Oracle error ORA-01502). See InnerException for details. " +
+        "An index of the destination table is UNUSABLE*README*")]
+    [TestCase(26028, "Bulk copy to 'T' failed (Oracle error ORA-26028). See InnerException for details. " +
+        "An index of the destination table is UNUSABLE*README*")]
+    [TestCase(50057, "Bulk copy to 'T' failed (Oracle error ORA-50057). See InnerException for details. " +
+        "The command did not complete within IBulkProcessor.Timeout*")]
+    [TestCase(26086, "Bulk copy to 'T' failed (Oracle error ORA-26086). See InnerException for details. " +
+        "Direct-path loads do not support tables with triggers; use OracleWriteMode.ArrayBind*")]
+    [TestCase(39822, "Bulk copy to 'T' failed (Oracle error ORA-39822). See InnerException for details. " +
+        "Only one direct-path load is allowed per Oracle transaction, also after a failed load*")]
+    [TestCase(1013, "Bulk copy to 'T' failed (Oracle error ORA-01013). See InnerException for details. " +
+        "The command did not complete within IBulkProcessor.Timeout*")]
     public void FromNumber_ShouldMapEachOraCodeToAFixedMessage_WhenGivenAnErrorNumber(int number, string expectedPattern)
     {
         var inner = new Exception($"driver text {RowValue}");

@@ -107,7 +107,7 @@ public class OracleTypeMapTests
         Action action = () => _numberBooleans.For(type, "Payload\r\n");
 
         var thrown = action.Should().Throw<NotSupportedException>()
-            .WithMessage("The source column 'Payload??' has type *, which the Oracle array-bind writer does not support.");
+            .WithMessage("The source column 'Payload??' has type *, which the Oracle provider does not support.");
         OracleValidation.IsValidationFailure(thrown.Which).Should().BeTrue();
     }
 

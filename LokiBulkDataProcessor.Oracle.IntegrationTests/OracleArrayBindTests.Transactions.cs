@@ -16,7 +16,7 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 
 /// <summary>
 /// The caller's OracleTransaction is joined and never committed (the writer also sets OracleCommand.Transaction), other transaction
-/// types are rejected, DirectPath is still refused at registration (until step 8), and Loki logs the Oracle provider name.
+/// types are rejected, and Loki logs the Oracle provider name. Direct path is covered by <see cref="OracleDirectPathTests"/>.
 /// </summary>
 public sealed partial class OracleArrayBindTests
 {
@@ -51,16 +51,6 @@ public sealed partial class OracleArrayBindTests
         foreignTransaction.WasTouched.Should().BeFalse("Loki never commits, rolls back or disposes a caller's transaction");
         await processor.SaveAsync(TwoTestDbModelRows(), "TestDbModels");
         (await _database.ReadTestDbModelsAsync()).Should().HaveCount(2);
-    }
-
-    [Test]
-    public void AddOracle_ShouldStillRejectDirectPathAtRegistration_UntilStep8AddsIt()
-    {
-        var services = new ServiceCollection();
-
-        Action action = () => services.AddLokiBulkDataProcessor(_ => { }).AddOracle(options => options.WriteMode = OracleWriteMode.DirectPath);
-
-        action.Should().Throw<NotSupportedException>().WithMessage("*OracleWriteMode.DirectPath is not available*");
     }
 
     [Test]

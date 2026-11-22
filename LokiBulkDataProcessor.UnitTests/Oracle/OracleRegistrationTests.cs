@@ -94,15 +94,17 @@ public class OracleRegistrationTests
     }
 
     [Test]
-    public void AddOracle_ShouldThrowNotSupportedAtRegistration_WhenDirectPathIsSelected()
+    public void AddOracle_ShouldRegisterADirectPathProvider_WhenDirectPathIsSelected()
     {
         var services = new ServiceCollection();
-        var builder = services.AddLokiBulkDataProcessor();
+        services.AddLokiBulkDataProcessor().AddOracle(o => o.WriteMode = OracleWriteMode.DirectPath, "Oracle.DirectPath");
+        using ServiceProvider provider = services.BuildServiceProvider();
 
-        Action action = () => builder.AddOracle(o => o.WriteMode = OracleWriteMode.DirectPath);
+        var oracle = (OracleBulkCopyProvider)provider.GetServices<IBulkCopyProvider>().Single();
 
-        action.Should().Throw<NotSupportedException>();
-        services.Should().NotContain(d => d.ServiceType == typeof(IBulkCopyProvider));
+        oracle.Name.Should().Be("Oracle.DirectPath");
+        oracle.Options.WriteMode.Should().Be(OracleWriteMode.DirectPath);
+        provider.GetRequiredService<IBulkProcessorFactory>().HasProvider("Oracle.DirectPath").Should().BeTrue();
     }
 
     [Test]

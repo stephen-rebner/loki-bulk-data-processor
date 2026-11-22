@@ -26,6 +26,18 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// cannot exhaust memory; the rows are still written in the same transaction.
 /// </para>
 /// <para>
+/// The paragraphs above describe the default <see cref="OracleWriteMode.ArrayBind"/>. <see cref="OracleWriteMode.DirectPath"/> is for bulk
+/// loads into staging tables only: never use it for tables other applications use, tables whose foreign or unique keys you rely on, or a
+/// destination chosen by untrusted input, and register it under its own name. Each save is one synchronous <c>OracleBulkCopy</c> load (it
+/// blocks the calling thread, the cancellation token is checked only before the load starts, and <see cref="IBulkProcessor.Timeout"/> is not
+/// a reliable upper bound) that streams the source in batches of <see cref="IBulkProcessor.BatchSize"/> rows (0 means 5000). It joins your
+/// <see cref="IBulkProcessor.Transaction"/>, and until that transaction ends other sessions' queries on the table wait, so commit right
+/// after the save. Only one load is allowed per transaction (ORA-39822); the transaction stays usable for other statements (not for
+/// another direct-path load). A failed load leaves none of its rows. Foreign keys are not enforced, tables with triggers are refused
+/// (ORA-26086), duplicate keys are not detected (the index becomes UNUSABLE at commit), and reading the loaded table before a rollback can
+/// corrupt the next load's results: see <see cref="OracleWriteMode.DirectPath"/>.
+/// </para>
+/// <para>
 /// Oracle stores an empty string as NULL. Destination names are matched as described on <see cref="OracleIdentifierResolution"/>.
 /// An invalid destination table name throws an <see cref="System.ArgumentException"/> (<c>ParamName</c> "destinationTableName") before
 /// any SQL runs, where SQL Server reports it as a failed copy (<see cref="System.InvalidOperationException"/>); an invalid destination
@@ -38,7 +50,7 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// <c>MAX_STRING_SIZE = STANDARD</c>); an older server may reject a value over the VARCHAR2 bind limit (4000 bytes, or 32767 with
 /// <c>MAX_STRING_SIZE = EXTENDED</c>) with ORA-01461. <c>NVARCHAR2</c> columns work, but characters outside the database character
 /// set may be replaced when it is not AL32UTF8. <c>byte[]</c> binds as <c>RAW</c> (BLOB is not supported); <c>DateOnly</c> binds as <c>DATE</c> and <c>TimeOnly</c> as
-/// <c>INTERVAL DAY TO SECOND</c>.
+/// <c>INTERVAL DAY TO SECOND</c> (array bind only: <see cref="OracleWriteMode.DirectPath"/> rejects both before the load).
 /// </para>
 /// </remarks>
 public static class OracleProvider

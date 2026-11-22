@@ -10,7 +10,8 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Types;
 internal sealed record OracleBinding(OracleDbType DbType, Func<object, object> Convert);
 
 /// <summary>
-/// Maps a source column's .NET type to an <see cref="OracleDbType"/> and a value conversion for the array-bind writer.
+/// Maps a source column's .NET type to an <see cref="OracleDbType"/> and a value conversion for the array-bind writer. The direct-path
+/// writer uses it to validate source types only (ODP.NET converts direct-path values itself).
 /// Unsupported types (for example <c>object</c>) throw before anything is written. Immutable; one instance per provider.
 /// </summary>
 internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
@@ -48,7 +49,7 @@ internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
     public OracleBooleanBinding BooleanBinding { get; } = booleanBinding;
 
     /// <summary>The binding for a source column of <paramref name="fieldType"/> (nullable types use their underlying type).</summary>
-    /// <exception cref="NotSupportedException">The type cannot be array-bound (marked as a validation failure).</exception>
+    /// <exception cref="NotSupportedException">The type is not supported by either write mode (marked as a validation failure).</exception>
     public OracleBinding For(Type fieldType, string sourceColumn)
     {
         Type type = fieldType is null ? typeof(object) : Nullable.GetUnderlyingType(fieldType) ?? fieldType;
@@ -76,5 +77,5 @@ internal sealed class OracleTypeMap(OracleBooleanBinding booleanBinding)
 
     private static NotSupportedException Unsupported(Type type, string sourceColumn) =>
         OracleValidation.NotSupported(
-            $"The source column '{BulkCopyErrorMessages.Sanitize(sourceColumn)}' has type {type.Name}, which the Oracle array-bind writer does not support.");
+            $"The source column '{BulkCopyErrorMessages.Sanitize(sourceColumn)}' has type {type.Name}, which the Oracle provider does not support.");
 }

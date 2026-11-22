@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 using Loki.BulkDataProcessor.Oracle.Internal.Types;
 using Loki.BulkDataProcessor.Oracle.Internal.Writers;
@@ -46,13 +47,31 @@ internal sealed class OracleBulkCopyProvider : IBulkCopyProvider
             nameof(transaction));
     }
 
-    /// <summary>Only the array-bind writer exists until direct path lands; <see cref="OracleProviderOptions.Validated"/> rejects DirectPath.</summary>
+    /// <summary>The writer for the registered <see cref="OracleWriteMode"/>.</summary>
     public IBulkWriter CreateWriter(BulkWriteContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ILogger logger = (context.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ArrayBindOracleWriter>();
-        return new ArrayBindOracleWriter((OracleConnection)context.Connection, context.Transaction as OracleTransaction,
-            context.Options, _resolver, _typeMap, logger);
+        ILoggerFactory loggerFactory = context.LoggerFactory ?? NullLoggerFactory.Instance;
+        var connection = (OracleConnection)context.Connection;
+        Debug.Assert(context.Transaction is null || ReferenceEquals(context.Transaction.Connection, context.Connection),
+            "The pipeline always passes the transaction of the context's own connection.");
+        ThrowIfDirectPathWithoutTransaction(context);
+        return Options.WriteMode == OracleWriteMode.DirectPath
+            ? new DirectPathOracleWriter(connection, context.Options, _resolver, _typeMap, Name, loggerFactory.CreateLogger<DirectPathOracleWriter>())
+            : new ArrayBindOracleWriter(connection, context.Transaction as OracleTransaction, context.Options, _resolver, _typeMap,
+                loggerFactory.CreateLogger<ArrayBindOracleWriter>());
+    }
+
+    internal const string DirectPathNeedsTransactionMessage =
+        "A direct-path load needs an active transaction (without one OracleBulkCopy commits the load itself, so it could not be rolled back).";
+
+    /// <summary>The pipeline always passes a transaction; this guards the invariant in release builds too (see DirectPathOracleWriter).</summary>
+    private void ThrowIfDirectPathWithoutTransaction(BulkWriteContext context)
+    {
+        if (Options.WriteMode == OracleWriteMode.DirectPath && context.Transaction is null)
+        {
+            throw OracleValidation.InvalidOperation(DirectPathNeedsTransactionMessage);
+        }
     }
 
     public Exception TranslateException(Exception exception, BulkWriteTarget target) =>

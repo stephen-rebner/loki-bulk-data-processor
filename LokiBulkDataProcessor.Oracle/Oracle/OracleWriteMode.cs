@@ -10,11 +10,40 @@ public enum OracleWriteMode
     ArrayBind = 0,
 
     /// <summary>
-    /// Opt-in <c>OracleBulkCopy</c> direct-path load. Faster, but: synchronous (blocks the thread and cannot be cancelled once
-    /// started); FOREIGN KEYS ARE NOT ENFORCED; duplicate primary keys are inserted and leave the primary key index UNUSABLE
-    /// (later inserts fail with ORA-01502); tables with triggers are refused (ORA-26086); only ONE load per transaction
-    /// (ORA-39822); the timeout is not reliably honoured.
+    /// FOR BULK LOADS INTO STAGING TABLES ONLY. Do not use it for tables that other applications read or write, that have foreign keys or
+    /// unique keys you rely on, or whose destination can be chosen by untrusted input. Opt-in <c>OracleBulkCopy</c> direct-path load: faster
+    /// on indexed tables, with these hazards:
+    /// <list type="bullet">
+    /// <item>OTHER SESSIONS ARE BLOCKED: until the transaction that ran the load ends, other sessions' queries on the loaded table wait
+    /// (library cache lock). Commit (or roll back) right after the save; with Loki's own transaction this lasts only for the save.</item>
+    /// <item>FOREIGN KEYS ARE NOT ENFORCED: orphan rows are loaded and the constraint still reports itself as validated.</item>
+    /// <item>DUPLICATE KEYS ARE NOT DETECTED: the save succeeds, and when the transaction commits Oracle marks the primary or unique key
+    /// index UNUSABLE, so later inserts and deletes fail with ORA-01502 and later direct-path loads with ORA-26028 (queries and updates of
+    /// other columns still work) until it is repaired; see the README section on repairing an UNUSABLE index. A DEFERRABLE primary or unique
+    /// key is worse: the duplicates are kept and the constraint is silently DISABLED. Load only rows whose keys you know to be unique. Any
+    /// index that is already UNUSABLE makes the load fail with ORA-26028.</item>
+    /// <item>Do not query the loaded table in the same transaction and then roll back: on Oracle 23.26 the next direct-path load into the
+    /// table then returned the rolled-back rows instead of its own. Rolling back without reading it was safe. If it happened, empty the
+    /// table with <c>TRUNCATE TABLE ... DROP ALL STORAGE</c> (a plain TRUNCATE is not enough) before the next load.</item>
+    /// <item>Tables with triggers are refused (ORA-26086).</item>
+    /// <item>Only ONE load per transaction (ORA-39822): a second save in the same <see cref="IBulkProcessor.Transaction"/> fails, also
+    /// into another table and also after a failed load, so commit (or roll back) between loads. The transaction stays usable for other
+    /// statements.</item>
+    /// <item>Synchronous and not cancellable once started: ODP.NET has no asynchronous direct-path API, so the load blocks the calling
+    /// thread and the cancellation token is only checked before it starts. <see cref="IBulkProcessor.Timeout"/> is passed to the driver
+    /// but is NOT a reliable upper bound: a load waiting on another session's lock ran until the lock was released and only then failed
+    /// with ORA-50057 (translated with the timeout hint), and nothing was saved.</item>
+    /// <item><see cref="IBulkProcessor.BatchSize"/> is the number of rows per batch sent to the server; 0 means 5000, as with array bind.
+    /// A failed load leaves none of its rows behind, whatever the BatchSize.</item>
+    /// <item><see cref="OracleProviderOptions.BooleanBinding"/> does not apply: the driver converts values itself (1/0 into
+    /// <c>NUMBER(1)</c>, TRUE/FALSE into <c>BOOLEAN</c>). Source column types are validated as for array bind, and <c>DateOnly</c> and
+    /// <c>TimeOnly</c> are rejected before the load (ODP.NET's direct path cannot convert them; use <c>DateTime</c> / <c>TimeSpan</c>).</item>
+    /// </list>
+    /// Register it under its own name, separate from the default array-bind provider, for example
+    /// <c>AddOracle(o =&gt; o.WriteMode = OracleWriteMode.DirectPath, name: "Oracle.DirectPath")</c>, and create processors from it only in
+    /// code that targets staging tables the host has decided may skip foreign key and trigger enforcement. Never let a JSON payload's
+    /// <c>tableName</c> or other untrusted input choose the destination of a direct-path processor: use
+    /// <c>SaveAsync(stream, destinationTableName)</c> with a table name chosen by your code.
     /// </summary>
-    /// <remarks>Not available in this build yet: <c>AddOracle</c> throws <see cref="System.NotSupportedException"/> when it is selected.</remarks>
     DirectPath = 1
 }
