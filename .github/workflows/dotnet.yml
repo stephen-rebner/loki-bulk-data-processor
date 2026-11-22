@@ -17,9 +17,11 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 10.0.x
     - name: Unit tests
@@ -54,13 +56,20 @@ jobs:
   sqlserver-integration:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 10.0.x
+    - name: SQL Server test image is digest-pinned
+      # Like the Oracle image: a re-pushed tag must fail instead of silently changing the database under the tests.
+      run: |
+        if ! grep -qP 'mcr\.microsoft\.com/mssql/server:[^"@]+@sha256:[0-9a-f]{64}"' LokiBulkDataProcessor.IntegrationTests/SqlServer/SqlServerTestDatabase.cs; then
+          echo "::error::SqlServerTestDatabase.Image must be a tag + digest pinned image reference"
+          exit 1
+        fi
     - name: SQL Server integration tests
       run: dotnet test LokiBulkDataProcessor.IntegrationTests -c Release --verbosity normal
 
@@ -68,11 +77,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 10.0.x
     - name: Pull the Oracle image
@@ -90,21 +99,26 @@ jobs:
 
   pack:
     # Packs the three libraries and checks the packages (version, Core dependency range, no test-only dependencies,
-    # XML docs and README included); see build/pack.sh. Uploads them as a workflow artifact. Never publishes to NuGet.
+    # XML docs and README included); see build/pack.sh. Uploads them as a workflow artifact on pushes. Never publishes to NuGet.
     needs: unit
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: 10.0.x
     - name: Pack and check the packages
       run: bash build/pack.sh artifacts/packages
+    - name: Package checksums
+      run: sha256sum artifacts/packages/*.nupkg
     - name: Upload the packages
-      uses: actions/upload-artifact@v4
+      # Only from pushes (never from pull requests), so an uploaded artifact always comes from a commit on a protected
+      # branch. Publish only from a push run at the tagged release commit; see the owner checklist in docs/plans/9.0.0-progress.md.
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: nuget-packages
         path: artifacts/packages/*.nupkg
