@@ -113,6 +113,9 @@ internal sealed class CatalogIdentifierResolver : IOracleIdentifierResolver
             $"{BulkCopyErrorMessages.ColumnMappingMismatch} ('{BulkCopyErrorMessages.Sanitize(OracleIdentifier.StripQuotes(requested))}' not found)");
 
     /// <summary>Exact match first, then a single case-insensitive match; otherwise a clear error. A quoted request matches exactly only.</summary>
+    /// <param name="candidates">The names the catalogue returned.</param>
+    /// <param name="requested">The name the caller gave (quoted for an exact match only).</param>
+    /// <param name="role">"schema", "table" or "column", for the error message.</param>
     /// <param name="notFoundMessage">Built only when the name is not found, so a successful lookup allocates no message.</param>
     internal static string PickName(IReadOnlyCollection<string> candidates, string requested, string role, Func<string> notFoundMessage)
     {

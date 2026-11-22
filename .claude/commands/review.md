@@ -27,7 +27,7 @@ Read every changed file in full before marking anything.
 
 ## 3. Architecture
 
-- [ ] Provider ADO.NET types only in `InternalDbOperations/`.
+- [ ] Driver ADO.NET types only in the provider's `Internal/` folder; none in Core; providers use only Core's public SPI.
 - [ ] No new provider casts in commands; no `if`/`switch` on provider in commands or facade.
 - [ ] `BulkProcessor` only guards, logs, delegates.
 - [ ] Mapping validation stays in `Mappings/MappingLogic/`.

@@ -20,7 +20,7 @@ Use this for higher-risk changes where code and security review should run autom
 
 ## Stage 1 — Implementation
 
-Spawn `dotnet-senior` with the task and this reminder: methods ≤ ~20 lines; private methods per logical step; provider types only in `InternalDbOperations/`; never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass; run `dotnet build` and both test projects and report results honestly.
+Spawn `dotnet-senior` with the task and this reminder: methods ≤ ~20 lines; private methods per logical step; driver types only in the provider's `Internal/` folder (none in Core); never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass; run `dotnet build` and both test projects and report results honestly.
 
 Afterwards run `git diff --stat` and report what changed. If the diff is empty, skip Stages 2–3 and say so.
 

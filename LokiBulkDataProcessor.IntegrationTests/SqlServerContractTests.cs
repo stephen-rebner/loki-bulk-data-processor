@@ -71,7 +71,7 @@ public sealed class SqlServerContractTests : BulkProcessorContractTests
             .ToListAsync();
     }
 
-    protected override IReadOnlyCollection<string> ConnectionStringSecrets { get; } = new[] { SqlServerTestDatabase.Password };
+    protected override IReadOnlyCollection<string> ConnectionStringSecrets => new[] { _database.Password };
 
     protected override string WithPassword(string connectionString, string password) =>
         new SqlConnectionStringBuilder(connectionString) { Password = password, ConnectTimeout = 5 }.ToString();

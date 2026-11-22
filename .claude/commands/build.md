@@ -6,7 +6,7 @@
 > (and the matching section of `docs/plans/9.0.0-multi-provider.md`) before starting, branch from and target
 > `release/9.0` instead of `master`, and update the progress file in the same PR.
 
-> If `$ARGUMENTS` names specific folders/files (e.g. `LokiBulkDataProcessor/InternalDbOperations`), treat that as a **starting point**, not a boundary. Pass it to the agent so it doesn't rediscover what you already told it — but the agent must still name any other file the change needs (a `ServiceCollectionExtension` registration, a csproj package reference, a new integration base class) in the plan. Scope narrows *where to start looking*; it never narrows what shows up in the plan.
+> If `$ARGUMENTS` names specific folders/files (e.g. `LokiBulkDataProcessor.Oracle/Oracle/Internal`), treat that as a **starting point**, not a boundary. Pass it to the agent so it doesn't rediscover what you already told it — but the agent must still name any other file the change needs (a builder-extension registration, a csproj package reference, a contract test, a README section) in the plan. Scope narrows *where to start looking*; it never narrows what shows up in the plan.
 
 Take a feature or bug fix from description to an approved plan, then to an open PR — planning and implementation by the same `dotnet-senior` agent, with **one hard pause** between plan and code. Unlike `/dev`, there is a plan to approve. Unlike `/implement`, review is not automatic — ask for `/review`, `code-review` or `security-review` when you want it.
 
@@ -71,7 +71,7 @@ Spawn `dotnet-senior` with: **plan only, do not write or edit any file.** Pass t
 
 - The closest existing implementation it's following.
 - Every file to create or modify as a checkbox list:
-  `- [ ] LokiBulkDataProcessor/InternalDbOperations/X.cs — new … `
+  `- [ ] LokiBulkDataProcessor/SqlServer/Internal/X.cs — new … `
 - Files **outside** the given scope, called out explicitly.
 - Short code samples for each non-trivial piece (skeletons, not full implementations).
 - Public API impact and any NuGet changes.
@@ -103,7 +103,7 @@ Present it as:
 
 ## Stage 3b — Implement (after approval)
 
-Re-invoke `dotnet-senior` with the approved plan, the issue body, and this reminder: methods ≤ ~20 lines; private methods per logical step; provider types only in `InternalDbOperations/`; never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass.
+Re-invoke `dotnet-senior` with the approved plan, the issue body, and this reminder: methods ≤ ~20 lines; private methods per logical step; driver types only in the provider's `Internal/` folder (none in Core); never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass.
 
 Afterwards run `git diff --stat` and flag anything the plan didn't mention.
 

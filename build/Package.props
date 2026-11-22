@@ -7,6 +7,8 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
+    <!-- Ship the XML docs in every package so consumers get IntelliSense for the public API. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)..\LICENSE.txt" Pack="true" PackagePath="\" Visible="false" />
