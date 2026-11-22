@@ -3,7 +3,8 @@
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>Loki Bulk Data Processor</Title>
-    <PackageProjectUrl>https://www.youtube.com/channel/UCZSEs5w0PEySBdb9uFE19FQ/playlists</PackageProjectUrl>
+    <!-- The README on GitHub is the 9.x documentation. -->
+    <PackageProjectUrl>https://github.com/stephen-rebner/loki-bulk-data-processor#readme</PackageProjectUrl>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

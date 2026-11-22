@@ -9,7 +9,7 @@ engine:
 
 It targets `.NET 10`, fits ASP.NET Core dependency injection, and is built for ETL pipelines and high-throughput ingestion.
 
-This README is the documentation for 9.x. Upgrading from 8.x? See the [Upgrade guide](#upgrade-guide).
+This README is the documentation for 9.x. Upgrading from 8.x? See the [Upgrade guide](https://github.com/stephen-rebner/loki-bulk-data-processor#upgrade-guide).
 
 ## Contents
 
@@ -76,8 +76,8 @@ settings by giving it another name, for example `.AddSqlServer("Reporting")` or
 | `UseHostLoggerFactory` | `true` | Log through the host's `ILoggerFactory` from DI. With no `ILoggerFactory` registered, Loki logs nothing. Set `false` to keep Loki silent. |
 | `LoggerFactory` | `null` | A logger factory for Loki only; it wins over the host's. Loki never registers or disposes it. |
 | `UseConsoleLogging(...)` | off | **Obsolete** (removed in 10.0): Loki-private console logging. Configure console output in your host's logging instead. |
-| `RequireDataMappingForJson` | `false` | Every JSON save must find a `DataMapping`; otherwise it throws `InvalidOperationException` before connecting, so a payload cannot choose the columns. |
-| `MaxJsonPayloadBytes` | `null` (no limit) | The largest JSON payload read. A larger one throws `InvalidDataException` as soon as the limit is passed. Set it for payloads from untrusted callers: a JSON payload is buffered in memory. |
+| `RequireDataMappingForJson` | `false` | Every JSON save must find a `DataMapping`; otherwise it throws `InvalidOperationException` before connecting, so a payload cannot add columns the mapping does not list. It does not stop `SaveAsync(stream)` from choosing the table (and with it the mapping) through the payload's `tableName`; see [JSON](#json). |
+| `MaxJsonPayloadBytes` | `null` (no limit) | The largest JSON payload read. A larger one throws `InvalidDataException` as soon as the limit is passed. Set it for payloads from untrusted callers, because a JSON payload is buffered in memory: start from a few times your largest legitimate payload, for example `10 * 1024 * 1024` (10 MB). |
 
 ### The 8.x single-database registration
 
@@ -138,12 +138,21 @@ public enum DatabaseEngine { SqlServer, Oracle, PostgreSql }
 
 public sealed class SeedWriter(IBulkProcessorFactory bulkProcessorFactory)
 {
+    // Your code decides which tables may be seeded; users never choose any other table.
+    private static readonly HashSet<string> SeedableTables = new(StringComparer.Ordinal) { "Customers", "Orders" };
+
+    // connectionString comes from your configuration, never from end users.
     public async Task WriteAsync(DatabaseEngine engine, string connectionString, DataTable rows, CancellationToken ct)
     {
         string provider = engine.ToString();                  // "SqlServer", "Oracle", "PostgreSql"
         if (!bulkProcessorFactory.HasProvider(provider))
         {
             throw new NotSupportedException($"Bulk seeding is not supported for {provider}.");
+        }
+
+        if (!SeedableTables.Contains(rows.TableName))
+        {
+            throw new ArgumentException("This table may not be seeded.", nameof(rows));
         }
 
         IBulkProcessor processor = bulkProcessorFactory.Create(provider, connectionString);
@@ -172,7 +181,10 @@ public class SeedWriterTests
 ```
 
 If the destination table comes from your users (as it does for a seeding tool), decide in your code which tables they may
-write to: Loki checks that a name is a valid identifier, not that the caller is allowed to write to it.
+write to, as the allow-list above does. Loki does not check that a caller may write to a table: the Oracle provider
+validates and quotes the name (so it cannot inject SQL), and SQL Server relies on `SqlBulkCopy`, which parses and brackets
+it. The same applies to an untrusted `DataTable.TableName`, which also picks the `DataMapping`. Never let end users supply
+the connection string.
 
 ## Mappings
 
@@ -268,13 +280,15 @@ The JSON overloads read a document with a `tableName`, a typed `columns` list an
 - A value that cannot be converted to its column's type throws a `FormatException` that names only the column and type,
   never the value.
 - The payload is parsed with a maximum depth of 64, without comments or trailing commas, and buffered in memory in full:
-  set `MaxJsonPayloadBytes` for payloads you do not control.
+  set `MaxJsonPayloadBytes` for payloads you do not control (for example 10 MB to start with).
 
 **Security: the payload must not choose the table.** `SaveAsync(stream)` writes to the payload's `tableName` and uses the
 `DataMapping` keyed on it, so whoever writes the payload decides which table it lands in. Use it only for payloads you
 trust. For anything else, use `SaveAsync(stream, destinationTableName)`: the payload's `tableName` is still validated but
 ignored, the table and the mapping key are the ones your code passes, and with `RequireDataMappingForJson = true` the
-payload cannot add columns your mapping does not list. Callers decide which tables a payload may write to; Loki does not.
+payload cannot add columns your mapping does not list. `RequireDataMappingForJson` alone does not protect `SaveAsync(stream)`:
+the payload still picks the table, and with it which `DataMapping` applies. Callers decide which tables a payload may write
+to; Loki does not.
 
 ## Transactions
 
@@ -301,7 +315,15 @@ try
 }
 catch
 {
-    await transaction.RollbackAsync(CancellationToken.None);   // Loki left it to you
+    try
+    {
+        await transaction.RollbackAsync(CancellationToken.None);   // Loki left it to you
+    }
+    catch (Exception rollbackError)
+    {
+        logger.LogError(rollbackError, "Rollback failed");         // never let it hide the original error
+    }
+
     throw;
 }
 ```
@@ -353,7 +375,8 @@ catch (InvalidOperationException ex) when (ex.InnerException is SqlException { N
 | `NotSupportedException` | Oracle: a source column type the provider cannot bind (for example `object`). |
 
 Driver messages (on the `InnerException`) can contain row values, for example SQL Server's
-`The duplicate key value is (5)`. Log or show them only under your own data-handling policy.
+`The duplicate key value is (5)`, and connection errors can name the server, host, port, service or login. Never show
+`InnerException.Message` or `ToString()` to end users; log them only under your own data-handling policy.
 
 ## Logging
 
@@ -373,9 +396,11 @@ Loki never logs row values, driver messages or connection strings, and table nam
 
 ## SQL Server
 
-- Driver: `Microsoft.Data.SqlClient` 6.1.8 (the same major line as EF Core 10). It defaults to **`Encrypt=true`**. For a
-  development server with a self-signed certificate add `TrustServerCertificate=true` to the connection string; do not
-  turn encryption off.
+- Driver: `Microsoft.Data.SqlClient` 6.1.8 (the same major line as EF Core 10). It defaults to **`Encrypt=true`**. Do not
+  turn encryption off. `TrustServerCertificate=true` makes a self-signed development server work, but it **disables
+  certificate validation** (anyone in the network path can impersonate the server): use it for local development only,
+  never in production. Prefer trusting the server's certificate on the client, or setting `HostNameInCertificate` when the
+  certificate's name differs from the host you connect to.
 - Rows are copied with `SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.KeepNulls`: check and foreign key
   constraints are enforced, and an explicit NULL stays NULL instead of taking the column default.
 - **INSERT triggers do not run** (`FireTriggers` is not set, as in 8.x). Do not rely on triggers for auditing or derived
@@ -396,11 +421,13 @@ IBulkProcessor processor = factory.Create(OracleProvider.Name, oracleConnectionS
 await processor.SaveAsync(posts, "Posts", ct);
 ```
 
+- Transport security is configured in the connection string / `sqlnet.ora`, not by Loki: use TCPS (TLS) or Oracle native
+  network encryption for anything but local development, and keep `SSL_SERVER_DN_MATCH` on with TCPS.
 - Minimum Oracle Database **19c**. Tested on Oracle Database Free **23.26** (`gvenzl/oracle-free:23.26.3-slim-faststart`)
   with `Oracle.ManagedDataAccess.Core` 23.26.400.
 - Default write mode `OracleWriteMode.ArrayBind`: a conventional-path `INSERT ... VALUES (:1, :2, ...)` executed once per
   chunk with array binding, inside Loki's or your transaction. Primary, unique, foreign key and check constraints are
-  enforced and triggers fire, as on SQL Server with Loki's options.
+  enforced, as on SQL Server with Loki's options. Unlike SQL Server, INSERT triggers **fire**.
 - **Each chunk is all-or-nothing.** Loki sets a savepoint before every chunk and, if any row of the chunk fails, rolls back
   to it (ODP.NET would otherwise keep the chunk's valid rows). That never ends your transaction. With Loki's own
   transaction the whole save is rolled back; **in your transaction, chunks that succeeded before the failure stay in it**,
@@ -497,7 +524,7 @@ foreign key checks. The hazards, all verified on Oracle 23.26:
 2. **Foreign keys are not enforced.** Orphan rows are loaded, and the constraint still reports itself as `VALIDATED`.
 3. **Duplicate keys are not detected.** The save succeeds; at commit Oracle marks the primary or unique key index
    **UNUSABLE**. From then on inserts and deletes fail with ORA-01502 and direct-path loads with ORA-26028 (queries and
-   updates of non-key columns still work) until you [repair it](#repairing-an-unusable-index). A **DEFERRABLE** primary or
+   updates of non-key columns still work) until you [repair it](https://github.com/stephen-rebner/loki-bulk-data-processor#repairing-an-unusable-index). A **DEFERRABLE** primary or
    unique key is worse: the duplicates are kept and the constraint is silently **DISABLED**. Rolling back without reading
    the table leaves the index VALID. Load only rows whose keys you know to be unique.
 4. **Never read the loaded table in the same transaction and then roll back.** On 23.26 the next direct-path load into the
@@ -521,7 +548,8 @@ services.AddLokiBulkDataProcessor(options => options.AddMappingsFrom(typeof(Prog
         .AddOracle()                                                                           // "Oracle": array bind
         .AddOracle(o => o.WriteMode = OracleWriteMode.DirectPath, name: "Oracle.DirectPath");  // staging tables only
 
-// Only in the staging-load code path, with a table name chosen by your code:
+// Only in the staging-load code path, with a table name chosen by your code (and, for JSON,
+// options.RequireDataMappingForJson = true so a payload cannot add columns your mapping does not list):
 IBulkProcessor staging = factory.Create("Oracle.DirectPath", oracleConnectionString);
 await staging.SaveAsync(jsonStream, "STG_ORDERS", ct);     // never SaveAsync(jsonStream): the payload would pick the table
 ```
@@ -533,68 +561,85 @@ Each direct-path save logs `Direct-path load (staging tables only) to {TableName
 A direct-path load of duplicate keys leaves the key index UNUSABLE after commit (Loki's error then says
 `An index of the destination table is UNUSABLE ...` with ORA-01502 or ORA-26028). `ALTER INDEX ... REBUILD` fails with
 ORA-01452 while the duplicates exist, and `DELETE` fails with ORA-01502 while the index is UNUSABLE (also with
-`SKIP_UNUSABLE_INDEXES`), so repair it in this order. The names below (`T`, `PK_T`, `ID`, `CHILD`, `FK_CHILD_T`) are
-placeholders.
+`SKIP_UNUSABLE_INDEXES`), so repair it in this order. The names below (`APP`, `T`, `PK_T`, `ID`, `CHILD`, `FK_CHILD_T`,
+`PARENT`, `PARENT_ID`) are placeholders; use the table's real key columns everywhere `id` appears.
 
 Do it in a **maintenance window with every writer of the table stopped**. A `LOCK TABLE` in the repair session does not
-protect the whole repair: every DDL statement below commits, which releases the lock.
+protect the whole repair: **every DDL statement below implicitly commits** (before and after it runs), which commits any
+pending DML in the session and releases the lock. So finish and commit each DML step before the next DDL step.
 
 0. Record what you will need:
 
    ```sql
-   SELECT index_name, status FROM user_indexes WHERE table_name = 'T';
-   SELECT DBMS_METADATA.GET_DDL('INDEX', 'PK_T') FROM dual;       -- storage, tablespace, partitioning
-   SELECT owner, table_name, constraint_name                      -- foreign keys that reference the key
-     FROM all_constraints WHERE constraint_type = 'R' AND r_constraint_name = 'PK_T';
+   SELECT index_name, status FROM all_indexes WHERE owner = 'APP' AND table_name = 'T';
+   SELECT DBMS_METADATA.GET_DDL('INDEX', 'PK_T', 'APP') FROM dual;   -- storage, tablespace, partitioning
+   SELECT owner, table_name, constraint_name                         -- foreign keys that reference the key
+     FROM all_constraints
+    WHERE constraint_type = 'R' AND r_owner = 'APP' AND r_constraint_name = 'PK_T';
    ```
 
 1. Disable the constraint. If foreign keys reference it this fails with ORA-02297; then use `CASCADE`, which also
    disables those child foreign keys (the list from step 0):
 
    ```sql
-   ALTER TABLE t DISABLE CONSTRAINT pk_t;           -- or: ALTER TABLE t DISABLE CONSTRAINT pk_t CASCADE;
+   ALTER TABLE app.t DISABLE CONSTRAINT pk_t;       -- or: ALTER TABLE app.t DISABLE CONSTRAINT pk_t CASCADE;
    ```
 
 2. If the index is still there (disabling keeps an UNUSABLE index, and enabling would then fail with ORA-14063), drop it:
 
    ```sql
-   DROP INDEX pk_t;
+   DROP INDEX app.pk_t;
    ```
 
 3. Delete **only the loaded duplicates**, identified by `ROWID`, never by key alone. Inspect the rows first and check which
-   copy is the original: `ROWID` order is not load order in general.
+   copy is the original: `ROWID` order is not load order in general. `PARTITION BY` must list **every** column of the key.
+   Back up the rows you are about to delete, delete them, check the count matches the backup, and commit explicitly:
 
    ```sql
-   SELECT ROWID, t.* FROM t WHERE id IN (SELECT id FROM t GROUP BY id HAVING COUNT(*) > 1) ORDER BY id;
+   SELECT ROWID, t.* FROM app.t t
+    WHERE (id) IN (SELECT id FROM app.t GROUP BY id HAVING COUNT(*) > 1) ORDER BY id;
 
-   DELETE FROM t WHERE ROWID IN (
-     SELECT rid FROM (SELECT ROWID rid, ROW_NUMBER() OVER (PARTITION BY id ORDER BY ROWID) rn FROM t)
-     WHERE rn > 1);                                  -- adjust to keep the copies you identified as the originals
+   CREATE TABLE app.t_duplicates_backup AS          -- DDL: commits; run it before the DELETE
+     SELECT ROWID AS original_rowid, t.* FROM app.t t WHERE ROWID IN (
+       SELECT rid FROM (SELECT ROWID rid, ROW_NUMBER() OVER (PARTITION BY id ORDER BY ROWID) rn FROM app.t)
+       WHERE rn > 1);                               -- adjust to keep the copies you identified as the originals
+
+   DELETE FROM app.t WHERE ROWID IN (SELECT original_rowid FROM app.t_duplicates_backup);
+   -- the reported row count must equal SELECT COUNT(*) FROM app.t_duplicates_backup; otherwise ROLLBACK
+   COMMIT;
    ```
+
+   (A guaranteed restore point or an RMAN/Data Pump backup of the table before step 1 is a stronger alternative.)
 
 4. Recreate the index with its original definition (the DDL from step 0), then enable the constraint on it:
 
    ```sql
-   CREATE UNIQUE INDEX pk_t ON t (id) /* + the saved storage clauses */;
-   ALTER TABLE t ENABLE CONSTRAINT pk_t USING INDEX pk_t;     -- or ENABLE CONSTRAINT pk_t for a default index
+   CREATE UNIQUE INDEX app.pk_t ON app.t (id) /* + the saved storage clauses */;
+   ALTER TABLE app.t ENABLE CONSTRAINT pk_t USING INDEX app.pk_t;   -- or ENABLE CONSTRAINT pk_t for a default index
    ```
 
 5. Re-enable **and validate** each child foreign key you disabled:
 
    ```sql
-   ALTER TABLE child MODIFY CONSTRAINT fk_child_t ENABLE VALIDATE;
+   ALTER TABLE app.child MODIFY CONSTRAINT fk_child_t ENABLE VALIDATE;
    ```
 
-6. Check the loaded table's own foreign keys too: the load did not check them. Find orphans with an anti-join and fix
-   them; `ENABLE VALIDATE` fails with ORA-02298 while orphans exist:
+6. Check the loaded table's own foreign keys too: the load did not check them. **The anti-join is the authoritative
+   check**, because the constraint still says `ENABLED VALIDATED`, so re-issuing `ENABLE VALIDATE` on it may be a no-op.
+   Find and fix the orphans, then force a real validation by disabling and re-enabling the constraint (it fails with
+   ORA-02298 while orphans exist):
 
    ```sql
-   SELECT t.* FROM t WHERE t.parent_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM parent p WHERE p.id = t.parent_id);
+   SELECT t.* FROM app.t t WHERE t.parent_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM app.parent p WHERE p.id = t.parent_id);
+
+   ALTER TABLE app.t MODIFY CONSTRAINT fk_t_parent DISABLE;
+   ALTER TABLE app.t MODIFY CONSTRAINT fk_t_parent ENABLE VALIDATE;
    ```
 
-A DEFERRABLE key that the load disabled is repaired the same way (remove the duplicates, then enable it). `TRUNCATE`
-also makes an UNUSABLE index VALID again, which is often the simplest fix for a staging table.
+A DEFERRABLE key that the load disabled is repaired the same way (remove the duplicates, then enable it). For a staging
+table, `TRUNCATE TABLE app.t DROP ALL STORAGE` is often simpler: it makes an UNUSABLE index VALID again, but it **deletes
+every row** of the table, and it fails with ORA-02266 while enabled foreign keys of other tables reference it.
 
 ## Writing your own provider
 
@@ -639,7 +684,6 @@ Benchmark: 100,000 records inserted into an empty SQL Server table with 4 column
 | Loki Bulk Processor   | 2.99 seconds  | 266 MB       |
 | Entity Framework Core | 68.74 seconds | 1 GB+        |
 
-Inserted 100,000 records into an empty table with 1 PK and 1 FK column.
 
 > ⚠️ Entity Framework was used with `AddAsync` and `SaveChangesAsync`. Loki used a single bulk insert call.
 
@@ -663,7 +707,7 @@ no network latency was measured (array bind makes one round trip per chunk), and
 | ≤ 6.0.0      | Web API execution failed after the first request | **Upgrade to v7.0.0+** ✅ |
 | 6.0.0        | `DataTableMapping` renamed to `DataMapping`      | **Update references** ⚠️ |
 | 7.0.1        | Project upgraded to .NET 10                       | **No action required unless you target an earlier runtime** ✅ |
-| 8.x          | 9.0.0: see the tables below                       | **Read [8.x to 9.0.0](#8x-to-900)** ⚠️ |
+| 8.x          | 9.0.0: see the tables below                       | **Read [8.x to 9.0.0](https://github.com/stephen-rebner/loki-bulk-data-processor#8x-to-900)** ⚠️ |
 
 ### Upgrading from 8.x in 5 minutes
 
@@ -681,7 +725,8 @@ public class ImportService(IBulkProcessor processor)
 
 1. Update `LokiBulkDataProcessor` to 9.0.0.
 2. Replace `using System.Data.SqlClient;` with `using Microsoft.Data.SqlClient;` wherever you create connections or
-   transactions for Loki, and add `TrustServerCertificate=true` for development servers with self-signed certificates.
+   transactions for Loki. For a development server with a self-signed certificate add `TrustServerCertificate=true`
+   (development only: it disables certificate validation; see [SQL Server](#sql-server)).
 3. Replace any use of `IBulkProcessor.ConnectionString` / `WithConnectionString` with the factory (below).
 4. In your catch blocks, roll back your own transaction: Loki no longer does it for you.
 5. Rebuild: `SaveAsync` gained an optional `CancellationToken`, so mocks and custom `IBulkProcessor` implementations
@@ -706,7 +751,7 @@ public class ImportService(IBulkProcessorFactory factory)
 
 | What changed | Action required |
 |--------------|-----------------|
-| The driver is now `Microsoft.Data.SqlClient` 6.1.8 (was the deprecated `System.Data.SqlClient`, #14), so EF Core transactions (`GetDbTransaction()`) are accepted. It defaults to `Encrypt=true`. A `System.Data.SqlClient` transaction now throws `ArgumentException`. | Change `using System.Data.SqlClient` to `using Microsoft.Data.SqlClient` wherever you create connections or transactions for Loki. For dev servers with self-signed certificates add `TrustServerCertificate=true`; do not turn encryption off. ⚠️ |
+| The driver is now `Microsoft.Data.SqlClient` 6.1.8 (was the deprecated `System.Data.SqlClient`, #14), so EF Core transactions (`GetDbTransaction()`) are accepted. It defaults to `Encrypt=true`. A `System.Data.SqlClient` transaction now throws `ArgumentException`. | Change `using System.Data.SqlClient` to `using Microsoft.Data.SqlClient` wherever you create connections or transactions for Loki. For dev servers with self-signed certificates add `TrustServerCertificate=true` (development only: it disables certificate validation, never use it in production); do not turn encryption off. ⚠️ |
 | The mapping API (`ModelMapping<T>`, `DataMapping`, ...), `IBulkProcessor` and `LokiLoggingOptions` moved to the new `LokiBulkDataProcessor.Core` package with **unchanged namespaces**. `LokiBulkDataProcessor` depends on it, and type forwarders let assemblies built against 8.x (for example a separate mappings library) keep binding. | None for source code. Assemblies compiled against 8.x that call `SaveAsync` must be recompiled (see the `CancellationToken` row). ✅ |
 | New packages: `LokiBulkDataProcessor.Core` and `LokiBulkDataProcessor.Oracle`. The SQL package depends on Core `[9.0.0, 10.0.0)`. | None; add `LokiBulkDataProcessor.Oracle` to write to Oracle. ✅ |
 | `IBulkProcessor.ConnectionString` and `WithConnectionString` are removed. A processor's connection string is fixed when it is created, and there is no public getter for it. | Use `AddLokiBulkDataProcessor(connectionString, ...)` for one database, or inject `IBulkProcessorFactory` and call `Create(SqlServerProvider.Name, connectionString)` per database. ⚠️ |
@@ -714,7 +759,7 @@ public class ImportService(IBulkProcessorFactory factory)
 | `BulkProcessor` is internal (created only by the factory). `ICommandFactory`, the command interfaces, `BulkCopyFromDataReaderCommand`, `IBulkProcessorCommand`, `IAppContext`, `ILokiDbConnection`, `IBulkCopyCommand` and `DbConstants` are removed; `IDataMappingCollection`, `IModelMappingCollection` and `AbstractMappings<T>` are internal. | Depend on `IBulkProcessor` / `IBulkProcessorFactory` only. ⚠️ |
 | The empty public class `Loki.BulkDataProcessor.Properties.AssemblyInfo` is removed, and the assembly version is now generated (`9.0.0.0`, was a hard-coded `1.0.0.02`). | Remove any reference to `AssemblyInfo`: `using Loki.BulkDataProcessor.Properties;` no longer compiles. ⚠️ |
 | New public API (additive): `IBulkProcessorFactory`; `AddLokiBulkDataProcessor(options => ...)` with `.AddSqlServer()` / `.AddOracle()`; `LokiBulkDataProcessorOptions` (incl. `RequireDataMappingForJson`, `MaxJsonPayloadBytes`); `SaveAsync(IDataReader, destinationTableName, sourceName, ...)`; `SaveAsync(Stream, destinationTableName, ...)`; the provider SPI in `Loki.BulkDataProcessor.Providers`. | None. ✅ |
-| `Testcontainers.MsSql` (#17) and `Microsoft.Extensions.DependencyInjection` (now only `.Abstractions`) are no longer transitive dependencies. `Microsoft.Data.SqlClient` brings its own (Azure.Identity, Microsoft.Identity.Client, the SNI runtime). | Reference them directly if your code used them. ✅ |
+| `Testcontainers.MsSql` is no longer a dependency at all (#17). `Microsoft.Extensions.DependencyInjection` is no longer a **direct** dependency (Loki references only `.Abstractions`; the full package still arrives transitively through `Microsoft.Extensions.Logging`, but that is not guaranteed). `Microsoft.Data.SqlClient` brings its own dependencies (Azure.Identity, Microsoft.Identity.Client, the SNI runtime). | Reference `Testcontainers.MsSql` and `Microsoft.Extensions.DependencyInjection` directly if your code uses them. ✅ |
 
 **Registration and mappings**
 
@@ -755,6 +800,7 @@ public class ImportService(IBulkProcessorFactory factory)
 | What changed | Action required |
 |--------------|-----------------|
 | Loki no longer registers `NullLoggerFactory` or console logging for your whole app. It now logs through your host's `ILoggerFactory` by default (start/complete at Information, failures at Error; no row data or connection strings). Loki-private console logging (`LokiLoggingOptions`, `UseConsoleLogging`, the legacy `configureLogging` argument) is obsolete. | To silence it: `options.UseHostLoggerFactory = false`, or a log filter on category `Loki.BulkDataProcessor`. Configure console output in your host's logging. ⚠️ |
+| The legacy `AddLokiBulkDataProcessor(connectionString, assembly, loggerFactory, configureLogging)` no longer touches your app's logging. 8.x registered the `loggerFactory` you passed as the app's `ILoggerFactory` (`AddSingleton(loggerFactory)`), registered `NullLoggerFactory` when you passed nothing, and with `configureLogging` called `AddLogging(...)` for the whole app (console output and `SetMinimumLevel`). 9.0 does none of these: the factory is used by Loki only. | If other services resolved the `ILoggerFactory` Loki registered, or relied on its console output or minimum level, register logging yourself (`services.AddSingleton(loggerFactory)` or `services.AddLogging(...)`). ⚠️ |
 | The log category changed from `Loki.BulkDataProcessor.BulkProcessor` to `Loki.BulkDataProcessor.Internal.BulkProcessor`, and the texts are new: `Starting/Completed bulk copy to {TableName} via {Provider}` and `Bulk copy to {TableName} via {Provider} failed with {ExceptionType} (inner {InnerExceptionType})`. The failure entry no longer carries the exception object. | Update log filters, queries and alerts that match the old category or texts. ⚠️ |
 
 ## Documentation

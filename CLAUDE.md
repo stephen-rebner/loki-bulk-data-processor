@@ -203,9 +203,11 @@ package, #17, + a gate that fails when NuGet reports a known vulnerability in an
 `sqlserver-integration` (Testcontainers SQL Server), `oracle-integration` (pulls the digest-pinned Oracle Free image, then
 Testcontainers Oracle; 30-minute timeout) and `pack` (after `unit`: `bash build/pack.sh` packs the three libraries in Release
 and fails unless there are exactly three nupkgs at `<Version>`, SQL and Oracle depend on Core `[Version, next major)`, no nuspec
-has a test-only dependency, and each has its dll, XML docs and README; uploads them as the `nuget-packages` artifact; it never
-publishes). The Oracle image reference lives only in `OracleTestDatabase.Image`; the job greps it from there (keep it a one-line
-literal with `@sha256:`). The workflow runs with `permissions: contents: read`.
+has a test-only dependency, and each has its dll, XML docs and README; prints their sha256; uploads them as the `nuget-packages`
+artifact on pushes only; it never publishes). The Oracle image reference lives only in `OracleTestDatabase.Image`; the job greps it
+from there (keep it a one-line literal with `@sha256:`); `sqlserver-integration` fails unless `SqlServerTestDatabase.Image` is tag +
+digest pinned. The workflow runs with `permissions: contents: read`, every checkout has `persist-credentials: false`, and every
+action is pinned to a full commit SHA with a `# vX.Y.Z` comment (`.github/dependabot.yml` updates them weekly).
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`

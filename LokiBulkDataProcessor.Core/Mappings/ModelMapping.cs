@@ -27,7 +27,7 @@ namespace Loki.BulkDataProcessor.Mappings
         /// <see cref="IToDestination.ToDestinationColumn"/>.
         /// </summary>
         /// <typeparam name="TKey">The property type.</typeparam>
-        /// <param name="keySelector">A public property with a public getter, for example <c>post =&gt; post.Title</c>.</param>
+        /// <param name="keySelector">A public property with a public getter AND a public setter (only those are copied), for example <c>post =&gt; post.Title</c>.</param>
         /// <returns>The step that names the destination column.</returns>
         public IToDestination Map<TKey>(Expression<Func<TSource, TKey>> keySelector)
         {

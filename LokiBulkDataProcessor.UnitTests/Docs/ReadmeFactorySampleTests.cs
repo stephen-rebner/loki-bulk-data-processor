@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -22,12 +24,21 @@ public enum DatabaseEngine { SqlServer, Oracle, PostgreSql }
 
 public sealed class SeedWriter(IBulkProcessorFactory bulkProcessorFactory)
 {
+    // Your code decides which tables may be seeded; users never choose any other table.
+    private static readonly HashSet<string> SeedableTables = new(StringComparer.Ordinal) { "Customers", "Orders" };
+
+    // connectionString comes from your configuration, never from end users.
     public async Task WriteAsync(DatabaseEngine engine, string connectionString, DataTable rows, CancellationToken ct)
     {
         string provider = engine.ToString();                  // "SqlServer", "Oracle", "PostgreSql"
         if (!bulkProcessorFactory.HasProvider(provider))
         {
             throw new NotSupportedException($"Bulk seeding is not supported for {provider}.");
+        }
+
+        if (!SeedableTables.Contains(rows.TableName))
+        {
+            throw new ArgumentException("This table may not be seeded.", nameof(rows));
         }
 
         IBulkProcessor processor = bulkProcessorFactory.Create(provider, connectionString);
@@ -57,6 +68,29 @@ public class SeedWriterTests
 
 public class ReadmeFactorySampleTests
 {
+    [Test]
+    public void Readme_ShouldContainTheSampleCodeVerbatim_WhenComparedWithThisFile()
+    {
+        string readme = File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "Docs", "README.md")).Replace("\r\n", "\n");
+        string thisFile = File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "Docs", "ReadmeFactorySampleTests.cs.txt"));
+
+        readme.Should().Contain("## Choosing the database at run time (IBulkProcessorFactory)");
+        readme.Should().Contain(Region(thisFile, "// README sample: begin", "// README sample: end", indent: 0));
+        readme.Should().Contain(Region(thisFile, "// README sample (registration): begin", "        // README sample (registration): end", indent: 8));
+    }
+
+    /// <summary>The text between two marker lines, with <paramref name="indent"/> leading spaces removed from each line.</summary>
+    private static string Region(string text, string beginMarker, string endMarker, int indent)
+    {
+        string normalized = text.Replace("\r\n", "\n");
+        int start = normalized.IndexOf(beginMarker + "\n", StringComparison.Ordinal);
+        int end = normalized.IndexOf(endMarker, start, StringComparison.Ordinal);
+        start.Should().BeGreaterThanOrEqualTo(0, $"the marker '{beginMarker}' must exist");
+        string region = normalized[(start + beginMarker.Length + 1)..end].TrimEnd();
+        string[] lines = region.Split('\n');
+        return string.Join("\n", Array.ConvertAll(lines, line => line.Length >= indent ? line[indent..] : line.TrimStart())).Trim();
+    }
+
     [Test]
     public void Registration_ShouldRegisterEveryEngineTheSampleUses_WhenConfiguredAsInTheReadme()
     {
@@ -91,6 +125,19 @@ public class ReadmeFactorySampleTests
             .WriteAsync(DatabaseEngine.PostgreSql, "cs", new DataTable("Customers"), CancellationToken.None);
 
         await act.Should().ThrowAsync<NotSupportedException>().WithMessage("*PostgreSql*");
+        factory.Verify(f => f.Create(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task WriteAsync_ShouldThrowArgumentException_WhenTheTableIsNotSeedable()
+    {
+        Mock<IBulkProcessorFactory> factory = new();
+        factory.Setup(f => f.HasProvider("SqlServer")).Returns(true);
+
+        Func<Task> act = () => new SeedWriter(factory.Object)
+            .WriteAsync(DatabaseEngine.SqlServer, "cs", new DataTable("Users"), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ArgumentException>()).Which.ParamName.Should().Be("rows");
         factory.Verify(f => f.Create(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 }

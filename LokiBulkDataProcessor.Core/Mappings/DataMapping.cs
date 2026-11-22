@@ -16,7 +16,9 @@ namespace Loki.BulkDataProcessor.Mappings
     /// </remarks>
     public abstract class DataMapping : AbstractMapping, IMapDataTableSource
     {
-        /// <summary>The source name this mapping applies to (see the lookup rule in the remarks). Must not be blank.</summary>
+        /// <summary>The source name this mapping applies to (see the lookup rule in the remarks). Must not be blank, and the override
+        /// must return a constant (for example <c>=&gt; "PostImport"</c>): the base constructor reads it before the derived
+        /// constructor runs, so it must not depend on fields set in a constructor.</summary>
         public abstract string SourceTableName { get; }
 
         /// <summary>Creates the mapping; call <see cref="Map"/> from the derived constructor.</summary>
