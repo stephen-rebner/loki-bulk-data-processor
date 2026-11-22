@@ -1,0 +1,95 @@
+using System;
+using System.Data;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
+using Loki.BulkDataProcessor.Providers;
+using Microsoft.Extensions.Logging;
+using Oracle.ManagedDataAccess.Client;
+
+namespace Loki.BulkDataProcessor.Oracle.Internal.Writers;
+
+/// <summary>
+/// <see cref="OracleWriteMode.DirectPath"/>: one <c>OracleBulkCopy</c> direct-path load per write, on the context's connection. The
+/// load joins the connection's active transaction implicitly (OracleBulkCopy has no transaction parameter), and the writer never
+/// uses <c>UseInternalTransaction</c> or <c>EnforceIndexChecks</c> (the spike showed the latter hanging past its timeout). A failed
+/// load leaves none of its rows behind. The writer never commits, rolls back or disposes the connection or transaction.
+/// </summary>
+/// <remarks>
+/// ODP.NET has no asynchronous direct-path API: <c>WriteToServer</c> blocks the calling thread, and the token is checked only up to
+/// the moment the load starts.
+/// </remarks>
+internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWriteOptions options,
+    IOracleIdentifierResolver resolver, ILogger logger) : IBulkWriter
+{
+    /// <summary>Never <c>UseInternalTransaction</c> (it would commit per batch, and fails inside a caller's transaction) or
+    /// <c>EnforceIndexChecks</c>.</summary>
+    internal const OracleBulkCopyOptions CopyOptions = OracleBulkCopyOptions.Default;
+
+    public async Task WriteAsync(IDataReader source, BulkWriteTarget target, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+        cancellationToken.ThrowIfCancellationRequested();
+        OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
+        DirectPathLoad load = Plan(source, resolved, options);
+        cancellationToken.ThrowIfCancellationRequested();   // last cancellation point: WriteToServer is synchronous
+        Load(source, load);
+        logger.LogDebug("Direct-path load of {ColumnCount} columns completed", load.Columns.Count);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// The load's configuration: each mapped source column's ordinal (Loki already matched the names, so columns are mapped by ordinal)
+    /// with the resolver's quoted destination column, the quoted table and schema, BatchSize and Timeout. Fails before the load starts.
+    /// </summary>
+    internal static DirectPathLoad Plan(IDataReader source, OracleResolvedTarget resolved, BulkWriteOptions options)
+    {
+        SourceColumns.ThrowIfEmpty(resolved);
+        DirectPathColumn[] columns = resolved.Columns
+            .Select(column => new DirectPathColumn(SourceColumns.Ordinal(source, column.SourceColumn), column.DestinationSql))
+            .ToArray();
+        return new DirectPathLoad(resolved.SchemaSql, resolved.TableSql, Math.Max(0, options.BatchSize), Math.Max(0, options.TimeoutSeconds), columns);
+    }
+
+    /// <summary>Runs the load synchronously; the bulk copy (not the connection) is disposed afterwards.</summary>
+    private void Load(IDataReader source, DirectPathLoad load)
+    {
+        using OracleBulkCopy bulkCopy = CreateBulkCopy(load);
+        bulkCopy.WriteToServer(source);
+    }
+
+    /// <summary>OracleBulkCopy requires an open connection, so this runs only inside a write. Disposed again if configuring it fails.</summary>
+    private OracleBulkCopy CreateBulkCopy(DirectPathLoad load)
+    {
+        var bulkCopy = new OracleBulkCopy(connection, CopyOptions);
+        try
+        {
+            Configure(bulkCopy, load);
+            return bulkCopy;
+        }
+        catch
+        {
+            bulkCopy.Dispose();
+            throw;
+        }
+    }
+
+    private static void Configure(OracleBulkCopy bulkCopy, DirectPathLoad load)
+    {
+        bulkCopy.DestinationTableName = load.TableSql;
+        if (load.SchemaSql is not null)
+        {
+            bulkCopy.DestinationSchemaName = load.SchemaSql;
+        }
+
+        bulkCopy.BatchSize = load.BatchSize;
+        bulkCopy.BulkCopyTimeout = load.TimeoutSeconds;
+        foreach (DirectPathColumn column in load.Columns)
+        {
+            bulkCopy.ColumnMappings.Add(new OracleBulkCopyColumnMapping(column.SourceOrdinal, column.DestinationSql));
+        }
+    }
+}

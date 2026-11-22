@@ -46,13 +46,16 @@ internal sealed class OracleBulkCopyProvider : IBulkCopyProvider
             nameof(transaction));
     }
 
-    /// <summary>Only the array-bind writer exists until direct path lands; <see cref="OracleProviderOptions.Validated"/> rejects DirectPath.</summary>
+    /// <summary>The writer for the registered <see cref="OracleWriteMode"/>.</summary>
     public IBulkWriter CreateWriter(BulkWriteContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ILogger logger = (context.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ArrayBindOracleWriter>();
-        return new ArrayBindOracleWriter((OracleConnection)context.Connection, context.Transaction as OracleTransaction,
-            context.Options, _resolver, _typeMap, logger);
+        ILoggerFactory loggerFactory = context.LoggerFactory ?? NullLoggerFactory.Instance;
+        var connection = (OracleConnection)context.Connection;
+        return Options.WriteMode == OracleWriteMode.DirectPath
+            ? new DirectPathOracleWriter(connection, context.Options, _resolver, loggerFactory.CreateLogger<DirectPathOracleWriter>())
+            : new ArrayBindOracleWriter(connection, context.Transaction as OracleTransaction, context.Options, _resolver, _typeMap,
+                loggerFactory.CreateLogger<ArrayBindOracleWriter>());
     }
 
     public Exception TranslateException(Exception exception, BulkWriteTarget target) =>

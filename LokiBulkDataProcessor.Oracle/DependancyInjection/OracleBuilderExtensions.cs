@@ -16,7 +16,6 @@ public static class OracleBuilderExtensions
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is null, empty or white space.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An option holds an undefined enum value.</exception>
-    /// <exception cref="NotSupportedException"><see cref="OracleWriteMode.DirectPath"/> is selected; it is not available in this build yet.</exception>
     public static ILokiBulkDataProcessorBuilder AddOracle(this ILokiBulkDataProcessorBuilder builder,
         Action<OracleProviderOptions> configure = null, string name = OracleProvider.Name)
     {

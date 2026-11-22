@@ -105,6 +105,20 @@ public class OracleBulkCopyProviderTests
     }
 
     [Test]
+    public async Task CreateWriter_ShouldReturnADirectPathWriter_WhenTheWriteModeIsDirectPath()
+    {
+        var provider = new OracleBulkCopyProvider(OracleProvider.Name, new OracleProviderOptions { WriteMode = OracleWriteMode.DirectPath }.Validated());
+        using var connection = new OracleConnection(ConnectionString);
+        var context = new BulkWriteContext(connection, null, new BulkWriteOptions(10, 20), NullLoggerFactory.Instance);
+
+        IBulkWriter writer = provider.CreateWriter(context);
+
+        writer.Should().BeOfType<DirectPathOracleWriter>();
+        await writer.Invoking(w => w.DisposeAsync().AsTask()).Should().NotThrowAsync();
+        connection.State.Should().Be(ConnectionState.Closed, "creating a writer opens nothing");
+    }
+
+    [Test]
     public void CreateWriter_ShouldThrowArgumentNullException_WhenTheContextIsNull()
     {
         Action action = () => _provider.CreateWriter(null);

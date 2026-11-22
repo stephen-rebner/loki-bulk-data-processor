@@ -28,6 +28,15 @@ internal static class OracleExceptionTranslator
     internal const string TimeoutHint =
         """The command did not complete within IBulkProcessor.Timeout and was cancelled by the driver; raise the Timeout (0 means no limit) or check for locks held by other sessions.""";
 
+    internal const string UnusableIndexHint =
+        """An index of the destination table is UNUSABLE, often after a direct-path load inserted duplicate keys; remove the duplicates and rebuild the index (ALTER INDEX ... REBUILD).""";
+
+    internal const string DirectPathTriggerHint =
+        """Direct-path loads do not support tables with triggers; use OracleWriteMode.ArrayBind for this table.""";
+
+    internal const string DirectPathOncePerTransactionHint =
+        """Only one direct-path load is allowed per Oracle transaction; commit between saves, or use OracleWriteMode.ArrayBind.""";
+
     /// <summary>ORA-01013 (user requested cancel): the driver's report of an expired command timeout.</summary>
     internal const int CommandCancelled = 1013;
 
@@ -82,6 +91,9 @@ internal static class OracleExceptionTranslator
             942 or 39826 => new InvalidOperationException(
                 $"{Failed(tableName, number)} The table does not exist or is not visible to the connected user.{hint}", inner),
             1461 => new InvalidOperationException($"{Failed(tableName, number)} {LongStringHint}", inner),
+            1502 => new InvalidOperationException($"{Failed(tableName, number)} {UnusableIndexHint}", inner),
+            26086 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathTriggerHint}", inner),
+            39822 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathOncePerTransactionHint}", inner),
             CommandCancelled => new InvalidOperationException($"{Failed(tableName, number)} {TimeoutHint}", inner),
             _ => new InvalidOperationException(Failed(tableName, number), inner)
         };
