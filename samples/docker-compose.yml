@@ -1,0 +1,54 @@
+# Local databases for the Loki samples. LOCAL DEVELOPMENT ONLY.
+#
+#   docker compose -f samples/docker-compose.yml up -d --wait     # start both and wait until they are healthy
+#   docker compose -f samples/docker-compose.yml down             # stop and delete them (every row is gone)
+#
+# The images are the ones the integration tests use, pinned by tag + digest (keep them equal to SqlServerTestDatabase.Image
+# and OracleTestDatabase.Image). The default passwords below are public, well-known values for these throwaway local
+# containers and match samples/*/appsettings.Development.json. Never reuse them, and never expose these ports beyond your
+# machine. To use other values, copy .env.example to .env (git-ignored) and set the connection strings to match
+# (user secrets or ConnectionStrings__SqlServer / ConnectionStrings__Oracle environment variables; see samples/README.md).
+#
+# No data volumes: the databases live in the containers, so `down` resets them. The Oracle schema (db/oracle/init.sql) is
+# created on the container's first start; the SQL Server schema comes from the WebApi's EF Core migrations.
+
+name: loki-samples
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04@sha256:c1aa8afe9b06eab64c9774a4802dcd032205d1be785b1fd51e1c0151e7586b74
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      # Local development only (see the header).
+      MSSQL_SA_PASSWORD: ${LOKI_SAMPLES_SQLSERVER_PASSWORD:-Loki_Samples_Local_Dev_Only_1}
+    ports:
+      - "127.0.0.1:1433:1433"
+    healthcheck:
+      # $$ defers the expansion to the container, so the password is read from its own environment.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  oracle:
+    image: gvenzl/oracle-free:23.26.3-slim-faststart@sha256:f5ff19033860d662c821cb04eb10483fa94f14f78eae252d054291ea07028093
+    environment:
+      # Local development only (see the header). ORACLE_PASSWORD is SYS/SYSTEM's; the samples connect as APP_USER.
+      ORACLE_PASSWORD: ${LOKI_SAMPLES_ORACLE_SYS_PASSWORD:-Loki_Samples_Local_Dev_Only_1}
+      APP_USER: loki_samples
+      APP_USER_PASSWORD: ${LOKI_SAMPLES_ORACLE_PASSWORD:-Loki_Samples_Local_Dev_Only_1}
+    ports:
+      - "127.0.0.1:1521:1521"
+    volumes:
+      # Run once, on the container's first start, after APP_USER has been created.
+      - ./db/oracle:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      # The image's own check; it stays unhealthy until the init scripts have run.
+      test: ["CMD", "healthcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s

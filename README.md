@@ -687,6 +687,9 @@ Benchmark: 100,000 records inserted into an empty SQL Server table with 4 column
 
 > ⚠️ Entity Framework was used with `AddAsync` and `SaveChangesAsync`. Loki used a single bulk insert call.
 
+To measure on your own machine, run the [benchmark sample](https://github.com/stephen-rebner/loki-bulk-data-processor/tree/master/samples#4-run-the-benchmark)
+(Loki vs EF Core `AddRange` + `SaveChanges` on SQL Server and Oracle).
+
 **Oracle (9.0.0).** 1,000,000 rows of six columns, both databases in local Docker on one 4-vCPU machine (Oracle Free 23.26
 in NOARCHIVELOG, SQL Server 2022, each capped at about 2 GB), median of 3 runs:
 
@@ -806,6 +809,7 @@ public class ImportService(IBulkProcessorFactory factory)
 ## Documentation
 
 - This README is the documentation for 9.x.
+- 🧪 [Samples](https://github.com/stephen-rebner/loki-bulk-data-processor/tree/master/samples) (9.x): a runnable ASP.NET Core API (engine choice per request, mappings, JSON uploads, an EF Core transaction, an Oracle direct-path staging import) and a Loki vs EF Core benchmark, with SQL Server and Oracle in Docker
 - 📝 [Wiki](https://github.com/stephen-rebner/loki-bulk-data-processor/wiki): documentation for 8.x and earlier
 - 📺 [YouTube Tutorial – Part 1](https://youtu.be/vci6kQWcmhs) — Introduction & Setup (shows 8.x)
 - 📺 [YouTube Tutorial – Part 2](https://youtu.be/2ABIrl_nwMk) — Advanced Usage & Mapping (shows 8.x)
