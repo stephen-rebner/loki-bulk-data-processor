@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 using Loki.BulkDataProcessor.Oracle.Internal.Types;
 using Loki.BulkDataProcessor.Oracle.Internal.Writers;
@@ -52,8 +53,10 @@ internal sealed class OracleBulkCopyProvider : IBulkCopyProvider
         ArgumentNullException.ThrowIfNull(context);
         ILoggerFactory loggerFactory = context.LoggerFactory ?? NullLoggerFactory.Instance;
         var connection = (OracleConnection)context.Connection;
+        Debug.Assert(context.Transaction is null || ReferenceEquals(context.Transaction.Connection, context.Connection),
+            "The pipeline always passes the transaction of the context's own connection.");
         return Options.WriteMode == OracleWriteMode.DirectPath
-            ? new DirectPathOracleWriter(connection, context.Options, _resolver, loggerFactory.CreateLogger<DirectPathOracleWriter>())
+            ? new DirectPathOracleWriter(connection, context.Options, _resolver, _typeMap, Name, loggerFactory.CreateLogger<DirectPathOracleWriter>())
             : new ArrayBindOracleWriter(connection, context.Transaction as OracleTransaction, context.Options, _resolver, _typeMap,
                 loggerFactory.CreateLogger<ArrayBindOracleWriter>());
     }

@@ -4,7 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Loki.BulkDataProcessor.Oracle.Internal;
+using Loki.BulkDataProcessor.Oracle;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
+using Loki.BulkDataProcessor.Oracle.Internal.Types;
 using Loki.BulkDataProcessor.Oracle.Internal.Writers;
 using Loki.BulkDataProcessor.Providers;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -28,7 +30,10 @@ public class DirectPathOracleWriterTests
     public void TearDown() => _connection.Dispose();
 
     private DirectPathOracleWriter Writer(IOracleIdentifierResolver resolver = null, int batchSize = 0, int timeout = 30) =>
-        new(_connection, new BulkWriteOptions(batchSize, timeout), resolver ?? new UnquotedIdentifierResolver(), NullLogger.Instance);
+        new(_connection, new BulkWriteOptions(batchSize, timeout), resolver ?? new UnquotedIdentifierResolver(), TypeMap, OracleProvider.Name,
+            NullLogger.Instance);
+
+    private static readonly OracleTypeMap TypeMap = new(OracleBooleanBinding.Number);
 
     private static DataTable PostsTable()
     {
@@ -40,7 +45,7 @@ public class DirectPathOracleWriterTests
     }
 
     [Test]
-    public void CopyOptions_ShouldBeDefault_SoNoInternalTransactionOrIndexChecksAreUsed()
+    public void CopyOptions_ShouldBeDefault_WhenTheWriterIsCreated()
     {
         DirectPathOracleWriter.CopyOptions.Should().Be(OracleBulkCopyOptions.Default);
     }
@@ -53,7 +58,7 @@ public class DirectPathOracleWriterTests
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(
             new BulkWriteTarget("loki.Posts", new[] { new ColumnMap("Title", "Title"), new ColumnMap("BlogId", "BlogId") }));
 
-        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(250, 45));
+        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(250, 45), TypeMap);
 
         load.SchemaSql.Should().Be("\"LOKI\"");
         load.TableSql.Should().Be("\"POSTS\"");
@@ -69,11 +74,11 @@ public class DirectPathOracleWriterTests
         using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Title", "Title") }));
 
-        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
+        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
 
         load.SchemaSql.Should().BeNull();
         load.TableSql.Should().Be("\"POSTS\"");
-        load.BatchSize.Should().Be(0, "0 sends every row in one batch, as SqlBulkCopy does");
+        load.BatchSize.Should().Be(ArrayBindOracleWriter.DefaultChunkSize, "0 means 5000 rows per batch, as with array bind (bounded memory)");
     }
 
     [Test]
@@ -84,7 +89,7 @@ public class DirectPathOracleWriterTests
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(
             new BulkWriteTarget("Posts", new[] { new ColumnMap("BlogId", "BlogId"), new ColumnMap("Title", "Heading") }));
 
-        DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30)).Columns
+        DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap).Columns
             .Should().Equal(new DirectPathColumn(1, "\"BLOGID\""), new DirectPathColumn(0, "\"HEADING\""));
     }
 
@@ -95,7 +100,7 @@ public class DirectPathOracleWriterTests
         using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Missing", "Title") }));
 
-        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
 
         action.Should().Throw<InvalidOperationException>().WithMessage(BulkCopyErrorMessages.SourceColumnNotFound("Missing"))
             .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
@@ -108,7 +113,7 @@ public class DirectPathOracleWriterTests
         using DataTableReader reader = table.CreateDataReader();
         var resolved = new OracleResolvedTarget(null, "\"POSTS\"", Array.Empty<OracleResolvedColumn>());
 
-        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
 
         action.Should().Throw<InvalidOperationException>().WithMessage(SourceColumns.NoColumnsMessage)
             .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
@@ -155,15 +160,27 @@ public class DirectPathOracleWriterTests
         await Writer().Invoking(w => w.WriteAsync(reader, null, CancellationToken.None)).Should().ThrowAsync<ArgumentNullException>();
     }
 
-    [Test]
-    public async Task DisposeAsync_ShouldNotDisposeTheConnection_WhenTheWriterIsDisposed()
+    [TestCase(0, 5000)]
+    [TestCase(-1, 5000)]
+    [TestCase(1, 1)]
+    [TestCase(50_000, 50_000)]
+    public void BatchSize_ShouldBeTheDefaultChunkSize_WhenTheBatchSizeIsZero(int batchSize, int expected)
     {
-        bool disposed = false;
-        _connection.Disposed += (_, _) => disposed = true;
+        DirectPathOracleWriter.BatchSize(batchSize).Should().Be(expected);
+    }
 
-        await Writer().DisposeAsync();
+    [Test]
+    public void Plan_ShouldThrowAMarkedNotSupported_WhenASourceColumnTypeIsNotSupported()
+    {
+        using var table = new DataTable();
+        table.Columns.Add("Payload", typeof(object));
+        using DataTableReader reader = table.CreateDataReader();
+        OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Payload", "Title") }));
 
-        disposed.Should().BeFalse();
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
+
+        action.Should().Throw<NotSupportedException>().WithMessage("The source column 'Payload' has type Object, which the Oracle provider does not support.")
+            .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
     }
 
     /// <summary>Resolves like Unquoted and counts calls; <c>onResolve</c> runs during resolution.</summary>

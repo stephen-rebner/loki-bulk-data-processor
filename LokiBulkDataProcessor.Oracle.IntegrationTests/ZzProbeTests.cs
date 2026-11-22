@@ -135,4 +135,44 @@ public sealed class ZzProbeTests
         Try("F ind$ flags", () => Scalar(c, "SELECT STATUS FROM ALL_INDEXES WHERE INDEX_NAME = 'PK_KEYEDROWS'"));
         tx.Rollback();
     }
+
+    private void ZeroRow(OracleConnection c, string t, string col)
+    {
+        Try($"G {t} insert0", () => Scalar(c, $"INSERT INTO {t} ({col}) SELECT NULL FROM DUAL WHERE 1 = 0"));
+        Try($"G {t} update0", () => Scalar(c, $"UPDATE {t} SET {col} = {col} WHERE 1 = 0"));
+        Try($"G {t} delete0", () => Scalar(c, $"DELETE FROM {t} WHERE 1 = 0"));
+        Try($"G {t} lock", () => Scalar(c, $"LOCK TABLE {t} IN EXCLUSIVE MODE NOWAIT"));
+    }
+
+    [Test]
+    public async Task G_Detect()
+    {
+        await using var c = await _db.OpenConnectionAsync();
+        c.InfoMessage += (_, e) => Log($"G infomessage: {e.Message} / {string.Join(",", System.Linq.Enumerable.Select(System.Linq.Enumerable.Cast<OracleError>(e.Errors), x => x.Number))}");
+        var tx = c.BeginTransaction();
+        Load(c, Dups(), "KEYEDROWS");
+        ZeroRow(c, "KEYEDROWS", "Name");
+        ZeroRow(c, "KEYEDROWS", "Id");
+        tx.Rollback();
+        var tx2 = c.BeginTransaction();
+        var t = new DataTable(); t.Columns.Add("StringColumn", typeof(string)); t.Columns.Add("BoolColumn", typeof(bool)); t.Columns.Add("DateColumn", typeof(DateTime));
+        t.Rows.Add("x", true, DateTime.Now);
+        Load(c, t, "TESTDBMODELS");
+        ZeroRow(c, "TESTDBMODELS", "StringColumn");
+        tx2.Commit();
+        Try("G committed rows", () => Scalar(c, "SELECT COUNT(*) FROM TestDbModels"));
+    }
+
+    [Test]
+    public async Task H_NonUniqueIndex()
+    {
+        await using var c = await _db.OpenConnectionAsync();
+        var tx = c.BeginTransaction();
+        var t = new DataTable(); t.Columns.Add("Title", typeof(string)); t.Columns.Add("BlogId", typeof(int));
+        t.Rows.Add("a", 5); t.Rows.Add("b", 5);
+        Load(c, t, "POSTS");
+        ZeroRow(c, "POSTS", "Title");
+        tx.Commit();
+        Try("H statuses", () => Scalar(c, "SELECT LISTAGG(INDEX_NAME || '=' || STATUS, ',') FROM USER_INDEXES WHERE TABLE_NAME = 'POSTS'"));
+    }
 }

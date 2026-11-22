@@ -26,13 +26,16 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// cannot exhaust memory; the rows are still written in the same transaction.
 /// </para>
 /// <para>
-/// The paragraphs above describe the default <see cref="OracleWriteMode.ArrayBind"/>. With <see cref="OracleWriteMode.DirectPath"/>
-/// each save is one synchronous <c>OracleBulkCopy</c> load (it blocks the calling thread, and the cancellation token is checked only before
-/// the load starts) that streams the source in batches of <see cref="IBulkProcessor.BatchSize"/> rows (0 means one batch). It joins your
-/// <see cref="IBulkProcessor.Transaction"/>, but only one load is allowed per transaction (ORA-39822), and until that transaction ends
-/// other sessions' queries on the table wait. A failed load leaves none of its rows, and your transaction stays usable. Foreign keys are
-/// not enforced, duplicate keys leave the index UNUSABLE (later inserts fail with ORA-01502), and tables with triggers are refused
-/// (ORA-26086): see <see cref="OracleWriteMode.DirectPath"/>.
+/// The paragraphs above describe the default <see cref="OracleWriteMode.ArrayBind"/>. <see cref="OracleWriteMode.DirectPath"/> is for bulk
+/// loads into staging tables only: never use it for tables other applications use, tables whose foreign or unique keys you rely on, or a
+/// destination chosen by untrusted input, and register it under its own name. Each save is one synchronous <c>OracleBulkCopy</c> load (it
+/// blocks the calling thread, the cancellation token is checked only before the load starts, and <see cref="IBulkProcessor.Timeout"/> is not
+/// a reliable upper bound) that streams the source in batches of <see cref="IBulkProcessor.BatchSize"/> rows (0 means 5000). It joins your
+/// <see cref="IBulkProcessor.Transaction"/>, and until that transaction ends other sessions' queries on the table wait, so commit right
+/// after the save. Only one load is allowed per transaction (ORA-39822); the transaction stays usable for other statements (not for
+/// another direct-path load). A failed load leaves none of its rows. Foreign keys are not enforced, tables with triggers are refused
+/// (ORA-26086), and a load with duplicate keys fails the save so that it can be rolled back (committing it would leave the index UNUSABLE):
+/// see <see cref="OracleWriteMode.DirectPath"/>.
 /// </para>
 /// <para>
 /// Oracle stores an empty string as NULL. Destination names are matched as described on <see cref="OracleIdentifierResolution"/>.

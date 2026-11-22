@@ -6,7 +6,11 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// <remarks>The values are copied when <c>AddOracle</c> runs; changing this object afterwards has no effect.</remarks>
 public sealed class OracleProviderOptions
 {
-    /// <summary>How rows are written. Default <see cref="OracleWriteMode.ArrayBind"/>.</summary>
+    /// <summary>
+    /// How rows are written. Default <see cref="OracleWriteMode.ArrayBind"/>. <see cref="OracleWriteMode.DirectPath"/> is for bulk loads into
+    /// staging tables only (foreign keys are not enforced and other sessions' queries wait until the transaction ends); register it under
+    /// its own provider name and read its hazards first.
+    /// </summary>
     public OracleWriteMode WriteMode { get; set; } = OracleWriteMode.ArrayBind;
 
     /// <summary>How destination table and column names are matched. Default <see cref="OracleIdentifierResolution.Unquoted"/>.</summary>

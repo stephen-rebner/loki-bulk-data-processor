@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
+using Loki.BulkDataProcessor.Oracle.Internal.Types;
 using Loki.BulkDataProcessor.Providers;
 using Microsoft.Extensions.Logging;
 using Oracle.ManagedDataAccess.Client;
@@ -11,17 +12,25 @@ using Oracle.ManagedDataAccess.Client;
 namespace Loki.BulkDataProcessor.Oracle.Internal.Writers;
 
 /// <summary>
-/// <see cref="OracleWriteMode.DirectPath"/>: one <c>OracleBulkCopy</c> direct-path load per write, on the context's connection. The
-/// load joins the connection's active transaction implicitly (OracleBulkCopy has no transaction parameter), and the writer never
-/// uses <c>UseInternalTransaction</c> or <c>EnforceIndexChecks</c> (the spike showed the latter hanging past its timeout). A failed
-/// load leaves none of its rows behind. The writer never commits, rolls back or disposes the connection or transaction.
+/// <see cref="OracleWriteMode.DirectPath"/> (staging tables only): one <c>OracleBulkCopy</c> direct-path load per write, on the context's
+/// connection, followed by <see cref="UnusableIndexCheck"/>. The load joins the connection's active transaction implicitly (OracleBulkCopy
+/// has no transaction parameter), and the writer never uses <c>UseInternalTransaction</c> or <c>EnforceIndexChecks</c> (the spike showed
+/// the latter hanging past its timeout). A failed load leaves none of its rows behind. The writer never commits, rolls back or disposes
+/// the connection or transaction.
 /// </summary>
 /// <remarks>
+/// <para>
+/// INVARIANT: the pipeline (<c>ConnectionScope</c>) always gives the writer a connection with an active transaction, Loki's own or the
+/// caller's. Without one, <c>WriteToServer</c> would commit the load itself (autocommit), and the unusable-index check below could no
+/// longer stop a load with duplicate keys from being committed.
+/// </para>
+/// <para>
 /// ODP.NET has no asynchronous direct-path API: <c>WriteToServer</c> blocks the calling thread, and the token is checked only up to
-/// the moment the load starts.
+/// the moment the load starts (an approved decision: connections are never closed to interrupt a load).
+/// </para>
 /// </remarks>
 internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWriteOptions options,
-    IOracleIdentifierResolver resolver, ILogger logger) : IBulkWriter
+    IOracleIdentifierResolver resolver, OracleTypeMap typeMap, string providerName, ILogger logger) : IBulkWriter
 {
     /// <summary>Never <c>UseInternalTransaction</c> (it would commit per batch, and fails inside a caller's transaction) or
     /// <c>EnforceIndexChecks</c>.</summary>
@@ -32,10 +41,14 @@ internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWr
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
         cancellationToken.ThrowIfCancellationRequested();
+        logger.LogInformation("Direct-path load (staging tables only) to {TableName} via {Provider}",
+            BulkCopyErrorMessages.Sanitize(target.TableName), providerName);
         OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
-        DirectPathLoad load = Plan(source, resolved, options);
+        DirectPathLoad load = Plan(source, resolved, options, typeMap);
         cancellationToken.ThrowIfCancellationRequested();   // last cancellation point: WriteToServer is synchronous
         Load(source, load);
+        await UnusableIndexCheck.ThrowIfAnyUnusableAsync(connection, resolved, target.TableName, options.TimeoutSeconds, cancellationToken)
+            .ConfigureAwait(false);
         logger.LogDebug("Direct-path load of {ColumnCount} columns completed", load.Columns.Count);
     }
 
@@ -43,15 +56,26 @@ internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWr
 
     /// <summary>
     /// The load's configuration: each mapped source column's ordinal (Loki already matched the names, so columns are mapped by ordinal)
-    /// with the resolver's quoted destination column, the quoted table and schema, BatchSize and Timeout. Fails before the load starts.
+    /// with the resolver's quoted destination column, the quoted table and schema, BatchSize (0 means
+    /// <see cref="ArrayBindOracleWriter.DefaultChunkSize"/>, so memory stays bounded as with array bind) and Timeout. Every source column's
+    /// type is checked against <paramref name="typeMap"/> (validation only: ODP.NET converts the values itself), so an unsupported type fails
+    /// before the load with the same marked <see cref="NotSupportedException"/> as array bind.
     /// </summary>
-    internal static DirectPathLoad Plan(IDataReader source, OracleResolvedTarget resolved, BulkWriteOptions options)
+    internal static DirectPathLoad Plan(IDataReader source, OracleResolvedTarget resolved, BulkWriteOptions options, OracleTypeMap typeMap)
     {
         SourceColumns.ThrowIfEmpty(resolved);
-        DirectPathColumn[] columns = resolved.Columns
-            .Select(column => new DirectPathColumn(SourceColumns.Ordinal(source, column.SourceColumn), column.DestinationSql))
-            .ToArray();
-        return new DirectPathLoad(resolved.SchemaSql, resolved.TableSql, Math.Max(0, options.BatchSize), Math.Max(0, options.TimeoutSeconds), columns);
+        DirectPathColumn[] columns = resolved.Columns.Select(column => PlanColumn(source, column, typeMap)).ToArray();
+        return new DirectPathLoad(resolved.SchemaSql, resolved.TableSql, BatchSize(options.BatchSize), Math.Max(0, options.TimeoutSeconds), columns);
+    }
+
+    /// <summary>BatchSize 0 (or less) means <see cref="ArrayBindOracleWriter.DefaultChunkSize"/> rows per batch.</summary>
+    internal static int BatchSize(int batchSize) => batchSize <= 0 ? ArrayBindOracleWriter.DefaultChunkSize : batchSize;
+
+    private static DirectPathColumn PlanColumn(IDataReader source, OracleResolvedColumn column, OracleTypeMap typeMap)
+    {
+        int ordinal = SourceColumns.Ordinal(source, column.SourceColumn);
+        typeMap.For(source.GetFieldType(ordinal), column.SourceColumn);
+        return new DirectPathColumn(ordinal, column.DestinationSql);
     }
 
     /// <summary>Runs the load synchronously; the bulk copy (not the connection) is disposed afterwards.</summary>

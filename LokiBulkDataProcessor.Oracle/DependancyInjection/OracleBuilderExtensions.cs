@@ -10,8 +10,15 @@ namespace Loki.BulkDataProcessor.DependancyInjection;
 public static class OracleBuilderExtensions
 {
     /// <summary>Registers the Oracle provider (Oracle.ManagedDataAccess.Core) under <paramref name="name"/>.</summary>
+    /// <remarks>
+    /// <see cref="OracleWriteMode.DirectPath"/> is for bulk loads into staging tables only. Register it under its own name next to the
+    /// default array-bind registration, for example <c>.AddOracle().AddOracle(o =&gt; o.WriteMode = OracleWriteMode.DirectPath,
+    /// name: "Oracle.DirectPath")</c>, and use that provider only from code that targets staging tables; see
+    /// <see cref="OracleWriteMode.DirectPath"/> for the hazards.
+    /// </remarks>
     /// <param name="builder">The builder returned by <c>AddLokiBulkDataProcessor</c>.</param>
-    /// <param name="configure">Optional settings (write mode, identifier resolution, boolean binding); the defaults suit most schemas.</param>
+    /// <param name="configure">Optional settings (write mode, identifier resolution, boolean binding); the defaults suit most schemas.
+    /// Leave <see cref="OracleProviderOptions.WriteMode"/> at ArrayBind unless this registration is only used for staging tables.</param>
     /// <param name="name">Registered provider name; override it to register more than one Oracle configuration.</param>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is null, empty or white space.</exception>

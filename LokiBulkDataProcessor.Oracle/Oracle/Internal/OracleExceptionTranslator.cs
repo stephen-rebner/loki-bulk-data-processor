@@ -29,11 +29,11 @@ internal static class OracleExceptionTranslator
         """The command did not complete within IBulkProcessor.Timeout and was cancelled by the driver; raise the Timeout (0 means no limit) or check for locks held by other sessions.""";
 
     /// <summary>
-    /// ORA-01502 / ORA-26028. The repair was verified on Oracle 23.26 (step 8): with duplicate keys, ALTER INDEX ... REBUILD fails with
-    /// ORA-01452 and DELETE fails with ORA-01502, so the constraint has to be disabled and its index dropped first.
+    /// ORA-01502 / ORA-26028. Short and data-free on purpose: the repair (which rows, constraints, child foreign keys) needs care, so it
+    /// lives in the README, not in an exception message.
     /// </summary>
     internal const string UnusableIndexHint =
-        """An index of the destination table is UNUSABLE, often after a direct-path load inserted duplicate keys; inserts, updates, deletes and direct-path loads fail until it is repaired. For a primary or unique key: disable the constraint, drop its index if it remains, delete the duplicate rows and enable the constraint again; otherwise rebuild the index (ALTER INDEX ... REBUILD).""";
+        """An index of the destination table is UNUSABLE (often after a direct-path load inserted duplicate keys); see the README section on repairing an UNUSABLE index.""";
 
     internal const string DirectPathTriggerHint =
         """Direct-path loads do not support tables with triggers; use OracleWriteMode.ArrayBind for this table.""";
@@ -43,6 +43,9 @@ internal static class OracleExceptionTranslator
 
     /// <summary>ORA-01013 (user requested cancel): the driver's report of an expired command timeout.</summary>
     internal const int CommandCancelled = 1013;
+
+    /// <summary>ORA-50057 ("Bulk copy operation timed out"): ODP.NET's report of an expired <c>OracleBulkCopy.BulkCopyTimeout</c>.</summary>
+    internal const int BulkCopyTimedOut = 50057;
 
     /// <summary>
     /// ORA-24381 ("error(s) in array DML"): the envelope ODP.NET raises when a row of a multi-row array-bound execution fails. The
@@ -98,7 +101,7 @@ internal static class OracleExceptionTranslator
             1502 or 26028 => new InvalidOperationException($"{Failed(tableName, number)} {UnusableIndexHint}", inner),
             26086 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathTriggerHint}", inner),
             39822 => new InvalidOperationException($"{Failed(tableName, number)} {DirectPathOncePerTransactionHint}", inner),
-            CommandCancelled => new InvalidOperationException($"{Failed(tableName, number)} {TimeoutHint}", inner),
+            CommandCancelled or BulkCopyTimedOut => new InvalidOperationException($"{Failed(tableName, number)} {TimeoutHint}", inner),
             _ => new InvalidOperationException(Failed(tableName, number), inner)
         };
     }
