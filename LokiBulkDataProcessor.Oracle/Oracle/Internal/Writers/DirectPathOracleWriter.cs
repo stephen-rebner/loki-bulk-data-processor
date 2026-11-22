@@ -43,7 +43,8 @@ internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWr
         cancellationToken.ThrowIfCancellationRequested();
         logger.LogInformation("Direct-path load (staging tables only) to {TableName} via {Provider}",
             BulkCopyErrorMessages.Sanitize(target.TableName), providerName);
-        OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
+        OracleResolvedTarget resolved = await resolver.ResolveAsync(connection, target, options.TimeoutSeconds, cancellationToken)
+            .ConfigureAwait(false);
         DirectPathLoad load = Plan(source, resolved, options, typeMap);
         cancellationToken.ThrowIfCancellationRequested();   // last cancellation point: WriteToServer is synchronous
         Load(source, load);
@@ -74,8 +75,25 @@ internal sealed class DirectPathOracleWriter(OracleConnection connection, BulkWr
     private static DirectPathColumn PlanColumn(IDataReader source, OracleResolvedColumn column, OracleTypeMap typeMap)
     {
         int ordinal = SourceColumns.Ordinal(source, column.SourceColumn);
-        typeMap.For(source.GetFieldType(ordinal), column.SourceColumn);
+        Type fieldType = source.GetFieldType(ordinal);
+        typeMap.For(fieldType, column.SourceColumn);
+        ThrowIfNotSupportedByDirectPath(fieldType, column.SourceColumn);
         return new DirectPathColumn(ordinal, column.DestinationSql);
+    }
+
+    /// <summary>
+    /// Types the array-bind writer converts but ODP.NET's direct path cannot (verified on Oracle 23.26 in the step 8 review:
+    /// <c>DateOnly</c> fails with InvalidCastException, <c>TimeOnly</c> with ArgumentException). Rejected before the load.
+    /// </summary>
+    internal static void ThrowIfNotSupportedByDirectPath(Type fieldType, string sourceColumn)
+    {
+        Type type = fieldType is null ? null : Nullable.GetUnderlyingType(fieldType) ?? fieldType;
+        if (type == typeof(DateOnly) || type == typeof(TimeOnly))
+        {
+            throw OracleValidation.NotSupported(
+                $"The source column '{BulkCopyErrorMessages.Sanitize(sourceColumn)}' has type {type.Name}, which Oracle direct-path loads do not " +
+                "support; convert it to DateTime or TimeSpan, or use OracleWriteMode.ArrayBind.");
+        }
     }
 
     /// <summary>Runs the load synchronously; the bulk copy (not the connection) is disposed afterwards.</summary>

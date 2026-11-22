@@ -50,7 +50,7 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// <c>MAX_STRING_SIZE = STANDARD</c>); an older server may reject a value over the VARCHAR2 bind limit (4000 bytes, or 32767 with
 /// <c>MAX_STRING_SIZE = EXTENDED</c>) with ORA-01461. <c>NVARCHAR2</c> columns work, but characters outside the database character
 /// set may be replaced when it is not AL32UTF8. <c>byte[]</c> binds as <c>RAW</c> (BLOB is not supported); <c>DateOnly</c> binds as <c>DATE</c> and <c>TimeOnly</c> as
-/// <c>INTERVAL DAY TO SECOND</c>.
+/// <c>INTERVAL DAY TO SECOND</c> (array bind only: <see cref="OracleWriteMode.DirectPath"/> rejects both before the load).
 /// </para>
 /// </remarks>
 public static class OracleProvider

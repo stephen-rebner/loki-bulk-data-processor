@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Loki.BulkDataProcessor.Oracle;
 using NUnit.Framework;
 using Oracle.ManagedDataAccess.Client;
 
@@ -10,8 +11,9 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 
 /// <summary>
 /// The documented direct-path hazards, characterised on the real database: tables with triggers are refused (ORA-26086), foreign keys
-/// are not enforced, and duplicate primary keys are loaded and leave the index UNUSABLE, so a later conventional insert fails with
-/// ORA-01502. The fixture's reset rebuilds the index, so no test depends on another's order.
+/// are not enforced, and a load with duplicate primary keys fails the save (Loki's unusable-index check) so that it is rolled back, which
+/// leaves the index VALID. Only a caller who commits anyway gets an UNUSABLE index, after which conventional inserts and deletes fail
+/// with ORA-01502 and direct-path loads with ORA-26028. The fixture's reset makes the index VALID again, so no test depends on another's order.
 /// </summary>
 public sealed partial class OracleDirectPathTests
 {
@@ -20,6 +22,12 @@ public sealed partial class OracleDirectPathTests
     private const string PostsForeignKey = "FK_POSTS_BLOGS_BLOGID";
 
     private const string SelectKeyedRowById = "SELECT Name FROM KeyedRows WHERE Id = :id";
+
+    private const string UpdateKeyedRowNames = "UPDATE KeyedRows SET Name = :name";
+
+    private const string UnusableIndexMessage =
+        "The direct-path load into 'KeyedRows' left a unique index of the table UNUSABLE (typically because the rows contained duplicate*" +
+        "Rolling back restores the index.";
 
     private const string DeleteKeyedRowByName = "DELETE FROM KeyedRows WHERE Name = :name";
 
@@ -41,7 +49,8 @@ public sealed partial class OracleDirectPathTests
         Func<Task> action = () => Processor().SaveAsync(rows, "TriggeredRows");
 
         await OracleAssertions.ThrowsTranslatedAsync(action,
-            "Bulk copy to 'TriggeredRows' failed (Oracle error ORA-26086). See InnerException for details. Direct-path loads do not support tables with triggers*",
+            "Bulk copy to 'TriggeredRows' failed (Oracle error ORA-26086). See InnerException for details. " +
+            "Direct-path loads do not support tables with triggers*",
             26086);
         (await _database.QueryAsync(OracleSchema.SelectTriggeredRows, reader => reader.GetString(0))).Should().BeEmpty();
     }
@@ -62,19 +71,65 @@ public sealed partial class OracleDirectPathTests
     }
 
     /// <summary>
-    /// Characterisation of the hazard: the load succeeds with both duplicates and leaves PK_KEYEDROWS UNUSABLE; the next conventional
-    /// (array-bind) save into the table fails with the translated ORA-01502 message.
+    /// Step 8 review finding: inside the loading transaction the catalogue still reports the index VALID (Oracle marks it UNUSABLE at
+    /// commit), but touching it fails with ORA-01502, which Loki's check turns into a marked error; Loki's rollback leaves the index VALID.
+    /// </summary>
+    [TestCase(OracleProvider.Name)]
+    [TestCase(CatalogProvider)]
+    public async Task SaveAsync_ShouldFailAndRollBackLeavingTheIndexValid_WhenAPrimaryKeyIsDuplicated(string providerName)
+    {
+        Func<Task> action = () => Processor(providerName).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+
+        (await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage)).Which.InnerException
+            .Should().BeNull("Loki's own validation error is not translated");
+        (await ReadKeyedRowNamesAsync()).Should().BeEmpty();
+        (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
+        await Processor(ArrayBindProvider).SaveAsync(KeyedRows((1, "after rollback")), "KeyedRows");
+    }
+
+    [Test]
+    public async Task SaveAsync_ShouldLeaveTheIndexValid_WhenTheCallerRollsBackAfterTheDuplicateKeyFailure()
+    {
+        await using OracleConnection connection = await _database.OpenConnectionAsync();
+        await using OracleTransaction transaction = connection.BeginTransaction();
+
+        Func<Task> action = () => Processor(transaction).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+
+        await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage);
+        transaction.Rollback();
+        (await ReadKeyedRowNamesAsync()).Should().BeEmpty();
+        (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
+    }
+
+    /// <summary>The control for the check: unique keys load, also next to existing rows, and the index stays VALID.</summary>
+    [Test]
+    public async Task SaveAsync_ShouldLoadTheRows_WhenThePrimaryKeysAreUnique()
+    {
+        await _database.ExecuteAsync(OracleSchema.InsertKeyedRow, OracleTestDatabase.Bind("id", 1), OracleTestDatabase.Bind("name", "existing"));
+
+        await Processor().SaveAsync(KeyedRows((2, "second"), (3, "third")), "KeyedRows");
+
+        (await ReadKeyedRowNamesAsync()).Should().Equal("existing", "second", "third");
+        (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
+    }
+
+    /// <summary>
+    /// A caller who commits after the failure gets the UNUSABLE index: a conventional (array-bind) save then fails with the translated
+    /// ORA-01502, while queries and an UPDATE of a non-key column still work (W3).
     /// </summary>
     [Test]
-    public async Task SaveAsync_ShouldLoadDuplicateKeysAndLeaveTheIndexUnusable_WhenAPrimaryKeyIsDuplicated()
+    public async Task SaveAsync_ShouldThrowTheOra01502Message_WhenTheCallerCommittedADuplicateKeyLoad()
     {
-        await Processor().SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await CommitADuplicateKeyLoadAsync();
 
-        (await _database.QueryAsync(OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0))).Should().BeEquivalentTo("first", "duplicate");
         (await KeyedRowsIndexStatusAsync()).Should().Equal("UNUSABLE");
         Func<Task> conventional = () => Processor(ArrayBindProvider).SaveAsync(KeyedRows((2, "later")), "KeyedRows");
         await OracleAssertions.ThrowsTranslatedAsync(conventional,
-            "Bulk copy to 'KeyedRows' failed (Oracle error ORA-01502). See InnerException for details. An index of the destination table is UNUSABLE*", 1502);
+            "Bulk copy to 'KeyedRows' failed (Oracle error ORA-01502). See InnerException for details. " +
+            "An index of the destination table is UNUSABLE*",
+            1502);
+        await _database.ExecuteAsync(UpdateKeyedRowNames, OracleTestDatabase.Bind("name", "updated"));
+        (await ReadKeyedRowNamesAsync()).Should().Equal("updated", "updated");
     }
 
     /// <summary>
@@ -84,22 +139,24 @@ public sealed partial class OracleDirectPathTests
     [Test]
     public async Task SaveAsync_ShouldThrowTheOra26028Message_WhenAnotherLoadMeetsTheUnusableIndex()
     {
-        await Processor().SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await CommitADuplicateKeyLoadAsync();
 
         Func<Task> again = () => Processor().SaveAsync(KeyedRows((2, "again")), "KeyedRows");
 
         await OracleAssertions.ThrowsTranslatedAsync(again,
-            "Bulk copy to 'KeyedRows' failed (Oracle error ORA-26028). See InnerException for details. An index of the destination table is UNUSABLE*", 26028);
+            "Bulk copy to 'KeyedRows' failed (Oracle error ORA-26028). See InnerException for details. " +
+            "An index of the destination table is UNUSABLE*",
+            26028);
         (await _database.QueryAsync(SelectKeyedRowById, reader => reader.GetString(0), OracleTestDatabase.Bind("id", 1))).Should().HaveCount(2);
         Func<Task> delete = () => _database.ExecuteAsync(DeleteKeyedRowByName, OracleTestDatabase.Bind("name", "duplicate"));
         (await delete.Should().ThrowAsync<OracleException>()).Which.Number.Should().Be(1502);
     }
 
-    /// <summary>The repair named in the translated message, verified: ALTER INDEX ... REBUILD alone fails with ORA-01452 over duplicates.</summary>
+    /// <summary>The repair recorded for the README, verified: ALTER INDEX ... REBUILD alone fails with ORA-01452 over duplicates.</summary>
     [Test]
     public async Task SaveAsync_ShouldWorkAgain_WhenTheConstraintIsDisabledTheDuplicatesDeletedAndTheConstraintEnabled()
     {
-        await Processor().SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await CommitADuplicateKeyLoadAsync();
         Func<Task> rebuild = () => _database.ExecuteAsync(RebuildKeyedRowsIndex);
         (await rebuild.Should().ThrowAsync<OracleException>()).Which.Number.Should().Be(1452);
 
@@ -107,7 +164,7 @@ public sealed partial class OracleDirectPathTests
 
         (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
         await Processor(ArrayBindProvider).SaveAsync(KeyedRows((2, "after repair")), "KeyedRows");
-        (await _database.QueryAsync(OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0))).Should().Equal("first", "after repair");
+        (await ReadKeyedRowNamesAsync()).Should().Equal("first", "after repair");
     }
 
     /// <summary>
@@ -117,13 +174,30 @@ public sealed partial class OracleDirectPathTests
     [Test]
     public async Task ResetAsync_ShouldRestoreThePrimaryKeyIndex_WhenADirectPathLoadLeftItUnusable()
     {
-        await Processor().SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await CommitADuplicateKeyLoadAsync();
+        (await KeyedRowsIndexStatusAsync()).Should().Equal("UNUSABLE");
 
         await _database.ResetAsync();
 
         (await KeyedRowsIndexStatusAsync()).Should().Equal("VALID");
         await Processor(ArrayBindProvider).SaveAsync(KeyedRows((1, "after reset")), "KeyedRows");
     }
+
+    /// <summary>
+    /// What a caller gets by ignoring the failure: the duplicate-key load is committed in the caller's transaction, so Oracle marks the
+    /// primary key index UNUSABLE.
+    /// </summary>
+    private async Task CommitADuplicateKeyLoadAsync()
+    {
+        await using OracleConnection connection = await _database.OpenConnectionAsync();
+        await using OracleTransaction transaction = connection.BeginTransaction();
+        Func<Task> action = () => Processor(transaction).SaveAsync(KeyedRows((1, "first"), (1, "duplicate")), "KeyedRows");
+        await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(UnusableIndexMessage);
+        transaction.Commit();
+    }
+
+    private Task<IReadOnlyList<string>> ReadKeyedRowNamesAsync() =>
+        _database.QueryAsync(OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0));
 
     private async Task RepairKeyedRowsPrimaryKeyAsync()
     {

@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -39,16 +40,21 @@ public sealed partial class OracleDirectPathTests
 
     /// <summary>
     /// Step 8 finding (not in the spike): until the caller's transaction ends, the loading session holds a library cache lock on the
-    /// table, so another session's plain SELECT on it waits (event "library cache lock") instead of reading the committed rows.
+    /// table, so another session's plain SELECT on it waits (event "library cache lock", blocking session = the loader, seen as SYS while
+    /// writing step 8). The test user cannot read V$SESSION (ORA-00942), so the wait is inferred from timing ("still waiting after
+    /// <see cref="OtherSessionWait"/>"), which a slow runner could in theory satisfy without a lock; hence Explicit. The reader has its own
+    /// connection and a CommandTimeout, and the rollback releases it, so it cannot outlive the test.
     /// </summary>
     [Test]
-    public async Task SaveAsync_ShouldMakeOtherSessionsQueriesOnTheTableWait_UntilTheCallersTransactionEnds()
+    [Explicit("Timing-based: the test user cannot read V$SESSION to assert the library cache lock wait directly.")]
+    public async Task SaveAsync_ShouldBlockOtherSessionsQueries_WhenTheCallersTransactionIsStillOpen()
     {
         await using OracleConnection connection = await _database.OpenConnectionAsync();
         await using OracleTransaction transaction = connection.BeginTransaction();
         await Processor(transaction).SaveAsync(ContractRows.TwoTestDbModels(), TestDbModelsTable);
+        await using OracleConnection reader = await _database.OpenConnectionAsync();
 
-        Task<int> otherSession = Task.Run(async () => (await _database.ReadTestDbModelsAsync()).Count);
+        Task<int> otherSession = CountTestDbModelsAsync(reader, commandTimeoutSeconds: 60);
         Task first = await Task.WhenAny(otherSession, Task.Delay(OtherSessionWait));
 
         first.Should().NotBeSameAs(otherSession, "the query waits on the uncommitted direct-path load");
@@ -140,6 +146,9 @@ public sealed partial class OracleDirectPathTests
         Func<Task> second = () => Processor(transaction).SaveAsync(KeyedRows((1, "other table")), "KeyedRows");
 
         await OracleAssertions.ThrowsTranslatedAsync(second, "Bulk copy to 'KeyedRows' failed (Oracle error ORA-39822).*", 39822);
+        (await OracleTestDatabase.QueryAsync(connection, OracleSchema.SelectKeyedRowNames, reader => reader.GetString(0)))
+            .Should().BeEmpty("the second load wrote nothing");
+        (await CountTestDbModelsAsync(connection)).Should().Be(2, "the first load is still in the caller's transaction");
         transaction.Rollback();
     }
 
@@ -155,6 +164,27 @@ public sealed partial class OracleDirectPathTests
         (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Security review item 3: an expired Timeout is NOT an upper bound for a direct-path load. The load waits on another session's
+    /// table lock until the lock is released (DISABLE_OOB=ON in the container, so the break is acted on only then), and only then fails
+    /// with ODP.NET's ORA-50057, translated with the timeout hint; Loki's transaction is rolled back and nothing is saved.
+    /// </summary>
+    [Test]
+    public async Task SaveAsync_ShouldThrowTheTimeoutMessageOnlyAfterTheLockIsReleased_WhenTheLoadWaitsLongerThanTheTimeout()
+    {
+        IBulkProcessor processor = Processor();
+        processor.Timeout = 1;
+        var elapsed = Stopwatch.StartNew();
+
+        Func<Task> action = () => WhileTestDbModelsIsLockedAsync(() => processor.SaveAsync(ContractRows.TwoTestDbModels(), TestDbModelsTable));
+
+        await OracleAssertions.ThrowsTranslatedAsync(action,
+            "Bulk copy to 'TestDbModels' failed (Oracle error ORA-50057). See InnerException for details. The command did not complete within*",
+            50057);
+        elapsed.Elapsed.Should().BeGreaterThan(HeldTableLock.LockHeldFor - TimeSpan.FromSeconds(1), "the 1 s Timeout did not end the wait");
+        (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
+    }
+
     [Test]
     public async Task SaveAsync_ShouldThrowOperationCanceledAndLoadNothing_WhenTheTokenIsAlreadyCancelled()
     {
@@ -162,6 +192,15 @@ public sealed partial class OracleDirectPathTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
+    }
+
+    /// <summary>Another session holds TestDbModels (shared timing: <see cref="HeldTableLock"/>) while <paramref name="save"/> runs.</summary>
+    private async Task WhileTestDbModelsIsLockedAsync(Func<Task> save)
+    {
+        await using OracleConnection blocker = await _database.OpenConnectionAsync();
+        await using OracleTransaction lockHolder = blocker.BeginTransaction();
+        await OracleTestDatabase.ExecuteAsync(lockHolder, OracleSchema.LockTestDbModels);
+        await HeldTableLock.WhileHeldAsync(lockHolder, save);
     }
 
     /// <summary>Rows 1 and 3 are valid; row 2 has NULL in the NOT NULL BoolColumn.</summary>

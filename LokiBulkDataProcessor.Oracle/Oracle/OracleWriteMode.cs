@@ -34,7 +34,8 @@ public enum OracleWriteMode
     /// <item><see cref="IBulkProcessor.BatchSize"/> is the number of rows per batch sent to the server; 0 means 5000, as with array bind.
     /// A failed load leaves none of its rows behind, whatever the BatchSize.</item>
     /// <item><see cref="OracleProviderOptions.BooleanBinding"/> does not apply: the driver converts values itself (1/0 into
-    /// <c>NUMBER(1)</c>, TRUE/FALSE into <c>BOOLEAN</c>). Source column types are validated as for array bind.</item>
+    /// <c>NUMBER(1)</c>, TRUE/FALSE into <c>BOOLEAN</c>). Source column types are validated as for array bind, and <c>DateOnly</c> and
+    /// <c>TimeOnly</c> are rejected before the load (ODP.NET's direct path cannot convert them; use <c>DateTime</c> / <c>TimeSpan</c>).</item>
     /// </list>
     /// Register it under its own name, separate from the default array-bind provider, for example
     /// <c>AddOracle(o =&gt; o.WriteMode = OracleWriteMode.DirectPath, name: "Oracle.DirectPath")</c>, and create processors from it only in

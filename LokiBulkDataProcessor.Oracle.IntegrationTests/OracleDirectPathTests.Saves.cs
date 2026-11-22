@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -106,6 +108,6 @@ public sealed partial class OracleDirectPathTests
         await processor.SaveAsync(json);
     }
 
-    private static string NullableValue(System.Data.Common.DbDataReader reader, int ordinal) =>
-        reader.IsDBNull(ordinal) ? null : Convert.ToString(reader.GetValue(ordinal), System.Globalization.CultureInfo.InvariantCulture);
+    private static string NullableValue(DbDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
 }

@@ -84,4 +84,4 @@ jobs:
         fi
         docker pull "$image"
     - name: Oracle integration tests
-      run: dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests -c Release --verbosity normal
+      run: dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests -c Release --verbosity normal --blame-hang-timeout 10m

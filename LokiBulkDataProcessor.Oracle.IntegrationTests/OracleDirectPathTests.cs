@@ -15,13 +15,14 @@ namespace LokiBulkDataProcessor.Oracle.IntegrationTests;
 /// <summary>
 /// <see cref="OracleWriteMode.DirectPath"/> (<c>OracleBulkCopy</c>) on a real database (Oracle AI Database 26ai Free, the 23.26 release):
 /// every input shape, Loki's and the caller's transaction, the documented hazards (one load per transaction, triggers refused, FKs not
-/// enforced, duplicate keys leave the index UNUSABLE) with their translated messages, what a failed load leaves behind, cancellation and
+/// enforced, duplicate keys fail the save so it is rolled back) with their translated messages, what a failed load leaves behind, cancellation and
 /// identifier resolution. Direct path does not run the contract suite: several of its caller-transaction scenarios load more than once per
 /// transaction, which direct path refuses by design (ORA-39822). One container for the fixture; every table is emptied before each test
 /// (TRUNCATE also makes an UNUSABLE <c>KeyedRows</c> index VALID again). The contract mappings are registered.
 /// </summary>
 [TestFixture]
 [NonParallelizable]
+[Timeout(180_000)]   // per test: a direct-path load or a reader stuck behind a lock fails the test instead of hanging CI
 public sealed partial class OracleDirectPathTests
 {
     /// <summary>Registered with <see cref="OracleWriteMode.DirectPath"/> and <see cref="OracleIdentifierResolution.CatalogLookup"/>.</summary>
@@ -91,6 +92,15 @@ public sealed partial class OracleDirectPathTests
 
     private static async Task<int> CountTestDbModelsAsync(OracleConnection connection) =>
         (await OracleTestDatabase.QueryAsync(connection, CountTestDbModels, reader => Convert.ToInt32(reader.GetValue(0))))[0];
+
+    /// <summary>Counts TestDbModels on <paramref name="connection"/> with a CommandTimeout, so the query cannot wait forever.</summary>
+    private static async Task<int> CountTestDbModelsAsync(OracleConnection connection, int commandTimeoutSeconds)
+    {
+        await using OracleCommand command = connection.CreateCommand();
+        command.CommandText = CountTestDbModels;
+        command.CommandTimeout = commandTimeoutSeconds;
+        return Convert.ToInt32(await command.ExecuteScalarAsync());
+    }
 
     private Task<IReadOnlyList<string>> ReadTestDbModelStringsAsync() =>
         _database.QueryAsync(SelectTestDbModelStrings, reader => reader.GetString(0));

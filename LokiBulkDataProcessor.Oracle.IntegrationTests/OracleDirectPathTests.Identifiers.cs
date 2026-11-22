@@ -53,6 +53,20 @@ public sealed partial class OracleDirectPathTests
         (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
     }
 
+    /// <summary>CatalogLookup binds the hostile name as a value, finds no such table and fails before the load (marked, untranslated).</summary>
+    [Test]
+    public async Task SaveAsync_ShouldThrowTheTableNotFoundMessageBeforeTheLoad_WhenCatalogLookupGetsAHostileTableName()
+    {
+        await _database.InsertBlogAsync("http://a-url.com");
+
+        Func<Task> action = () => Processor(CatalogProvider).SaveAsync(ContractRows.TwoTestDbModels(), HostileIdentifiers.TableName);
+
+        (await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage("The destination table '*' was not found*"))
+            .Which.InnerException.Should().BeNull();
+        (await _database.CountBlogsAsync()).Should().Be(1);
+        (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
+    }
+
     /// <summary>PostImportDataMapping maps ImportTitle/ImportContent/ImportBlogId; this reader has Title/Content/BlogId.</summary>
     [Test]
     public async Task SaveAsync_ShouldThrowTheSourceColumnNotFoundMessageBeforeTheLoad_WhenAMappedSourceColumnIsMissing()
@@ -75,7 +89,8 @@ public sealed partial class OracleDirectPathTests
 
         Func<Task> action = () => Processor().SaveAsync(rows, "NonExistentTable");
 
-        (await OracleAssertions.ThrowsTranslatedAsync(action, "Bulk copy to 'NonExistentTable' failed (Oracle error ORA-39826). See InnerException for details. The table does not exist*", 39826))
+        (await OracleAssertions.ThrowsTranslatedAsync(action,
+                "Bulk copy to 'NonExistentTable' failed (Oracle error ORA-39826). See InnerException for details. The table does not exist*", 39826))
             .Which.Message.Should().Contain("OracleIdentifierResolution.CatalogLookup");
     }
 

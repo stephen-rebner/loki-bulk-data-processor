@@ -19,7 +19,8 @@ namespace LokiBulkDataProcessor.UnitTests.Oracle;
 
 /// <summary>
 /// <see cref="DirectPathOracleWriter"/> without a database: the load plan (OracleBulkCopy needs an open connection, so its configuration
-/// is checked through <see cref="DirectPathOracleWriter.Plan"/>), source-column checks and cancellation before the (synchronous) load. The load itself is covered by <c>OracleDirectPathTests</c> in the Oracle integration tests.
+/// is checked through <see cref="DirectPathOracleWriter.Plan"/>), source-column and source-type checks, the Information entry and
+/// cancellation before the (synchronous) load. The load itself is covered by <c>OracleDirectPathTests</c> in the Oracle integration tests.
 /// </summary>
 public class DirectPathOracleWriterTests
 {
@@ -197,8 +198,35 @@ public class DirectPathOracleWriterTests
 
         Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
 
-        action.Should().Throw<NotSupportedException>().WithMessage("The source column 'Payload' has type Object, which the Oracle provider does not support.")
+        action.Should().Throw<NotSupportedException>()
+            .WithMessage("The source column 'Payload' has type Object, which the Oracle provider does not support.")
             .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
+    }
+
+    [TestCase(typeof(DateOnly))]
+    [TestCase(typeof(TimeOnly?))]
+    public void Plan_ShouldThrowAMarkedNotSupported_WhenTheTypeIsNotSupportedByDirectPath(Type type)
+    {
+        using var table = new DataTable();
+        table.Columns.Add("When", Nullable.GetUnderlyingType(type) ?? type);
+        using DataTableReader reader = table.CreateDataReader();
+        OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("T", new[] { new ColumnMap("When", "When") }));
+
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30), TypeMap);
+
+        action.Should().Throw<NotSupportedException>()
+            .WithMessage("The source column 'When' has type *, which Oracle direct-path loads do not support*")
+            .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
+    }
+
+    [Test]
+    public void ThrowIfNotSupportedByDirectPath_ShouldAcceptTheNullableForm_WhenTheTypeIsSupported()
+    {
+        Action action = () => DirectPathOracleWriter.ThrowIfNotSupportedByDirectPath(typeof(DateTime?), "When");
+
+        action.Should().NotThrow();
+        FluentActions.Invoking(() => DirectPathOracleWriter.ThrowIfNotSupportedByDirectPath(typeof(TimeOnly?), "When"))
+            .Should().Throw<NotSupportedException>();
     }
 
     /// <summary>Resolves like Unquoted and counts calls; <c>onResolve</c> runs during resolution.</summary>
