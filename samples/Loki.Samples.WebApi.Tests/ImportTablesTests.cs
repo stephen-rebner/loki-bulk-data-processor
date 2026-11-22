@@ -26,9 +26,14 @@ public class ImportTablesTests
     }
 
     [Test]
-    public void CountQueriesFor_ShouldIncludeTheStagingTable_OnlyWhenTheEngineIsOracle()
+    public void CountQueriesFor_ShouldIncludeTheStagingTable_WhenTheEngineIsOracle()
     {
         ImportTables.CountQueriesFor(DatabaseEngine.Oracle).Select(q => q.Key).Should().Contain(ImportTables.OracleProductsStaging);
+    }
+
+    [Test]
+    public void CountQueriesFor_ShouldNotIncludeTheStagingTable_WhenTheEngineIsSqlServer()
+    {
         ImportTables.CountQueriesFor(DatabaseEngine.SqlServer).Select(q => q.Key).Should().NotContain(ImportTables.OracleProductsStaging);
     }
 }

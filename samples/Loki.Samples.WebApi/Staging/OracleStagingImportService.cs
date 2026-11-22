@@ -24,6 +24,10 @@ namespace Loki.Samples.WebApi.Staging;
 /// <item>The load is synchronous (hazard 8): it blocks this request's thread until it finishes, and the token is checked only
 /// before it starts.</item>
 /// </list>
+/// Concurrency: the BatchId column keeps each import's rows apart, but it does not let imports run in parallel. A direct-path
+/// load locks STG_PRODUCTS exclusively, so imports run one at a time, and a load also waits for an in-flight move (which holds
+/// row locks on the table) to commit. Per hazard 8 that wait can neither be cancelled nor bounded by the Timeout. Readers of
+/// STG_PRODUCTS (this sample's <c>GET /api/oracle/counts</c>) wait while a load runs (hazard 1).
 /// </remarks>
 internal sealed class OracleStagingImportService(EngineCatalog engines, ILogger<OracleStagingImportService> logger)
 {
@@ -95,7 +99,7 @@ internal sealed class OracleStagingImportService(EngineCatalog engines, ILogger<
         try
         {
             int result = await work(connection);   // ODP.NET commands join the connection's transaction
-            await transaction.CommitAsync(ct);
+            await transaction.CommitAsync(CancellationToken.None);   // the work is done: do not let a late cancellation undo it
             return result;
         }
         catch

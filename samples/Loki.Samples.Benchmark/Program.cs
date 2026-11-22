@@ -1,6 +1,8 @@
+using System.Data.Common;
 using Loki.BulkDataProcessor;
 using Loki.BulkDataProcessor.DependancyInjection;   // (sic) the namespace is spelt this way
 using Loki.Samples.Benchmark;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,5 +36,11 @@ catch (Exception e) when (e is ArgumentException or InvalidOperationException)
 {
     // Loki's and this sample's messages are data-free; the driver's error (if any) is only in the InnerException.
     Console.Error.WriteLine($"{e.GetType().Name}: {e.Message}");
+    return 1;
+}
+catch (Exception e) when (e is DbException or DbUpdateException)
+{
+    // Driver messages can name the server or quote row values, so only the type is printed.
+    Console.Error.WriteLine($"{e.GetType().Name} (inner {e.InnerException?.GetType().Name ?? "none"}): a database call failed. Check that the databases are running (docker compose -f samples/docker-compose.yml up -d --wait) and the connection strings; see samples/README.md.");
     return 1;
 }

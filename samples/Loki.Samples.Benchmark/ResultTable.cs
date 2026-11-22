@@ -19,8 +19,8 @@ internal static class ResultTable
         TimeSpan median = Median(result.Times);
         double rowsPerSecond = result.Rows / Math.Max(median.TotalSeconds, 0.000_001);
         double allocatedMb = MedianOf(result.AllocatedBytes) / (1024.0 * 1024.0);
-        return $"| {result.Engine} | {result.Method} | {result.Rows:N0} | {Ms(median)} | {Ms(result.Times.Min())} | {Ms(result.Times.Max())} " +
-               $"| {rowsPerSecond:N0} | {allocatedMb:N1} MB | {median / lokiMedian:N1}x |";
+        string range = $"{Ms(median)} | {Ms(result.Times.Min())} | {Ms(result.Times.Max())}";
+        return $"| {result.Engine} | {result.Method} | {result.Rows:N0} | {range} | {rowsPerSecond:N0} | {allocatedMb:N1} MB | {median / lokiMedian:N1}x |";
     }
 
     private static TimeSpan LokiMedianOn(IReadOnlyList<MethodResult> results, string engine) =>

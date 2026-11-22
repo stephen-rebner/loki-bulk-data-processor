@@ -51,10 +51,20 @@ internal sealed class SqlServerTarget(string connectionString) : BenchmarkTarget
     public override BenchmarkDbContext CreateDbContext() =>
         new SqlServerBenchmarkDbContext(new DbContextOptionsBuilder<SqlServerBenchmarkDbContext>().UseSqlServer(ConnectionString).Options);
 
+    private const string TableExists = "SELECT COUNT(*) FROM sys.tables WHERE name = N'BenchmarkRows' AND SCHEMA_NAME(schema_id) = N'dbo'";
+
+    private const string MissingTable =
+        """The SQL Server database has no dbo.BenchmarkRows table but other tables, so EnsureCreated did not create it. Point ConnectionStrings:SqlServer at a database of its own (for example LokiSamplesBenchmark); see samples/README.md.""";
+
     public override async Task PrepareAsync(CancellationToken ct)
     {
         await using BenchmarkDbContext db = CreateDbContext();
         await db.Database.EnsureCreatedAsync(ct);   // the benchmark's own database (LokiSamplesBenchmark), not the WebApi's
+        // EnsureCreated does nothing when the database already has any table (for example the WebApi's LokiSamples database).
+        if (Convert.ToInt64(await ExecuteAsync(TableExists, ct)) == 0)
+        {
+            throw new InvalidOperationException(MissingTable);
+        }
     }
 
     protected override DbConnection CreateConnection() => new SqlConnection(ConnectionString);

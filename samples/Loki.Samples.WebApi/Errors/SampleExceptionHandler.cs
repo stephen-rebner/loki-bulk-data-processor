@@ -14,11 +14,15 @@ internal sealed class SampleExceptionHandler(IProblemDetailsService problemDetai
         Problem problem = ProblemMapping.For(exception, httpContext.RequestAborted.IsCancellationRequested);
         Log(httpContext, exception, problem);
         httpContext.Response.StatusCode = problem.StatusCode;
-        return await problemDetails.TryWriteAsync(new ProblemDetailsContext
+        ProblemDetails details = new() { Status = problem.StatusCode, Title = problem.Title, Detail = problem.Detail };
+        if (!await problemDetails.TryWriteAsync(new ProblemDetailsContext { HttpContext = httpContext, ProblemDetails = details }))
         {
-            HttpContext = httpContext,
-            ProblemDetails = new ProblemDetails { Status = problem.StatusCode, Title = problem.Title, Detail = problem.Detail }
-        });
+            // No writer accepted the request (for example an Accept header without JSON): write it anyway and report it handled,
+            // so the middleware never logs the exception object (its driver message can quote row values).
+            await Results.Problem(details).ExecuteAsync(httpContext);
+        }
+
+        return true;
     }
 
     private void Log(HttpContext httpContext, Exception exception, Problem problem)

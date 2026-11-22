@@ -688,7 +688,8 @@ Benchmark: 100,000 records inserted into an empty SQL Server table with 4 column
 > ⚠️ Entity Framework was used with `AddAsync` and `SaveChangesAsync`. Loki used a single bulk insert call.
 
 To measure on your own machine, run the [benchmark sample](https://github.com/stephen-rebner/loki-bulk-data-processor/tree/master/samples#4-run-the-benchmark)
-(Loki vs EF Core `AddRange` + `SaveChanges` on SQL Server and Oracle).
+(Loki vs EF Core `AddRange` + `SaveChanges` on SQL Server and Oracle). Its numbers are not directly comparable with the table
+above, which used `AddAsync` per entity on older hardware.
 
 **Oracle (9.0.0).** 1,000,000 rows of six columns, both databases in local Docker on one 4-vCPU machine (Oracle Free 23.26
 in NOARCHIVELOG, SQL Server 2022, each capped at about 2 GB), median of 3 runs:

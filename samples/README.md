@@ -41,7 +41,9 @@ becomes a connection string.
   Development environment through `Properties/launchSettings.json`. Its SQL Server connection string has
   `TrustServerCertificate=True` for the container's self-signed certificate: that disables certificate validation, so never use
   it anywhere else (see the main README, [SQL Server](../README.md#sql-server)).
-- Anything else: **user secrets** (Development) or **environment variables** (any environment), which override the files:
+- Anything else: **user secrets** (Development) or **environment variables** (any environment), which override the files. Each
+  sample has its own user secrets; this is the WebApi's (the benchmark's are in [step 4](#4-run-the-benchmark), with its own
+  SQL Server database):
 
   ```bash
   cd samples/Loki.Samples.WebApi
@@ -88,15 +90,17 @@ curl http://localhost:5080/api/oracle/counts
 | `POST /api/{engine}/customers` | **Models**: a JSON array of `{ "name", "email" }` saved as `IEnumerable<CustomerImportRow>` with a `ModelMapping<T>` (`FullName` → `Name`, ...). |
 | `POST /api/{engine}/products/datatable?count=N` | **DataTable**: `TableName = "ProductImport"` selects the `ProductImportMapping` `DataMapping` (`ImportSku` → `Sku`, ...). |
 | `POST /api/{engine}/products/reader?count=N` | **IDataReader**: `SaveAsync(reader, "Products", sourceName: "ProductImport")`; the sample disposes its reader, Loki never does. |
-| `POST /api/{engine}/json/{table}` | **JSON** (`customers` or `products` only): `SaveAsync(stream, destinationTableName)` with the table chosen by code. The payload's `tableName` is ignored, `RequireDataMappingForJson` limits the columns to the table's `DataMapping`, and bodies over 10 MB get 413 (`MaxJsonPayloadBytes` and the endpoint's request size limit). |
+| `POST /api/{engine}/json/{table}` | **JSON** (`customers` or `products` only): `SaveAsync(stream, destinationTableName)` with the table chosen by code. The payload's `tableName` is ignored, `RequireDataMappingForJson` limits the columns to the table's `DataMapping`, and bodies over 10 MB get 413 from the endpoint's request size limit (Loki's `MaxJsonPayloadBytes`, the same 10 MB, is a second check whose `InvalidDataException` would be a 400). |
 | `POST /api/sqlserver/customers-with-orders` | **Caller-owned transaction** (SQL Server): EF Core inserts a customer and Loki its orders in one `BeginTransactionAsync` transaction, passed to Loki with `GetDbTransaction()`. The sample commits; Loki never commits or rolls it back. `"simulateFailure": true` fails after Loki's save: the sample rolls back and neither the customer nor the orders exist. |
 | `POST /api/oracle/products/staging-import?count=N` | **Oracle direct-path staging import**: see below. `includeDuplicate=true` adds a duplicate SKU to show the constraint check in the second step (409). |
 
 Errors are [problem details](https://www.rfc-editor.org/rfc/rfc9457) with fixed texts: 400 for invalid input (including
-invalid JSON, a value of the wrong type, or a payload without a mapped column), 404 for an unknown engine or a table that is not
+invalid JSON, a value of the wrong type, a payload without a mapped column, or one over Loki's `MaxJsonPayloadBytes` when the
+host's request size limit did not stop it first), 404 for an unknown engine or a table that is not
 on the allow-list, 409 for a duplicate key, 413 for a body over the limit, 503 for an engine without a provider or connection
 string, 500 otherwise. They never contain a connection string, a driver message or row values, and the API logs exception
-types only (driver messages can quote row values).
+types only (driver messages can quote row values); `appsettings.json` silences EF Core's `Update` and `Database.Command` log
+categories, which would log a failed command's exception.
 
 ### The Oracle staging import (direct path)
 
@@ -115,8 +119,11 @@ constant table `STG_PRODUCTS`, in two steps:
    other constraints, which the direct-path load does not. If it fails, the batch is rolled back and removed from staging.
 
 `STG_PRODUCTS` is built to stay clear of the direct-path hazards: no primary or unique key and no index (duplicate keys cannot
-make an index UNUSABLE), no foreign key, no trigger, a `BatchId` column so concurrent imports never move each other's rows, and
-nothing reads it in the load's transaction. The move clears staging with `DELETE` rather than `TRUNCATE`: `DELETE` removes only
+make an index UNUSABLE), no foreign key, no trigger, and nothing reads it in the load's transaction. A `BatchId` column keeps each
+import's rows apart, so one import never moves another's rows, but it does **not** make imports parallel: a direct-path load locks
+the table exclusively, so imports run one at a time, and a load also waits for an in-flight move to commit. That wait can neither
+be cancelled nor bounded by `Timeout` (README hazard 8). Queries on `STG_PRODUCTS`, including `GET /api/oracle/counts`, wait while
+a load runs (hazard 1). The move clears staging with `DELETE` rather than `TRUNCATE`: `DELETE` removes only
 its own batch and commits together with the move, while `TRUNCATE` is DDL (it commits on its own and empties every batch).
 Because direct-path loads never reuse the space `DELETE` frees, run `TRUNCATE TABLE STG_PRODUCTS DROP ALL STORAGE` from time to
 time while no import is running.
@@ -129,7 +136,8 @@ dotnet run -c Release -- --rows 10000 --engine all --runs 3     # --engine sqlse
 ```
 
 For each engine it inserts the same rows into a `BenchmarkRows` table with Loki (one `SaveAsync`, default `BatchSize`; Oracle
-uses the default array bind) and with EF Core 10 (`AddRange` + one `SaveChangesAsync` on a new context, default options), then
+uses the default array bind; `Timeout = 0`, because Loki's timeout covers the whole SQL Server copy while EF Core's applies per
+batch) and with EF Core 10 (`AddRange` + one `SaveChangesAsync` on a new context, default options), then
 prints the median, min and max time, rows per second and allocated memory as a Markdown table. To keep it honest:
 
 - each method runs once untimed first (warm-up: connection pools, JIT, the EF Core model), then `--runs` timed runs;
@@ -138,10 +146,20 @@ prints the median, min and max time, rows per second and allocated memory as a M
 - `COUNT(*)` must equal `--rows` after every run, or the benchmark stops with an error;
 - both methods run on the same machine against the same database.
 
-On SQL Server the benchmark uses its own database, `LokiSamplesBenchmark`, which EF Core's `EnsureCreated` creates on the first
-run; on Oracle the table comes from `db/oracle/init.sql`. Results depend on your machine, Docker's resources and network latency
-(local containers have almost none): compare the ratios, not the absolute times. Connection strings work as for the WebApi
-(`ConnectionStrings:SqlServer` / `:Oracle`; with `--engine all` an engine without one is skipped).
+On SQL Server the benchmark needs **a database of its own**, `LokiSamplesBenchmark` in `appsettings.Development.json`, which EF
+Core's `EnsureCreated` creates on the first run. Do not point it at the WebApi's `LokiSamples` database: `EnsureCreated` does
+nothing in a database that already has tables, and the benchmark then stops with an error saying so. On Oracle the table comes
+from `db/oracle/init.sql`. Results depend on your machine, Docker's resources and network latency (local containers have almost
+none): compare the ratios, not the absolute times.
+
+The benchmark reads `ConnectionStrings:SqlServer` and `ConnectionStrings:Oracle` like the WebApi, but has **its own** user secrets
+(a different `UserSecretsId`), so set them in its folder; with `--engine all` an engine without a connection string is skipped:
+
+```bash
+cd samples/Loki.Samples.Benchmark
+dotnet user-secrets set "ConnectionStrings:SqlServer" "Server=localhost,1433;Database=LokiSamplesBenchmark;User Id=sa;Password=<yours>;TrustServerCertificate=True"
+dotnet user-secrets set "ConnectionStrings:Oracle" "User Id=loki_samples;Password=<yours>;Data Source=localhost:1521/FREEPDB1"
+```
 
 ## 5. Stop
 

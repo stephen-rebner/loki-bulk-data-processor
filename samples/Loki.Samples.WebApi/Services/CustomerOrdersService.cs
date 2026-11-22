@@ -26,7 +26,9 @@ internal sealed class CustomerOrdersService(SamplesDbContext db, EngineCatalog e
             await SaveCustomerAsync(customer, ct);                                       // EF Core, inside the transaction
             await SaveOrdersAsync(transaction, OrdersFor(customer.Id, orderCount), ct);  // Loki, inside the same transaction
             ThrowIf(request.SimulateFailure);
-            await transaction.CommitAsync(ct);   // the caller commits: Loki never does when it was given a transaction
+            // The caller commits (Loki never does when it was given a transaction). Not cancellable once the work is done:
+            // a cancellation here would roll back rows that were all written.
+            await transaction.CommitAsync(CancellationToken.None);
             return new CustomerWithOrdersResult(customer.Id, orderCount);
         }
         catch

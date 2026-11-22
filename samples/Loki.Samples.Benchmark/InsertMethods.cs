@@ -10,7 +10,7 @@ internal abstract class InsertMethod
     public abstract Task InsertAsync(BenchmarkTarget target, List<BenchmarkRow> rows, CancellationToken ct);
 }
 
-/// <summary>One <c>SaveAsync</c> call in Loki's own transaction, default BatchSize (5000).</summary>
+/// <summary>One <c>SaveAsync</c> call in Loki's own transaction, default BatchSize (5000), no Timeout.</summary>
 internal sealed class LokiInsert(IBulkProcessorFactory factory) : InsertMethod
 {
     public override string Name(BenchmarkTarget target) => $"Loki ({target.LokiProvider})";
@@ -18,6 +18,9 @@ internal sealed class LokiInsert(IBulkProcessorFactory factory) : InsertMethod
     public override Task InsertAsync(BenchmarkTarget target, List<BenchmarkRow> rows, CancellationToken ct)
     {
         IBulkProcessor processor = factory.Create(target.LokiProvider, target.ConnectionString);
+        // No limit: on SQL Server Loki's Timeout (default 30 s) covers the whole SqlBulkCopy, while EF Core's 30 s command
+        // timeout applies to each batch, so a large --rows could otherwise time out for Loki only.
+        processor.Timeout = 0;
         return processor.SaveAsync(rows, BenchmarkDbContext.TableName, ct);
     }
 }

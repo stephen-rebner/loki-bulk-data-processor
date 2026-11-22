@@ -36,9 +36,10 @@ CREATE TABLE Products (
 
 -- Staging table for the direct-path import (OracleWriteMode.DirectPath, registered as "Oracle.DirectPath"). It is built to
 -- avoid the direct-path hazards in the README: no primary or unique key and no index (duplicate keys cannot make an index
--- UNUSABLE, and there is no index to be UNUSABLE), no foreign key (none to skip), no trigger (ORA-26086), and no other
--- application reads it. Constraints are enforced when the rows move on to Products with a conventional INSERT ... SELECT.
--- BatchId keeps concurrent imports apart.
+-- UNUSABLE, and there is no index to be UNUSABLE), no foreign key (none to skip) and no trigger (ORA-26086). Only the import
+-- and the sample's diagnostic row count read it; queries wait while a load runs (hazard 1). Constraints are enforced when the
+-- rows move on to Products with a conventional INSERT ... SELECT. BatchId keeps each import's rows apart; it does not make
+-- imports parallel: a direct-path load locks the table exclusively, so imports run one at a time.
 CREATE TABLE STG_PRODUCTS (
     BatchId VARCHAR2(32) NOT NULL,
     Sku VARCHAR2(50),

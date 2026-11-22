@@ -24,21 +24,21 @@ internal static class SampleEndpoints
             service.ImportProductsAsync(count, includeDuplicate, ct));
     }
 
-    private static void MapEngineEndpoints(RouteGroupBuilder engine)
+    private static void MapEngineEndpoints(RouteGroupBuilder engineGroup)
     {
-        engine.MapGet("/counts", (string engine, TableCountService service, CancellationToken ct) =>
+        engineGroup.MapGet("/counts", (string engine, TableCountService service, CancellationToken ct) =>
             service.CountAsync(EngineCatalog.Parse(engine), ct));
-        engine.MapPost("/customers", (string engine, IReadOnlyList<CustomerRequest> customers, BulkImportService service, CancellationToken ct) =>
+        engineGroup.MapPost("/customers", (string engine, IReadOnlyList<CustomerRequest> customers, BulkImportService service, CancellationToken ct) =>
             service.SaveCustomersAsync(EngineCatalog.Parse(engine), customers, ct));
-        engine.MapPost("/products/datatable", (string engine, BulkImportService service, CancellationToken ct, int count = 1_000) =>
+        engineGroup.MapPost("/products/datatable", (string engine, BulkImportService service, CancellationToken ct, int count = 1_000) =>
             service.SaveProductsFromDataTableAsync(EngineCatalog.Parse(engine), count, ct));
-        engine.MapPost("/products/reader", (string engine, BulkImportService service, CancellationToken ct, int count = 1_000) =>
+        engineGroup.MapPost("/products/reader", (string engine, BulkImportService service, CancellationToken ct, int count = 1_000) =>
             service.SaveProductsFromReaderAsync(EngineCatalog.Parse(engine), count, ct));
-        engine.MapPost("/json/{table}", (string engine, string table, HttpRequest request, BulkImportService service, CancellationToken ct) =>
+        engineGroup.MapPost("/json/{table}", (string engine, string table, HttpRequest request, BulkImportService service, CancellationToken ct) =>
                 service.SaveJsonAsync(EngineCatalog.Parse(engine), table, request.Body, ct))
             .Accepts<object>("application/json")
-            // Kestrel answers 413 as soon as a body passes the limit; Loki's MaxJsonPayloadBytes is the same limit, enforced
-            // again while it reads the stream (for hosts without a request size limit).
+            // Kestrel answers 413 as soon as a body passes the limit. Loki's MaxJsonPayloadBytes is the same limit, enforced
+            // again while it reads the stream (for hosts without a request size limit); that InvalidDataException is a 400.
             .WithMetadata(new RequestSizeLimitAttribute(JsonUploadLimits.MaxPayloadBytes));
     }
 
