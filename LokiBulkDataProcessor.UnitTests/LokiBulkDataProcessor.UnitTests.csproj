@@ -12,6 +12,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <!-- ReadmeFactorySampleTests checks that the README's factory sample is the code this project compiles. -->
+    <None Include="..\README.md" Link="Docs\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Docs\ReadmeFactorySampleTests.cs" Link="Docs\ReadmeFactorySampleTests.cs.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\LokiBulkDataProcessor.Core\LokiBulkDataProcessor.Core.csproj" />
     <ProjectReference Include="..\LokiBulkDataProcessor\LokiBulkDataProcessor.csproj" />
     <ProjectReference Include="..\LokiBulkDataProcessor.Oracle\LokiBulkDataProcessor.Oracle.csproj" />

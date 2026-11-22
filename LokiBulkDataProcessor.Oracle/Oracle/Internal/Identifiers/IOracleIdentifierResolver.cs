@@ -9,8 +9,10 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 internal interface IOracleIdentifierResolver
 {
     /// <summary>Resolves <paramref name="target"/>. Throws a marked validation exception for a name it cannot accept.</summary>
+    /// <param name="target">The destination table and column maps as the caller gave them.</param>
     /// <param name="connection">Open connection (inside the call's transaction); used only by resolvers that query the catalogue.</param>
     /// <param name="timeoutSeconds">Timeout for any catalogue query (<see cref="BulkWriteOptions.TimeoutSeconds"/>; 0 means no limit).</param>
+    /// <param name="cancellationToken">Cancels any catalogue query.</param>
     Task<OracleResolvedTarget> ResolveAsync(OracleConnection connection, BulkWriteTarget target, int timeoutSeconds,
         CancellationToken cancellationToken);
 }

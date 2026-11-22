@@ -10,7 +10,7 @@ Run the `dotnet-research` agent and return its findings. This is a lightweight r
 
 Spawn `dotnet-research` with the task. It must return:
 
-- The closest existing implementation used as a reference (e.g. `InternalDbOperations/BulkCopyCommand.cs`).
+- The closest existing implementation used as a reference (e.g. `SqlServer/Internal/SqlServerBulkWriter.cs`).
 - Every file that will be created or modified, with a one-line reason.
 - Key code samples (class skeletons, DI registration, test fixture).
 - Public API impact (added / changed / removed members, breaking or not).

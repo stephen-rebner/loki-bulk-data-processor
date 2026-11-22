@@ -27,10 +27,16 @@ public sealed class OracleTestDatabase : IAsyncDisposable
 
     public const string Username = "loki_test";
 
-    public const string Password = "LokiTest_Pwd_1";
+    private readonly OracleContainer _container;
 
-    private readonly OracleContainer _container =
-        new OracleBuilder(Image).WithUsername(Username).WithPassword(Password).Build();
+    public OracleTestDatabase()
+    {
+        Password = TestPasswords.NewPassword();
+        _container = new OracleBuilder(Image).WithUsername(Username).WithPassword(Password).Build();
+    }
+
+    /// <summary>The application user's (and the container's SYS) password: random for each fixture's database.</summary>
+    public string Password { get; }
 
     private string _connectionString;
 

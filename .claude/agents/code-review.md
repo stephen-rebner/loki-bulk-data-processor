@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Read-only agent that reviews C# changes in the Loki Bulk Data Processor library against project conventions. Catches layering violations (provider types leaking out of InternalDbOperations), transaction/resource-lifetime bugs, public-API breaks, missing tests, and style issues. Run after implementation, before merging.
+description: Read-only agent that reviews C# changes in the Loki Bulk Data Processor library against project conventions. Catches layering violations (driver types leaking out of a provider's Internal/ folder or into Core), transaction/resource-lifetime bugs, public-API breaks, missing tests, and style issues. Run after implementation, before merging.
 tools: [Bash, Read, WebFetch, WebSearch]
 ---
 
@@ -55,19 +55,19 @@ You are a code reviewer for the Loki Bulk Data Processor. Your only job is to re
 - [ ] New public members have XML doc comments.
 - [ ] Implementation types are `internal` unless they genuinely need to be public.
 - [ ] `<Version>`, `<PackageReleaseNotes>`, `<PackageTags>`/`<Description>` and the README upgrade guide updated when the change ships behaviour.
-- [ ] Existing SQL Server callers keep working with zero code changes.
+- [ ] Existing SQL Server callers keep working with zero code changes; README code samples still compile against the API.
 
 ## Checklist — Layering
 
-- [ ] Provider ADO.NET types (`SqlConnection`, `SqlTransaction`, `SqlBulkCopy`, `OracleConnection`, `OracleTransaction`, `OracleBulkCopy`, …) appear only under `InternalDbOperations/`.
-- [ ] No new `(SqlTransaction)` / `(OracleTransaction)` casts in commands.
-- [ ] No `if`/`switch` on provider inside commands or the facade — providers are selected by DI/factory.
-- [ ] `BulkProcessor` only guards, logs and delegates.
-- [ ] No duplicated connection/transaction sequence added — shared steps extracted.
+- [ ] Driver ADO.NET types (`SqlConnection`, `SqlTransaction`, `SqlBulkCopy`, `OracleConnection`, `OracleTransaction`, `OracleBulkCopy`, …) appear only under the provider's `Internal/` folder (`SqlServer/Internal/`, `Oracle/Internal/`); Core references no driver.
+- [ ] Providers use only Core's public SPI (`Loki.BulkDataProcessor.Providers`); no new `InternalsVisibleTo` from Core to a provider.
+- [ ] No `if`/`switch` on provider inside Core — providers are selected by name through the factory.
+- [ ] `Internal/BulkProcessor` only guards, snapshots settings, logs and delegates.
+- [ ] Transaction ownership stays in `Pipeline/ConnectionScope`; no second copy of the open/commit/rollback sequence.
 
 ## Checklist — Transactions & disposal
 
-- [ ] External transaction: never committed, disposed or closed by Loki; its connection is reused, not reopened.
+- [ ] External transaction: never committed, rolled back, disposed or closed by Loki (also on failure, #12); its connection is reused, not reopened. Providers/writers never touch the context's connection or transaction (savepoints inside it are allowed).
 - [ ] Internal transaction: committed on success; rolled back on failure; both transaction and connection disposed on **every** path (including exceptions).
 - [ ] `throw;` used to rethrow (not `throw ex;`); a rollback failure cannot mask the original exception.
 - [ ] Bulk-copy objects and Loki-created readers disposed; caller-supplied readers not disposed.
@@ -79,7 +79,8 @@ You are a code reviewer for the Loki Bulk Data Processor. Your only job is to re
 - [ ] `BatchSize` and `Timeout` honoured.
 - [ ] Column mappings (`ModelMapping<T>`, `DataMapping`) and default name-to-name mapping behave the same; case-sensitivity differences documented.
 - [ ] Null handling equivalent to `SqlBulkCopyOptions.KeepNulls`; constraint checking equivalent to `CheckConstraints` (or difference documented).
-- [ ] Error translation produces the same provider-neutral messages where the SQL Server path does.
+- [ ] Error translation produces the same provider-neutral messages (`BulkCopyErrorMessages`) where the SQL Server path does, data-free, with the driver exception as InnerException.
+- [ ] Provider-neutral behaviour is tested in the Contract project's `BulkProcessorContractTests` (runs on every provider); provider-only behaviour in the provider's test project; one container per fixture.
 
 ## Checklist — Mappings
 
@@ -88,26 +89,26 @@ You are a code reviewer for the Loki Bulk Data Processor. Your only job is to re
 
 ## Checklist — Error handling
 
-- [ ] `ArgumentException`/`ArgumentNullException` with `paramName` for bad input; `MappingException` for bad mappings; `InvalidOperationException` for runtime DB failures.
+- [ ] `ArgumentException`/`ArgumentNullException` with `paramName` for bad input; `InvalidOperationException` for runtime DB failures and invalid registrations/mappings; `OperationCanceledException` for cancellation.
 - [ ] Wrapped exceptions keep the original as `InnerException`.
 - [ ] No catch-and-swallow.
 
 ## Checklist — Logging
 
-- [ ] Optional `ILogger<T>` with `NullLogger<T>` fallback.
+- [ ] Logs through Loki's chosen `ILoggerFactory` (no-op fallback); never registers an app-wide `ILoggerFactory`; exception types, not exception objects, for driver failures.
 - [ ] Structured templates only; no interpolation/concatenation.
 - [ ] No connection strings, credentials or row values logged.
 - [ ] No per-row logging.
 
 ## Checklist — DI registration
 
-- [ ] `AddLokiBulkDataProcessor` remains backward compatible; new providers are additive.
-- [ ] Lifetimes unchanged (`IAppContext` singleton, `ILokiDbConnection` transient, commands/factory/processor scoped) unless justified.
+- [ ] `AddLokiBulkDataProcessor` (builder and legacy overload) remains backward compatible; new providers are additive `AddXxx(builder, ..., name)` extensions.
+- [ ] Lifetimes unchanged (factory, `MappingRegistry`, `LokiLogging` and providers singleton and immutable; a new processor per `Create`; legacy `IBulkProcessor` scoped) unless justified.
 - [ ] No service locator.
 
 ## Checklist — NuGet / csproj
 
-- [ ] No test-only packages in `LokiBulkDataProcessor.csproj`.
+- [ ] No test-only packages in any library csproj (Core, SQL Server, Oracle).
 - [ ] New packages justified, pinned, current, and not deprecated.
 
 ## Checklist — Tests

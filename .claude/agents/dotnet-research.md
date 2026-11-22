@@ -18,9 +18,9 @@ You are the .NET domain expert planning changes to the Loki Bulk Data Processor.
 ## Research process
 
 1. `git diff master...HEAD --stat` to see what has already changed.
-2. Read `CLAUDE.md`, `IBulkProcessor.cs`, `BulkProcessor.cs`, every file in `Commands/`, `InternalDbOperations/`, `Context/`, and `DependancyInjection/ServiceCollectionExtension.cs`.
-3. Read the relevant tests in `LokiBulkDataProcessor.UnitTests/` and `LokiBulkDataProcessor.IntegrationTests/` (especially `Abstract/BaseIntegrationTest.cs`).
-4. Check `LokiBulkDataProcessor.csproj` for package references and version.
+2. Read `CLAUDE.md`, `README.md`, `Core/IBulkProcessor.cs`, `Core/Internal/BulkProcessor.cs`, `Core/Pipeline/`, `Core/Providers/` (the SPI), `Core/Sources/BulkSource.cs`, and the provider packages' `Internal/` folders and `DependancyInjection/` extensions.
+3. Read the relevant tests in `LokiBulkDataProcessor.UnitTests/`, the Contract project (`BulkProcessorContractTests`) and the provider test projects.
+4. Check the library csproj files and `Directory.Build.props` for package references and the version.
 
 ## Plan format
 
@@ -31,7 +31,7 @@ You are the .NET domain expert planning changes to the Loki Bulk Data Processor.
 [1–3 sentences]
 
 ### Reference implementation
-[closest existing code, e.g. `LokiBulkDataProcessor/InternalDbOperations/BulkCopyCommand.cs`]
+[closest existing code, e.g. `LokiBulkDataProcessor/SqlServer/Internal/SqlServerBulkWriter.cs` or `LokiBulkDataProcessor.Oracle/Oracle/Internal/Writers/ArrayBindOracleWriter.cs`]
 
 ### Public API impact
 | Member | Change | Breaking? |

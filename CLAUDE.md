@@ -1,24 +1,24 @@
 # Loki Bulk Data Processor
 
-A .NET 10 class library, published to NuGet as **`LokiBulkDataProcessor`**, for high-throughput bulk
-inserts. Callers hand it `IEnumerable<T>` models, a `DataTable`, an `IDataReader`, or a JSON stream
-and it streams the rows into a destination table with the database's native bulk-copy engine.
-Today the only released provider is **SQL Server** (`SqlBulkCopy`). **Oracle** (array-bound `INSERT`, with
-`OracleBulkCopy` direct path as an opt-in) is being added on `release/9.0`.
+A .NET 10 class library for high-throughput bulk inserts, published to NuGet as three packages with one version:
+**`LokiBulkDataProcessor.Core`** (provider-neutral), **`LokiBulkDataProcessor`** (the SQL Server provider, `SqlBulkCopy`)
+and **`LokiBulkDataProcessor.Oracle`** (array-bound `INSERT` by default; `OracleBulkCopy` direct path opt-in, for staging
+tables only). Callers hand it `IEnumerable<T>` models, a `DataTable`, an `IDataReader`, or a JSON stream and it streams the
+rows into a destination table with the database's native bulk-copy engine.
 
 This is a **library, not a service**: there is no `Program.cs`, no HTTP surface, no persistence layer
 of its own. Every public type is part of a published contract that other people's code compiles
 against — treat public API changes as semver decisions.
 
-## 9.0.0 release in progress
+## 9.0.0
 
-A multi-provider 9.0.0 release (Core package, SQL Server provider, Oracle provider) is being built in
-nine steps, each a separate PR into the `release/9.0` branch. **Before doing any 9.0.0 work, read
-[`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md)** (current step status, issue map, approved
-decisions) and then the matching section of [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md)
-(the spec). The PR that completes a step must also update the progress file. The layout below describes
-**`release/9.0` after step 7** (`master` still has the 8.x single-project layout until step 9). Oracle direct path is
-added in step 8.
+The multi-provider 9.0.0 release was built in nine steps on `release/9.0`. Its history — approved decisions (do not
+revisit them casually), deviations from the spec, real-database findings (Oracle chunk savepoints, DISABLE_OOB, direct-path
+hazards) and the owner's pre-publish checklist — is in [`docs/plans/9.0.0-progress.md`](docs/plans/9.0.0-progress.md); the
+spec is [`docs/plans/9.0.0-multi-provider.md`](docs/plans/9.0.0-multi-provider.md). **`README.md` is the single source of
+user documentation for 9.x** (packed into every nupkg; the wiki covers 8.x and earlier): a change to public behaviour
+updates the README in the same PR, and every README code sample must compile against the current API (the factory sample is
+kept verbatim in `UnitTests/Docs/ReadmeFactorySampleTests.cs`).
 
 ## Repository layout
 
@@ -57,7 +57,8 @@ LokiBulkDataProcessor/                     Package LokiBulkDataProcessor = the S
 └── Properties/TypeForwards.cs             TypeForwardedTo Core for the public types that moved in step 3
 LokiBulkDataProcessor.Oracle/              Package LokiBulkDataProcessor.Oracle = the Oracle provider (Oracle.ManagedDataAccess.Core)
 ├── Oracle/                                Public: OracleProvider (const Name = "Oracle"), OracleProviderOptions, OracleWriteMode
-│                                          (DirectPath rejected until step 8), OracleIdentifierResolution, OracleBooleanBinding
+│                                          (ArrayBind default; DirectPath opt-in, staging tables only), OracleIdentifierResolution,
+│                                          OracleBooleanBinding (array bind only)
 ├── Oracle/Internal/                       OracleBulkCopyProvider, OracleExceptionTranslator (by OracleException.Number),
 │   │                                      OracleValidation (marks Loki's own errors so they pass through untranslated).
 │   │                                      The ONLY place ODP.NET types are used (put `using Oracle.ManagedDataAccess.Client;`
@@ -65,8 +66,12 @@ LokiBulkDataProcessor.Oracle/              Package LokiBulkDataProcessor.Oracle 
 │   ├── Identifiers/                       OracleIdentifier (validate + quote, CWE-89), Unquoted/CatalogIdentifierResolver,
 │   │                                      OracleResolvedTarget
 │   ├── Types/OracleTypeMap.cs             .NET type → OracleDbType + value conversion (bool per OracleBooleanBinding)
+│   ├── OracleCommandTimeout.cs            ODP.NET's timeout-as-cancellation → internal OracleCommandTimeoutException
 │   └── Writers/                           ArrayBindOracleWriter (chunks of BatchSize, 0 → 5000, each all-or-nothing via
-│                                          the LOKI_CHUNK savepoint in ChunkSavepoint.cs), ColumnBuffer, OracleInsertSqlBuilder
+│                                          the LOKI_CHUNK savepoint in ChunkSavepoint.cs), ColumnBuffer, OracleInsertSqlBuilder;
+│                                          DirectPathOracleWriter (one synchronous OracleBulkCopy load per save, BatchSize 0 → 5000,
+│                                          logs "Direct-path load (staging tables only)"), DirectPathLoad/DirectPathColumn (the load
+│                                          plan, built without a database), SourceColumns (shared by both writers)
 └── DependancyInjection/                   OracleBuilderExtensions.AddOracle(configure, name)
 LokiBulkDataProcessor.UnitTests/           NUnit + Moq + FluentAssertions — no database. TestDoubles/ has
                                            FakeDbConnection/FakeDbTransaction/FakeProvider for pipeline tests; SqlServer/ and
@@ -75,15 +80,20 @@ LokiBulkDataProcessor.IntegrationTests.Contract/  Class library (NOT a test proj
                                            (partial, one file per topic) + shared models, mappings, ContractRows. Core only;
                                            no driver, no EF. Providers implement its abstract hooks (DB lifecycle, reset, read-back,
                                            ConnectionStringSecrets, WithPassword, WithServer, LockTestDbModelsTableAsync). Shared with
-                                           provider tests: TestLogging/TestLoggerFactory, HeldTableLock (lock timing), HostileIdentifiers
+                                           provider tests: TestLogging/TestLoggerFactory, HeldTableLock (lock timing), HostileIdentifiers,
+                                           TestPasswords (a random container password per fixture)
 LokiBulkDataProcessor.IntegrationTests/    SQL Server: SqlServerContractTests (runs the contract) + SQL-only fixtures (EF Core
                                            transaction, logging, SqlBulkCopy specifics, 8.x legacy registration). NUnit + Testcontainers.MsSql + EF Core
-                                           (test schema via EF migrations; SqlServer/SqlServerTestDatabase)
+                                           (test schema via EF migrations; SqlServer/SqlServerTestDatabase, image pinned by tag + digest)
 LokiBulkDataProcessor.Oracle.IntegrationTests/  Oracle: OracleContractTests (runs the contract with the default options) +
-                                           OracleArrayBindTests (partial: Types, Errors, Identifiers, Transactions). NUnit +
+                                           OracleArrayBindTests (partial: Types, Errors, Identifiers, Transactions) + OracleDirectPathTests
+                                           (partial: Saves, Transactions, Hazards, KeyHazards, Identifiers, Types) + OracleAssertions. NUnit +
                                            Testcontainers.Oracle on gvenzl/oracle-free:23.26.3-slim-faststart pinned by digest; schema = constant
-                                           DDL in OracleSchema, OracleTestDatabase (ClearAllPools + TRUNCATE/DELETE per test, bind variables only)
-.github/workflows/dotnet.yml               unit + sqlserver-integration + oracle-integration jobs on push/PR to master and release/**
+                                           DDL in OracleSchema, OracleTestDatabase (ClearAllPools + TRUNCATE ... DROP ALL STORAGE / DELETE per
+                                           test, bind variables only)
+build/Package.props, build/pack.sh         Shared pack metadata (incl. GenerateDocumentationFile); pack + package checks used by CI
+docs/                                      plans/ (9.0.0 spec, progress/history, Oracle spike findings), wiki-9.0-notice.md
+.github/workflows/dotnet.yml               unit + sqlserver-integration + oracle-integration + pack jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
 ```
 
@@ -141,7 +151,7 @@ dotnet test LokiBulkDataProcessor.IntegrationTests          # needs Docker (Test
 dotnet test LokiBulkDataProcessor.IntegrationTests --filter "FullyQualifiedName~SqlServerContractTests"
 dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests   # needs Docker (Testcontainers Oracle Free, ~1.3 GB image)
 dotnet test LokiBulkDataProcessor.Oracle.IntegrationTests --filter "FullyQualifiedName~OracleContractTests"
-dotnet pack LokiBulkDataProcessor -c Release                # GeneratePackageOnBuild is also on
+bash build/pack.sh                                          # pack + check the three nupkgs (what the CI pack job runs)
 ```
 
 Integration tests start **one container per fixture** (`[OneTimeSetUp]`) and reset the data before each test: the SQL
@@ -187,13 +197,19 @@ provider-neutral message parts, no `""` data, never write identity columns or de
 ## CI/CD
 
 `.github/workflows/dotnet.yml` runs on every push and PR to **`master`** (the default branch — not
-`main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no Testcontainers package
-is in the transitive graph of Core, the SQL package or the Oracle package, #17, + a gate that fails when NuGet reports a known
-vulnerability in any of their direct or transitive packages), `sqlserver-integration` (Testcontainers SQL Server) and
-`oracle-integration` (pulls the digest-pinned Oracle Free image, then Testcontainers Oracle; 30-minute timeout). The image
-reference lives only in `OracleTestDatabase.Image`; the job greps it from there (keep it a one-line literal with `@sha256:`).
-The workflow runs with `permissions: contents: read`.
+`main`) and `release/**`, as parallel jobs: `unit` (unit tests + a check that no test-only package — Testcontainers, NUnit,
+Moq, FluentAssertions, Microsoft.NET.Test.Sdk, coverlet — is in the transitive graph of Core, the SQL package or the Oracle
+package, #17, + a gate that fails when NuGet reports a known vulnerability in any of their direct or transitive packages),
+`sqlserver-integration` (Testcontainers SQL Server), `oracle-integration` (pulls the digest-pinned Oracle Free image, then
+Testcontainers Oracle; 30-minute timeout) and `pack` (after `unit`: `bash build/pack.sh` packs the three libraries in Release
+and fails unless there are exactly three nupkgs at `<Version>`, SQL and Oracle depend on Core `[Version, next major)`, no nuspec
+has a test-only dependency, and each has its dll, XML docs and README; prints their sha256; uploads them as the `nuget-packages`
+artifact on pushes only; it never publishes). The Oracle image reference lives only in `OracleTestDatabase.Image`; the job greps it
+from there (keep it a one-line literal with `@sha256:`); `sqlserver-integration` fails unless `SqlServerTestDatabase.Image` is tag +
+digest pinned. The workflow runs with `permissions: contents: read`, every checkout has `persist-credentials: false`, and every
+action is pinned to a full commit SHA with a `# vX.Y.Z` comment (`.github/dependabot.yml` updates them weekly).
 Shared build settings (`TargetFramework`, `LangVersion`, `Version`, authors, repo URL) live in
 `Directory.Build.props`; shared pack metadata (icon, README, LICENSE, `GeneratePackageOnBuild`) lives in
 `build/Package.props`, imported by each library csproj. Bump `<Version>` in `Directory.Build.props`
-and `<PackageReleaseNotes>` in the library csproj alongside the README upgrade guide when shipping.
+and `<PackageReleaseNotes>` in each library csproj alongside the README upgrade guide when shipping. `dotnet pack` needs
+`-p:GeneratePackageOnBuild=false` (NU5026 otherwise); `build/pack.sh` does that.

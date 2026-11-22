@@ -65,7 +65,7 @@ git checkout -b <fix|feat>/<kebab-slug>-<issue-number>
 
 ## Stage 3 — Implement
 
-Spawn `dotnet-senior` with the issue body, the original `$ARGUMENTS`, and this reminder: methods ≤ ~20 lines; private methods per logical step; provider types only in `InternalDbOperations/`; never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass.
+Spawn `dotnet-senior` with the issue body, the original `$ARGUMENTS`, and this reminder: methods ≤ ~20 lines; private methods per logical step; driver types only in the provider's `Internal/` folder (none in Core); never commit/dispose a caller-supplied transaction; no breaking public API; tests in the same pass.
 
 Afterwards run `git diff --stat`.
 

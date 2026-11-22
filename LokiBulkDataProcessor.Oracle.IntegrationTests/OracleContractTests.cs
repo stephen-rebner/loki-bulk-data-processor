@@ -24,7 +24,7 @@ public sealed class OracleContractTests : BulkProcessorContractTests
 
     protected override string ConnectionString => _database.ConnectionString;
 
-    protected override IReadOnlyCollection<string> ConnectionStringSecrets { get; } = new[] { OracleTestDatabase.Password };
+    protected override IReadOnlyCollection<string> ConnectionStringSecrets => new[] { _database.Password };
 
     protected override void AddProvider(ILokiBulkDataProcessorBuilder builder) => builder.AddOracle();
 

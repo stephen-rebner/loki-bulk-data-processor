@@ -5,7 +5,7 @@ namespace Loki.BulkDataProcessor.Oracle.Internal.Identifiers;
 
 /// <summary>
 /// Validation and quoting of Oracle identifiers (CWE-89). Destination names can come from a JSON payload, so they are never
-/// trusted: only names that passed <see cref="RequireSimple"/> or came back from the catalogue are put into SQL, always quoted.
+/// trusted: only names that passed <see cref="RequireSimpleTableName"/> / <see cref="RequireSimpleColumnName"/> or came back from the catalogue are put into SQL, always quoted.
 /// </summary>
 internal static partial class OracleIdentifier
 {
