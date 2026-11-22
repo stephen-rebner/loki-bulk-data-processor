@@ -20,6 +20,9 @@ user documentation for 9.x** (packed into every nupkg; the wiki covers 8.x and e
 updates the README in the same PR, and every README code sample must compile against the current API (the factory sample is
 kept verbatim in `UnitTests/Docs/ReadmeFactorySampleTests.cs`).
 
+**Next work** (samples project, then a NuGet publish workflow, plus 9.x follow-ups) is planned in
+[`docs/plans/next-work.md`](docs/plans/next-work.md): read it before starting any of it.
+
 ## Repository layout
 
 ```
@@ -92,7 +95,7 @@ LokiBulkDataProcessor.Oracle.IntegrationTests/  Oracle: OracleContractTests (run
                                            DDL in OracleSchema, OracleTestDatabase (ClearAllPools + TRUNCATE ... DROP ALL STORAGE / DELETE per
                                            test, bind variables only)
 build/Package.props, build/pack.sh         Shared pack metadata (incl. GenerateDocumentationFile); pack + package checks used by CI
-docs/                                      plans/ (9.0.0 spec, progress/history, Oracle spike findings), wiki-9.0-notice.md
+docs/                                      plans/ (9.0.0 spec, progress/history, Oracle spike findings, next-work.md), wiki-9.0-notice.md
 .github/workflows/dotnet.yml               unit + sqlserver-integration + oracle-integration + pack jobs on push/PR to master and release/**
 .claude/                                   Agents, commands, and standards for Claude Code (see below)
 ```
