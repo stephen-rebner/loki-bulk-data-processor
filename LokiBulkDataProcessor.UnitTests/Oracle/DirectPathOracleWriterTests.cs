@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,8 +14,8 @@ using Oracle.ManagedDataAccess.Client;
 namespace LokiBulkDataProcessor.UnitTests.Oracle;
 
 /// <summary>
-/// <see cref="DirectPathOracleWriter"/> without a database: OracleBulkCopy configuration, source-column checks and cancellation
-/// before the (synchronous) load. The load itself is covered by <c>OracleDirectPathTests</c> in the Oracle integration tests.
+/// <see cref="DirectPathOracleWriter"/> without a database: the load plan (OracleBulkCopy needs an open connection, so its configuration
+/// is checked through <see cref="DirectPathOracleWriter.Plan"/>), source-column checks and cancellation before the (synchronous) load. The load itself is covered by <c>OracleDirectPathTests</c> in the Oracle integration tests.
 /// </summary>
 public class DirectPathOracleWriterTests
 {
@@ -47,67 +46,69 @@ public class DirectPathOracleWriterTests
     }
 
     [Test]
-    public void CreateBulkCopy_ShouldUseTheQuotedNamesBatchSizeAndTimeout_WhenTheTargetIsSchemaQualified()
+    public void Plan_ShouldUseTheQuotedNamesBatchSizeAndTimeout_WhenTheTargetIsSchemaQualified()
     {
+        using DataTable table = PostsTable();
+        using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(
             new BulkWriteTarget("loki.Posts", new[] { new ColumnMap("Title", "Title"), new ColumnMap("BlogId", "BlogId") }));
 
-        using OracleBulkCopy bulkCopy = Writer(batchSize: 250, timeout: 45).CreateBulkCopy(resolved, new[] { 0, 1 });
+        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(250, 45));
 
-        bulkCopy.DestinationSchemaName.Should().Be("\"LOKI\"");
-        bulkCopy.DestinationTableName.Should().Be("\"POSTS\"");
-        bulkCopy.BatchSize.Should().Be(250);
-        bulkCopy.BulkCopyTimeout.Should().Be(45);
-        bulkCopy.BulkCopyOptions.Should().Be(OracleBulkCopyOptions.Default);
-        bulkCopy.ColumnMappings.Count.Should().Be(2);
-        bulkCopy.ColumnMappings[0].SourceOrdinal.Should().Be(0);
-        bulkCopy.ColumnMappings[0].DestinationColumn.Should().Be("\"TITLE\"");
-        bulkCopy.ColumnMappings[1].SourceOrdinal.Should().Be(1);
-        bulkCopy.ColumnMappings[1].DestinationColumn.Should().Be("\"BLOGID\"");
+        load.SchemaSql.Should().Be("\"LOKI\"");
+        load.TableSql.Should().Be("\"POSTS\"");
+        load.BatchSize.Should().Be(250);
+        load.TimeoutSeconds.Should().Be(45);
+        load.Columns.Should().Equal(new DirectPathColumn(0, "\"TITLE\""), new DirectPathColumn(1, "\"BLOGID\""));
     }
 
     [Test]
-    public void CreateBulkCopy_ShouldLeaveTheSchemaUnset_WhenTheTableIsNotQualified()
+    public void Plan_ShouldLeaveTheSchemaNull_WhenTheTableIsNotQualified()
     {
+        using DataTable table = PostsTable();
+        using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Title", "Title") }));
 
-        using OracleBulkCopy bulkCopy = Writer().CreateBulkCopy(resolved, new[] { 0 });
+        DirectPathLoad load = DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
 
-        bulkCopy.DestinationSchemaName.Should().BeNullOrEmpty();
-        bulkCopy.DestinationTableName.Should().Be("\"POSTS\"");
+        load.SchemaSql.Should().BeNull();
+        load.TableSql.Should().Be("\"POSTS\"");
+        load.BatchSize.Should().Be(0, "0 sends every row in one batch, as SqlBulkCopy does");
     }
 
     [Test]
-    public void SourceOrdinals_ShouldReturnTheOrdinalOfEachMappedColumnInTargetOrder_WhenTheSourceHasThem()
+    public void Plan_ShouldMapEachColumnBySourceOrdinalInTargetOrder_WhenTheSourceHasThem()
     {
         using DataTable table = PostsTable();
         using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(
             new BulkWriteTarget("Posts", new[] { new ColumnMap("BlogId", "BlogId"), new ColumnMap("Title", "Heading") }));
 
-        DirectPathOracleWriter.SourceOrdinals(reader, resolved).Should().Equal(1, 0);
+        DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30)).Columns
+            .Should().Equal(new DirectPathColumn(1, "\"BLOGID\""), new DirectPathColumn(0, "\"HEADING\""));
     }
 
     [Test]
-    public void SourceOrdinals_ShouldThrowAMarkedSourceColumnNotFound_WhenAMappedColumnIsMissing()
+    public void Plan_ShouldThrowAMarkedSourceColumnNotFound_WhenAMappedColumnIsMissing()
     {
         using DataTable table = PostsTable();
         using DataTableReader reader = table.CreateDataReader();
         OracleResolvedTarget resolved = UnquotedIdentifierResolver.Resolve(new BulkWriteTarget("Posts", new[] { new ColumnMap("Missing", "Title") }));
 
-        Action action = () => DirectPathOracleWriter.SourceOrdinals(reader, resolved);
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
 
         action.Should().Throw<InvalidOperationException>().WithMessage(BulkCopyErrorMessages.SourceColumnNotFound("Missing"))
             .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));
     }
 
     [Test]
-    public void SourceOrdinals_ShouldThrowAMarkedInvalidOperation_WhenThereAreNoColumns()
+    public void Plan_ShouldThrowAMarkedInvalidOperation_WhenThereAreNoColumns()
     {
         using DataTable table = PostsTable();
         using DataTableReader reader = table.CreateDataReader();
+        var resolved = new OracleResolvedTarget(null, "\"POSTS\"", Array.Empty<OracleResolvedColumn>());
 
-        Action action = () => DirectPathOracleWriter.SourceOrdinals(reader, new OracleResolvedTarget(null, "\"POSTS\"", Array.Empty<OracleResolvedColumn>()));
+        Action action = () => DirectPathOracleWriter.Plan(reader, resolved, new BulkWriteOptions(0, 30));
 
         action.Should().Throw<InvalidOperationException>().WithMessage(SourceColumns.NoColumnsMessage)
             .Which.Should().Match<Exception>(e => OracleValidation.IsValidationFailure(e));

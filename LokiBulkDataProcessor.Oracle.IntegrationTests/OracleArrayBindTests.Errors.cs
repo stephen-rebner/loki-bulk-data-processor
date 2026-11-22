@@ -163,32 +163,8 @@ public sealed partial class OracleArrayBindTests
         (await _database.ReadTestDbModelsAsync()).Should().BeEmpty();
     }
 
-    /// <summary>
-    /// Asserts the translated InvalidOperationException and that the OracleException in its chain reports <paramref name="oraNumber"/>,
-    /// itself or (behind the ORA-24381 array DML envelope) in its <see cref="OracleException.Errors"/>.
-    /// </summary>
-    private static async Task<ExceptionAssertions<InvalidOperationException>> ThrowsTranslated(Func<Task> action, string messagePattern, int oraNumber)
-    {
-        ExceptionAssertions<InvalidOperationException> thrown =
-            await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(messagePattern);
-        OracleException oracle = FindOracleException(thrown.Which);
-        oracle.Should().NotBeNull("the driver error is kept (#15)");
-        oracle.Errors.Cast<OracleError>().Select(error => error.Number).Prepend(oracle.Number).Should().Contain(oraNumber);
-        return thrown;
-    }
-
-    private static OracleException FindOracleException(Exception exception)
-    {
-        for (Exception current = exception; current is not null; current = current.InnerException)
-        {
-            if (current is OracleException oracle)
-            {
-                return oracle;
-            }
-        }
-
-        return null;
-    }
+    private static Task<ExceptionAssertions<InvalidOperationException>> ThrowsTranslated(Func<Task> action, string messagePattern, int oraNumber) =>
+        OracleAssertions.ThrowsTranslatedAsync(action, messagePattern, oraNumber);
 
     private static DataTable KeyedRows(params (int Id, string Name)[] keyedRows)
     {

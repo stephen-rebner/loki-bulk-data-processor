@@ -26,6 +26,15 @@ namespace Loki.BulkDataProcessor.Oracle;
 /// cannot exhaust memory; the rows are still written in the same transaction.
 /// </para>
 /// <para>
+/// The paragraphs above describe the default <see cref="OracleWriteMode.ArrayBind"/>. With <see cref="OracleWriteMode.DirectPath"/>
+/// each save is one synchronous <c>OracleBulkCopy</c> load (it blocks the calling thread, and the cancellation token is checked only before
+/// the load starts) that streams the source in batches of <see cref="IBulkProcessor.BatchSize"/> rows (0 means one batch). It joins your
+/// <see cref="IBulkProcessor.Transaction"/>, but only one load is allowed per transaction (ORA-39822), and until that transaction ends
+/// other sessions' queries on the table wait. A failed load leaves none of its rows, and your transaction stays usable. Foreign keys are
+/// not enforced, duplicate keys leave the index UNUSABLE (later inserts fail with ORA-01502), and tables with triggers are refused
+/// (ORA-26086): see <see cref="OracleWriteMode.DirectPath"/>.
+/// </para>
+/// <para>
 /// Oracle stores an empty string as NULL. Destination names are matched as described on <see cref="OracleIdentifierResolution"/>.
 /// An invalid destination table name throws an <see cref="System.ArgumentException"/> (<c>ParamName</c> "destinationTableName") before
 /// any SQL runs, where SQL Server reports it as a failed copy (<see cref="System.InvalidOperationException"/>); an invalid destination
